@@ -1,0 +1,141 @@
+.card {
+    cursor: text;
+    padding: 10px;
+    margin: 10px;
+    
+
+}
+
+.card:focus {}
+
+
+.card * {
+    margin: 0;
+    outline-width: 0;
+}
+
+.card h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0em 0;
+}
+
+.card h2 {
+    font-size: 1.8em;
+    font-weight: bold;
+    margin: 0em 0;
+}
+
+.card h3 {
+    font-size: 1.6em;
+    font-weight: bold;
+    margin: 0em 0;
+}
+
+.card h4 {
+    font-size: 1.4em;
+    font-weight: bold;
+    margin: 0em 0;
+}
+
+.card h5 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 0em 0;
+}
+
+.card code {
+    background-color: gainsboro;
+    padding: 0em 0.2em;
+}
+
+
+.card p:focus {
+    width: fit-content;
+    min-width: 10px;
+}
+
+.card b:focus::before {
+    content: '**';
+
+}
+
+.card blockquote {
+    border-left: 0.3em solid #ccc;
+    border-top: 0.3em solid white;
+    border-bottom: 0.3em solid white;
+
+    padding-left: 0.5em;
+}
+
+.card-expand b::before,
+.card-expand b::after {
+    content: '**';
+}
+
+.card-expand i::before,
+.card-expand i::after {
+    content: '**';
+}
+
+.card-expand code::before,
+.card-expand code::after {
+    content: '`';
+}
+
+.card-expand s::before,
+.card-expand s::after {
+    content: '~~';
+}
+
+.card-expand u::before,
+.card-expand u::after {
+    content: '__';
+}
+
+.card-expand h1::before,
+.card-expand h1::after {
+    content: '#';
+}
+
+.card-expand h2::before,
+.card-expand h2::after {
+    content: '##';
+}
+
+.card-expand h3::before,
+.card-expand h3::after {
+    content: '###';
+}
+
+.card-expand h4::before,
+.card-expand h4::after {
+    content: '####';
+}
+
+.card-expand h5::before,
+.card-expand h5::after {
+    content: '#####';
+}
+
+
+.card li:global(.list-indent-1) {
+    margin-left: 0em;
+}
+
+.card li:global(.list-indent-2) {
+    margin-left: 1em;
+}
+
+.card li:global(.list-indent-3) {
+    margin-left: 2em;
+}
+
+
+.label-hover {
+    background-color: gainsboro;
+}
+
+/* .card b:hover::after {
+    content: '**';
+} */
