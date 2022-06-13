@@ -1,7 +1,7 @@
 import React from "react";
 import { NestRender } from "./render";
 import { BlockProps, BlockStates, ContentEditable } from "./Common"
-import { BlockquoteBlock, DefaultBlock, IBlock } from "./Common"
+import { BlockquoteBlock, DefaultBlock } from "./Common"
 import { RefObject } from "react";
 import * as op from "../operation"
 

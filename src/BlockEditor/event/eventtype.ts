@@ -1,6 +1,5 @@
 import React from "react";
 import { CaretPosition } from "../operation";
-import { Block, BlockRange } from "../Blocks/Common";
 
 export interface BlockEvent<T> {
   html: string;

@@ -15,7 +15,6 @@ export class Section extends DefaultBlock<SectionProps, SectionStats, HTMLHeadin
 
 
     handleBackspace = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
-        const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLHeadingElement>>(e)
         if (op.isCursorLeft(this.ref.current)) {
             this.props.onChangeBlockType({
                 html: op.validInnerHTML(this.outerRoot()), 'type': "paragraph",

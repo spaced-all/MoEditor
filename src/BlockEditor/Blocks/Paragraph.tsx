@@ -2,10 +2,9 @@ import React from "react";
 import { BlockProps, BlockStates } from "./Common"
 import { NestRender } from "./render";
 import { ContentEditable, ParagraphBlock, DefaultBlock } from "./Common"
-import { RefObject } from "react";
 import * as op from "../operation"
 import * as BE from "../event/eventtype"
-import { validInnerHTML } from "../operation";
+
 
 
 export interface ParagraphProps extends BlockProps {

@@ -3,8 +3,7 @@ import {
   firstCaretPosition,
   lastCaretPosition,
   nextCaretPosition,
-  indexOfNode,
-} from "./caretv2";
+} from "./caret";
 import {
   validChildNodes,
   isValidTag,

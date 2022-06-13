@@ -1,4 +1,4 @@
-/* global global */
+/* global */
 
 import * as React from 'react';
 

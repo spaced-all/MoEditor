@@ -1,9 +1,8 @@
 import {
   setCaretPosition,
-  currentCaretPosition,
   lastCaretPosition,
   nextCaretPosition,
-} from "./caretv2";
+} from "./caret";
 
 export function insertNode(
   root: HTMLElement,

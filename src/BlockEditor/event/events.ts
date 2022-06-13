@@ -1,4 +1,3 @@
-import React from "react";
 import { CaretPosition } from "../operation";
 import { CaretEvent } from "./eventtype";
 

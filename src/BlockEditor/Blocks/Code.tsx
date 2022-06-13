@@ -1,10 +1,5 @@
-import { BlockProps, BlockStates, ContentEditable } from "./Common"
-import { ListBlock, DefaultBlock } from "./Common"
-import { NestRender } from "./render";
-import * as op from "../operation"
-import * as BE from "../event/eventtype";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { BlockProps, BlockStates } from "./Common"
+import { DefaultBlock } from "./Common"
 import Editor from "./CodeEditor"
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
@@ -57,8 +52,7 @@ export class Code extends DefaultBlock<CodeProps, CodeStats, HTMLPreElement, HTM
                     fontSize: 12,
                 }}
                 onKeyDown={() => {
-                    console.log(document.getSelection().focusNode, document.getSelection().focusOffset)
-                    const range = document.getSelection().getRangeAt(0)
+                    
                 }}
                 onValueChange={(code) => this.setState({
                     code: code,

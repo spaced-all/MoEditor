@@ -1,13 +1,9 @@
 import React, { RefObject } from "react";
-import produce from "immer";
 import * as op from "../operation";
 import * as BE from "../event/eventtype";
-import { Serialize } from "./render";
 
 import { EventManager } from "../event/emitter";
 import { BlockCaretEvent } from "../event/events";
-import { isTag } from "../operation";
-import { isForStatement } from "typescript";
 
 export interface Dom {
   tagName: string;

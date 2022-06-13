@@ -361,7 +361,6 @@ class Card extends React.Component<CardProps, CardStats> {
 
     handleMergeBelow = (evt, ind) => {
         const { blocks } = this.state
-        const val = blocks[ind]
         debugger
         this.portalCaller.call('boundhint', { name: 'unexpand', 'data': {} })
         const blockA = produce(this.state.blocks[ind], draft => {

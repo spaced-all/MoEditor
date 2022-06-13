@@ -1,7 +1,6 @@
 import React from "react";
 import { BlockProps, BlockStates, ContentEditable } from "./Common"
-import { ListBlock, DefaultBlock } from "./Common"
-import { RefObject } from "react";
+import { DefaultBlock } from "./Common"
 import { NestRender } from "./render";
 import * as op from "../operation"
 import * as BE from "../event/eventtype";
@@ -48,11 +47,6 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
         }
     }
     handleTab = (e: React.KeyboardEvent<HTMLTableColElement>) => {
-        const innerRoot = this.currentInnerRoot()
-        const rid = parseFloat(innerRoot.getAttribute('data-row'))
-
-        const cid = parseFloat(innerRoot.getAttribute('data-col'))
-
         if (e.shiftKey) {
             const newRoot = this.previousTableDataCell()
             if (newRoot) {

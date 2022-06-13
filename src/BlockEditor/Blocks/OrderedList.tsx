@@ -1,8 +1,7 @@
 import React from "react";
 import { BlockProps, BlockStates, ContentEditable } from "./Common"
-import { ListBlock, DefaultBlock } from "./Common"
-import { List } from "./List"
-import { RefObject } from "react";
+import { DefaultBlock } from "./Common"
+
 import { NestRender } from "./render";
 import * as op from "../operation"
 import * as BE from "../event/eventtype";
