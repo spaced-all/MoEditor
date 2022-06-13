@@ -1,20 +1,20 @@
 import React from "react";
 import { BlockProps, BlockStates, ContentEditable } from "./Common"
 import { ListBlock, DefaultBlock } from "./Common"
+import { List } from "./List"
 import { RefObject } from "react";
 import { NestRender } from "./render";
 import * as op from "../operation"
 import * as BE from "../event/eventtype";
 
-interface ListProps extends BlockProps {
-    data: ListBlock
+interface OrderedListProps extends BlockProps {
 }
 
-interface ListStats extends BlockStates {
+interface OrderedListStats extends BlockStates {
 }
 
 
-export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, HTMLLIElement> {
+export class OrderedList extends DefaultBlock<OrderedListProps, OrderedListStats, HTMLOListElement, HTMLLIElement> {
     static defaultProps = DefaultBlock.defaultProps;
 
     handleBackspace = (e: React.KeyboardEvent<HTMLLIElement>) => {
@@ -68,7 +68,7 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
         const innerRoot = this.currentInnerRoot()
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === 0) {
-            const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLUListElement>>(e);
+            const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLOListElement>>(e);
             this.props.onJumpToAboveEnd(newE);
         } else {
             const caretPos = op.lastCaretPosition(op.previousValidNode(innerRoot) as HTMLLIElement)
@@ -80,7 +80,7 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
         const innerRoot = this.currentInnerRoot()
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === this.props.data.data.dom.length - 1) {
-            const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLUListElement>>(e);
+            const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLOListElement>>(e);
             this.props.onJumpToBelowStart(newE);
         } else {
             const caretPos = op.firstCaretPosition(op.nextValidNode(innerRoot) as HTMLLIElement)
@@ -120,7 +120,7 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
     render() {
         const data = this.latestData()
         return <ContentEditable
-            tagName={`ul`}
+            tagName={`ol`}
             contentEditable={this.state.contentEditable}
             innerRef={this.ref}
             onInput={this.handleInput}

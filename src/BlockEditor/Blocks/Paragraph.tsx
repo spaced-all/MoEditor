@@ -1,7 +1,7 @@
 import React from "react";
-import { BlockProps, BlockStates } from "./common"
+import { BlockProps, BlockStates } from "./Common"
 import { NestRender } from "./render";
-import { ContentEditable, ParagraphBlock, DefaultBlock } from "./common"
+import { ContentEditable, ParagraphBlock, DefaultBlock } from "./Common"
 import { RefObject } from "react";
 import * as op from "../operation"
 import * as BE from "../event/eventtype"
@@ -17,11 +17,8 @@ export interface ParagraphStats extends BlockStates {
 
 
 
-export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTMLParagraphElement> {
+export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTMLParagraphElement, HTMLParagraphElement> {
     static defaultProps = DefaultBlock.defaultProps;
-    constructor(props) {
-        super(props);
-    }
 
     handleBackspace = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
         const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLParagraphElement>>(e)
@@ -43,7 +40,8 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
             case '#####':
                 this.props.onChangeBlockType({
                     html: '',
-                    ref: this.ref.current,
+                    ref: this.outerRoot(),
+                    inner: this.currentInnerRoot(),
                     type: 'header',
                     level: key.length,
                 })
@@ -52,7 +50,8 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
             case '>':
                 this.props.onChangeBlockType({
                     html: '',
-                    ref: this.ref.current,
+                    ref: this.outerRoot(),
+                    inner: this.currentInnerRoot(),
                     type: 'blockquote',
                     level: key.length,
                 })
@@ -84,7 +83,7 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
     }
 
     render() {
-        const { data } = this.props
+        const data = this.latestData()
         const element = NestRender(data.data.dom)
 
         return <>
@@ -97,7 +96,13 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
                 onFocus={this.handleFocus}
                 onSelect={this.handleSelect}
                 onKeyDown={this.defaultHandleKeyDown}
-                onKeyUp={this.defaultHandleKeyup}>
+                onKeyUp={this.defaultHandleKeyup}
+                onMouseMove={this.handleMouseMove}
+                onMouseEnter={this.handleMouseEnter}
+                onMouseLeave={this.handleMouseLeave}
+                onCopy={this.handleCopy}
+                onPaste={this.handlePaste}
+            >
                 {element}
             </ContentEditable>
 

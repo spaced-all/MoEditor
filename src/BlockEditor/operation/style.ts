@@ -1,8 +1,10 @@
 import {
+  setCaretPosition,
   firstCaretPosition,
   lastCaretPosition,
-  setCaretPosition,
-} from "./caret";
+  nextCaretPosition,
+  indexOfNode,
+} from "./caretv2";
 import {
   validChildNodes,
   isValidTag,
@@ -42,35 +44,40 @@ const tagNameToStyle = {
 export function supportStyleKey(key: string) {
   return key in styleToTag;
 }
+export function supportedTag(tag: Node) {
+  return tagNameToStyle[getTagName(tag)] !== undefined;
+}
 
 export function tagToStyle(tag: Node) {
   return tagNameToStyle[getTagName(tag)];
 }
 
-export function deleteStyle(styleContainer: HTMLElement) {
+export function deleteStyle(styleContainer: HTMLElement, root: HTMLElement) {
   if (!styleContainer) {
     return;
   }
   const sel = document.getSelection();
   const range = sel.getRangeAt(0);
-  const { startOffset, startContainer, endContainer, endOffset } = range;
+  const { startContainer, endContainer } = range;
   const bchildren = validChildNodes(styleContainer);
 
   bchildren.forEach((item) => {
     styleContainer.parentElement.insertBefore(item, styleContainer);
   });
 
-  // step 3. remove b
+  // step 3. resetRange
+  if (bchildren.length === 0) {
+    const caretPos = nextCaretPosition(root);
+    setCaretPosition(caretPos, true, true, range);
+  } else {
+    const left = firstCaretPosition(startContainer);
+    const right = lastCaretPosition(endContainer);
+    setCaretPosition(left, true, false, range);
+    setCaretPosition(right, false, true, range);
+  }
+
+  // step 4. remove b
   styleContainer.parentElement.removeChild(styleContainer);
-
-  // step 4. resetRange
-  //   range.setStart(startContainer, startOffset);
-  //   range.setEnd(endContainer, endOffset);
-
-  const left = firstCaretPosition(startContainer);
-  const right = lastCaretPosition(endContainer);
-  setCaretPosition(left, true, false, range);
-  setCaretPosition(right, false, true, range);
 }
 
 export function applyStyle(style, root: HTMLElement, range?: Range) {
@@ -79,7 +86,7 @@ export function applyStyle(style, root: HTMLElement, range?: Range) {
     return null;
   }
 
-  const sel = document.getSelection();
+  const sel = document.getSelection()!;
   const newRange = document.createRange();
   if (!range) {
     range = sel.getRangeAt(0);
@@ -97,8 +104,8 @@ export function applyStyle(style, root: HTMLElement, range?: Range) {
     // unwrap style tag
     // step 1. store inner nodes range container and offset
     // cannot use range.cloneRange() because it will change when dom tree changed.
-    // debugger;
-    const { startOffset, startContainer, endContainer, endOffset } = range;
+
+    const { startContainer, endContainer } = range;
 
     // step 2. move inner nodes from b to its parents Node
     const bchildren = validChildNodes(wrapb);
@@ -140,7 +147,6 @@ export function applyStyle(style, root: HTMLElement, range?: Range) {
     // <p>t[ex<i>te]xt</i>t</p>
     // <p>t[ex<b>te]xt</b>t</p>
     const pure = [];
-    var allb = true;
     var cur;
 
     range.deleteContents();
@@ -156,9 +162,6 @@ export function applyStyle(style, root: HTMLElement, range?: Range) {
         });
       } else {
         pure.push(cur);
-        if (!wrapb) {
-          allb = false;
-        }
       }
     }
 
@@ -219,11 +222,10 @@ export function isInStyleBound(
 
     if (neighbor) {
       // <p><b>"text"|"text"</b></p>
-      if (isTag(neighbor, "#text")) {
-        return null;
+      if (supportedTag(neighbor)) {
+        return neighbor;
       }
-      // <p><b><i>text</i>|"text"</b></p> backspace
-      return neighbor;
+      return null;
     }
     if (container.parentElement === root) {
       return null;
@@ -234,7 +236,14 @@ export function isInStyleBound(
   }
 
   if (container !== root) {
-    return container;
+    // <b><br><br>/<br></b>
+    if (
+      (direction === "left" && offset === 0) ||
+      (direction === "right" && offset === container.childNodes.length)
+    ) {
+      return container;
+    }
+    return null;
   }
   return null;
 }

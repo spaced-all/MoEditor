@@ -1,5 +1,5 @@
 import React from "react";
-import { SectionBlock, BlockStates, BlockProps, DefaultBlock, ContentEditable } from "./common"
+import { SectionBlock, BlockStates, BlockProps, DefaultBlock, ContentEditable } from "./Common"
 import { NestRender } from "./render"
 import * as op from "../operation"
 import * as BE from "../event/eventtype"
@@ -11,16 +11,17 @@ interface SectionStats extends BlockStates {
 
 }
 
-export class Section extends DefaultBlock<SectionProps, SectionStats, HTMLHeadingElement> {
+export class Section extends DefaultBlock<SectionProps, SectionStats, HTMLHeadingElement, HTMLHeadingElement> {
 
-    constructor(props) {
-        super(props);
-    }
 
     handleBackspace = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
         const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLHeadingElement>>(e)
         if (op.isCursorLeft(this.ref.current)) {
-            this.props.onChangeBlockType({ html: op.validInnerHTML(this.ref.current), 'type': "paragraph", "ref": this.ref.current })
+            this.props.onChangeBlockType({
+                html: op.validInnerHTML(this.outerRoot()), 'type': "paragraph",
+                ref: this.outerRoot(),
+                inner: this.currentInnerRoot(),
+            })
             e.preventDefault()
         }
     }
@@ -43,17 +44,19 @@ export class Section extends DefaultBlock<SectionProps, SectionStats, HTMLHeadin
             case '###':
             case '####':
             case '#####':
-                if (key.length == this.props.data.level) {
+                if (key.length === this.props.data.level) {
                     this.props.onChangeBlockType({
                         html: '',
-                        ref: this.ref.current,
+                        ref: this.outerRoot(),
                         type: 'paragraph',
                         level: key.length,
+                        inner: this.currentInnerRoot(),
                     })
                 } else {
                     this.props.onChangeBlockType({
                         html: '',
-                        ref: this.ref.current,
+                        ref: this.outerRoot(),
+                        inner: this.currentInnerRoot(),
                         type: 'header',
                         level: key.length,
                     })
@@ -63,7 +66,7 @@ export class Section extends DefaultBlock<SectionProps, SectionStats, HTMLHeadin
         }
     };
     render() {
-        const { data } = this.props
+        const data = this.latestData()
         const element = NestRender(data.data.dom)
 
 
@@ -76,7 +79,13 @@ export class Section extends DefaultBlock<SectionProps, SectionStats, HTMLHeadin
             onFocus={this.handleFocus}
             onSelect={this.handleSelect}
             onKeyDown={this.defaultHandleKeyDown}
-            onKeyUp={this.defaultHandleKeyup}>
+            onKeyUp={this.defaultHandleKeyup}
+            onMouseMove={this.handleMouseMove}
+            onMouseEnter={this.handleMouseEnter}
+            onMouseLeave={this.handleMouseLeave}
+            onCopy={this.handleCopy}
+                onPaste={this.handlePaste}
+        >
             {element}
         </ContentEditable>
     }

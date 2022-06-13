@@ -1,7 +1,7 @@
 import React from "react";
 import { NestRender } from "./render";
-import { BlockProps, BlockStates, ContentEditable } from "./common"
-import { BlockquoteBlock, DefaultBlock, IBlock } from "./common"
+import { BlockProps, BlockStates, ContentEditable } from "./Common"
+import { BlockquoteBlock, DefaultBlock, IBlock } from "./Common"
 import { RefObject } from "react";
 import * as op from "../operation"
 
@@ -14,36 +14,62 @@ interface BlockquoteStats extends BlockStates {
 }
 
 
-export class Blockquote extends DefaultBlock<BlockquoteProps, BlockquoteStats, HTMLParagraphElement> {
+export class Blockquote extends DefaultBlock<BlockquoteProps, BlockquoteStats, HTMLQuoteElement, HTMLParagraphElement> {
 
     static defaultProps = DefaultBlock.defaultProps;
+    pref: RefObject<HTMLParagraphElement>;
+
     constructor(props) {
-        super(props);
+        super(props)
+        this.pref = React.createRef<HTMLParagraphElement>()
     }
     handleBackspace = (e: React.KeyboardEvent<HTMLElement>) => {
-        if (op.isCursorLeft(this.ref.current)) {
-            this.props.onChangeBlockType({ html: op.validInnerHTML(this.ref.current), 'type': "paragraph", "ref": this.ref.current })
+        if (op.isCursorLeft(this.currentInnerRoot())) {
+            this.props.onChangeBlockType({
+                html: op.validInnerHTML(this.outerRoot()), 'type': "paragraph", ref: this.outerRoot(),
+                inner: this.currentInnerRoot(),
+            })
+
             e.preventDefault()
         }
     }
+    outerRoot = () => {
+        return this.ref.current
+    };
+    currentInnerRoot = () => {
+        return this.pref.current
+    };
+    firstInnerRoot = () => {
+        return this.pref.current
+    };
+    lastInnerRoot = () => {
+        return this.pref.current
+    };
 
     render() {
-        const { data } = this.props
+        const data = this.latestData()
         const element = NestRender(data.data.dom)
 
-        return <blockquote>
-            <ContentEditable
-                tagName={`p`}
-                contentEditable={this.state.contentEditable}
-                innerRef={this.ref}
-                onInput={this.handleInput}
-                onBlur={this.handleBlur}
-                onFocus={this.handleFocus}
-                onSelect={this.handleSelect}
-                onKeyDown={this.defaultHandleKeyDown}
-                onKeyUp={this.defaultHandleKeyup}>
+        return <ContentEditable
+            tagName={`blockquote`}
+            contentEditable={this.state.contentEditable}
+            innerRef={this.ref}
+            onInput={this.handleInput}
+            onBlur={this.handleBlur}
+            onFocus={this.handleFocus}
+            onSelect={this.handleSelect}
+            onKeyDown={this.defaultHandleKeyDown}
+            onKeyUp={this.defaultHandleKeyup}
+            onMouseMove={this.handleMouseMove}
+            onMouseEnter={this.handleMouseEnter}
+            onMouseLeave={this.handleMouseLeave}
+            onCopy={this.handleCopy}
+            onPaste={this.handlePaste}
+        >
+            <p ref={this.pref}>
+
                 {element}
-            </ContentEditable>
-        </blockquote>
+            </p>
+        </ContentEditable>
     }
 }

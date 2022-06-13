@@ -19,5 +19,6 @@ export class BlockCaretEvent<T> implements CaretEvent<T> {
     this.direction = direction;
     // this.offset = null;
   }
+  inner: T;
   offset?: number;
 }

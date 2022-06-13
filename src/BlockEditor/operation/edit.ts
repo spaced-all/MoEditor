@@ -1,4 +1,10 @@
-import { nextCaretPosition, setCaretPosition } from "./caret";
+import {
+  setCaretPosition,
+  currentCaretPosition,
+  lastCaretPosition,
+  nextCaretPosition,
+} from "./caretv2";
+
 export function insertNode(
   root: HTMLElement,
   node: Node,
@@ -15,8 +21,10 @@ export function insertNode(
   range.setStart(container, offset);
   range.setEnd(container, offset);
   range.insertNode(node);
-  if (direction == "right") {
-    const caretPos = nextCaretPosition(root, container, offset);
+
+  const prev = lastCaretPosition(node);
+  if (direction === "right") {
+    const caretPos = nextCaretPosition(root, prev.container, prev.offset);
     setCaretPosition(caretPos, true, true, range);
   }
 }

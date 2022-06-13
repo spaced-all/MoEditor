@@ -2,17 +2,60 @@
     cursor: text;
     padding: 10px;
     margin: 10px;
-    
-
 }
 
-.card:focus {}
+.card>* {
+    /* margin-left: 10px!important;
+    margin-right: 10px!important; */
+    /* padding-left: 10px;
+    padding-right: 10px; */
+}
 
+
+.card table {
+    width: 100%;
+}
+
+.card>.selected {
+    background-color: #f5f5f5;
+}
+
+.card pre {
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    background-color: aliceblue;
+}
+
+
+.card table {
+    border-spacing: 0;
+}
+
+.card table td {
+    text-align: center;
+
+    /* border-bottom: 2px solid #dddddd; */
+    border-bottom: 1px solid #dddddd;
+    padding: 8px;
+}
+
+.card table tbody:first-child td {
+    /* margin: auto; */
+    /* border-bottom: 2px solid #dddddd; */
+    font-weight: 700;
+    border-top: 1px solid #dddddd;
+    padding: 8px;
+}
 
 .card * {
     margin: 0;
     outline-width: 0;
+    line-height: 1.5;
+    /* margin-bottom: 8px; */
 }
+
+
 
 .card h1 {
     font-size: 2em;
@@ -50,74 +93,39 @@
 }
 
 
-.card p:focus {
+/* .card p:focus {
     width: fit-content;
     min-width: 10px;
-}
+} */
 
 .card b:focus::before {
     content: '**';
 
 }
 
+.card ul,
+.card ol {
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+}
+
+.card ul:global(.task-list) li input:first-child {
+    margin-right: 0.5em;
+}
+
+.card ul:global(.task-list) li p {
+    display: inline;
+}
+
+
+
 .card blockquote {
     border-left: 0.3em solid #ccc;
-    border-top: 0.3em solid white;
-    border-bottom: 0.3em solid white;
+    /* border-top: 0.3em solid white;
+    border-bottom: 0.3em solid white; */
 
     padding-left: 0.5em;
 }
-
-.card-expand b::before,
-.card-expand b::after {
-    content: '**';
-}
-
-.card-expand i::before,
-.card-expand i::after {
-    content: '**';
-}
-
-.card-expand code::before,
-.card-expand code::after {
-    content: '`';
-}
-
-.card-expand s::before,
-.card-expand s::after {
-    content: '~~';
-}
-
-.card-expand u::before,
-.card-expand u::after {
-    content: '__';
-}
-
-.card-expand h1::before,
-.card-expand h1::after {
-    content: '#';
-}
-
-.card-expand h2::before,
-.card-expand h2::after {
-    content: '##';
-}
-
-.card-expand h3::before,
-.card-expand h3::after {
-    content: '###';
-}
-
-.card-expand h4::before,
-.card-expand h4::after {
-    content: '####';
-}
-
-.card-expand h5::before,
-.card-expand h5::after {
-    content: '#####';
-}
-
 
 .card li:global(.list-indent-1) {
     margin-left: 0em;
@@ -136,6 +144,24 @@
     background-color: gainsboro;
 }
 
-/* .card b:hover::after {
-    content: '**';
-} */
+.card :global(.selection-board) {
+    display: flex;
+    align-items: center;
+}
+
+.card :global(.selection-board) * {
+    margin-right: 20px;
+}
+
+
+.card>:global(.block-selected) {
+    background-color: antiquewhite;
+}
+
+.card:global(.block-selection-mode) ::selection {
+    background-color: transparent;
+}
+
+.card:global(.block-selection-mode) {
+    caret-color: transparent;
+}

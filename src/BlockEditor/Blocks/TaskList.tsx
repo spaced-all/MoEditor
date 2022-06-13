@@ -1,21 +1,30 @@
 import React from "react";
 import { BlockProps, BlockStates, ContentEditable } from "./Common"
 import { ListBlock, DefaultBlock } from "./Common"
+import produce from "immer"
+import { List } from "./List"
 import { RefObject } from "react";
 import { NestRender } from "./render";
 import * as op from "../operation"
 import * as BE from "../event/eventtype";
 
-interface ListProps extends BlockProps {
-    data: ListBlock
+interface TaskListProps extends BlockProps {
 }
 
-interface ListStats extends BlockStates {
+interface TaskListStats extends BlockStates {
+    checked: {}
 }
 
 
-export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, HTMLLIElement> {
+export class TaskList extends DefaultBlock<TaskListProps, TaskListStats, HTMLUListElement, HTMLLIElement> {
     static defaultProps = DefaultBlock.defaultProps;
+    constructor(props) {
+        super(props)
+        this.state = {
+            ...this.state,
+            checked: {}
+        }
+    }
 
     handleBackspace = (e: React.KeyboardEvent<HTMLLIElement>) => {
         const sel = document.getSelection()
@@ -36,14 +45,9 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
         }
 
     };
-    currentInnerRoot = () => {
-        const sel = document.getSelection()
-        const innerRoot = op.findParentMatchTagName(sel.focusNode, 'li', this.outerRoot()) as HTMLLIElement
-        return innerRoot
-    };
 
     handleJumpToAbove(e: any): void {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === 0) {
             // e['html']
@@ -53,7 +57,7 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
         }
     }
     handleJumpToBelow(e: any): void {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         const maxIndex = parseFloat(innerRoot.getAttribute('data-max-index'))
         if (index === maxIndex - 1) {
@@ -65,25 +69,25 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
     }
 
     handleJumpToLeft(e) {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === 0) {
             const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLUListElement>>(e);
             this.props.onJumpToAboveEnd(newE);
         } else {
-            const caretPos = op.lastCaretPosition(op.previousValidNode(innerRoot) as HTMLLIElement)
+            const caretPos = op.lastCaretPosition(op.lastValidChild(op.previousValidNode(innerRoot)) as HTMLLIElement)
             op.setCaretPosition(caretPos);
         }
         e.preventDefault()
     }
     handleJumpToRight(e: any): void {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === this.props.data.data.dom.length - 1) {
             const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLUListElement>>(e);
             this.props.onJumpToBelowStart(newE);
         } else {
-            const caretPos = op.firstCaretPosition(op.nextValidNode(innerRoot) as HTMLLIElement)
+            const caretPos = op.firstCaretPosition(op.lastValidChild(op.nextValidNode(innerRoot)) as HTMLLIElement)
             op.setCaretPosition(caretPos);
         }
         e.preventDefault()
@@ -110,17 +114,27 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
 
     firstInnerRoot = () => {
         const root = this.outerRoot()
-        return op.firstValidChild(root) as HTMLLIElement
+        return op.lastValidChild(op.firstValidChild(root)) as HTMLLIElement
     };
     lastInnerRoot = () => {
         const root = this.outerRoot()
-        return op.lastValidChild(root) as HTMLLIElement
+        return op.lastValidChild(op.lastValidChild(root)) as HTMLLIElement
     };
+
+    currentInnerRoot = () => {
+        const sel = document.getSelection()
+        const innerRoot = op.findParentMatchTagName(sel.focusNode, 'p', this.outerRoot()) as HTMLLIElement
+        return innerRoot
+    };
+    handleInput(e: any): void {
+        
+    }
 
     render() {
         const data = this.latestData()
         return <ContentEditable
             tagName={`ul`}
+            className='task-list'
             contentEditable={this.state.contentEditable}
             innerRef={this.ref}
             onInput={this.handleInput}
@@ -133,17 +147,33 @@ export class List extends DefaultBlock<ListProps, ListStats, HTMLUListElement, H
             onMouseEnter={this.handleMouseEnter}
             onMouseLeave={this.handleMouseLeave}
             onCopy={this.handleCopy}
-                onPaste={this.handlePaste}
+            onPaste={this.handlePaste}
         >
             {data.data.dom.map((item, ind, arr) => {
-                return <li
-                    data-indent-level={Math.min(3, item.attributes.level)}
-                    data-index={ind}
-                    data-max-index={arr.length}
-                    className={[
-                        'editbound',
-                        `list-indent-${Math.min(3, item.attributes.level)}`,
-                    ].join(" ")} key={ind}>{item.textContent}{NestRender(item.children)}</li>
+                return <>
+
+                    <li
+                        data-indent-level={Math.min(3, item.attributes.level)}
+                        data-index={ind}
+                        data-max-index={arr.length}
+                        className={[
+                            'editbound',
+                            `list-indent-${Math.min(3, item.attributes.level)}`,
+                        ].join(" ")} key={ind}>
+                        {/* <label></label> */}
+                        <input
+                            className="list-prefix" type={'checkbox'}
+                            checked={this.state.checked[ind] === true}
+                            onChange={(e) => {
+                                const newChecked = produce(this.state.checked, draft => {
+                                    draft[ind] = e.target.checked
+                                })
+                                this.setState({ checked: newChecked })
+                            }}
+                        ></input>
+                        <p className="list-container">{item.textContent}{NestRender(item.children)}</p>
+                    </li>
+                </>
             })}
         </ContentEditable>
     }

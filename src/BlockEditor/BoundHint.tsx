@@ -1,16 +1,21 @@
 import React from "react"
 import { EventManager } from "./event/emitter"
 import * as op from "./operation"
+import { isTag } from "./operation"
 
 
 const leftTag = {
-    'p': '"',
-    'li': '"',
+    'p': "'",
+    'td': "'",
+    'li': "'",
     'b': '**',
     'i': '*',
     's': '~',
     'u': '_',
+    'ul': '',
+    'ol': '',
     'code': '`',
+    'span': "'",
     'h1': '# ',
     'h2': '## ',
     'h3': '### ',
@@ -19,13 +24,17 @@ const leftTag = {
 }
 
 const rightTag = {
-    'p': '"',
-    'li': '"',
+    'p': "'",
+    'li': "'",
+    'td': "'",
     'b': '**',
     'i': '*',
     's': '~',
     'u': '_',
+    'ul': '',
+    'ol': '',
     'code': '`',
+    'span': "'",
     'h1': '',
     'h2': '',
     'h3': '',
@@ -50,56 +59,67 @@ const getRightBoundHint = (el: Node) => {
     return `</${name}>`
 }
 
-export function BoundHint(props: { eventManager: EventManager }) {
+export function BoundHint(props: { eventManager: EventManager, disable: boolean }) {
     // const [ref, setRef] = useState<HTMLElement>(null)
     const ref = React.useRef<Node>()
     const leftRef = React.useRef<HTMLElement>()
     const rightRef = React.useRef<HTMLElement>()
     const textRef = React.useRef<Node>()
-    
+    const disableRef = React.useRef(props.disable)
+    disableRef.current = props.disable
+    React.useEffect(() => {
+        if (props.disable) {
+            props.eventManager.call('boundhint', { 'name': 'unexpand', data: {} })
+        } else {
+            props.eventManager.call('boundhint', { 'name': 'expand', data: {} })
+        }
+    }, [props.eventManager, props.disable])
     React.useEffect(() => {
         props.eventManager.on('boundhint', (evt) => {
-            if (evt.name == 'expand') {
+            if (evt.name === 'expand') {
+                if (disableRef.current) {
+                    return
+                }
                 const { direction, force } = evt.data
-                var el;
+                var el: Node;
+                var multiSelect = false;
+                var offset = 0;
                 const range = document.getSelection().getRangeAt(0)
-                if (range.startContainer == range.endContainer) {
+                if (range.startContainer === range.endContainer && range.startOffset === range.endOffset) {
                     el = range.startContainer
+                    offset = range.startOffset
                 }
                 else {
                     el = range.commonAncestorContainer
-
+                    multiSelect = true
                 }
+                // TODO <br> caret move problem
 
                 // <p>|</p> -> p, 0
                 // <p>text<b>|text</b></p> -> text, 0
                 // <p><b></b>|<i><i/></p>  -> p, 1
                 // <p><b>|</b><i><i/></p>  -> b, 0
-                console.log('on Expand')
-                if (el == ref.current && !force) {
+                if (el === ref.current && !force) {
                     return
                 }
-                if (ref.current) {
-                    // if (ref.current.classList.contains(styles['tag-expand'])) {
-                    //     ref.current.classList.remove(styles['tag-expand'])
-                    // }
-                    if (leftRef.current) {
-                        leftRef.current.innerText = ''
-                        rightRef.current.innerText = ''
-                    }
-                    if (textRef.current) {
-                        // trim 会导致无文本结点，导致光标出问题
-                        textRef.current.textContent = textRef.current.textContent.trim()
-                        if (textRef.current.textContent.trim() == '' && textRef.current.parentElement) {
-                            // 直接删除会导致光标定位到父级结点， 使得 bound hit 定位错误
-                            textRef.current.parentElement.removeChild(textRef.current)
+
+                if (textRef.current) {
+                    // trim 会导致无文本结点，导致光标出问题
+                    // textRef.current.textContent = textRef.current.textContent.trim()
+                    if (textRef.current.textContent.trim() === '') {
+                        // 直接删除会导致光标定位到父级结点， 使得 bound hit 定位错误
+                        if (textRef.current.parentElement) {
+                            // textRef.current.parentElement.removeChild(textRef.current)
+                            textRef.current.textContent = ''
+                            textRef.current = document.createTextNode(' ')
                         } else {
+                            textRef.current.textContent = ' '
                         }
-                        textRef.current = null
                     }
+                } else {
+                    textRef.current = document.createTextNode(' ')
                 }
 
-                ref.current = el
                 if (!leftRef.current) {
                     const left = document.createElement('span')
                     const right = document.createElement('span')
@@ -108,69 +128,91 @@ export function BoundHint(props: { eventManager: EventManager }) {
                     rightRef.current = right
                     right.contentEditable = 'false'
                 }
+                const rightOffset = direction === 'right' ? 1 : 0
 
-                if (!textRef.current) {
-                    const text = document.createTextNode(' ')
-                    textRef.current = text
+                if (op.isTag(el, 'textarea') || op.isTag(el.childNodes[offset], 'textarea')) {
+                    return
                 }
-                // debugger
 
-
-                if (range.startContainer == range.endContainer) {
-                    el = range.startContainer
-                    if (op.isTag(el.childNodes[range.startOffset], '#text') && op.isValidTag(el.childNodes[range.startOffset])) {
-
-                        el = el.childNodes[range.startOffset]
-                        range.setStart(el, 0)
-                        // if (el.textContent == '') {
-                        //     range.insertNode(document.createTextNode(' '))
-                        // }
-                        // range.setStart(el, 0)
-                    }
-                    if (el instanceof HTMLElement) {
-                        //  p, b, i, code, ...
-                        el.insertBefore(rightRef.current, el.childNodes[range.startOffset])
-                        leftRef.current.innerText = getLeftBoundHint(el)
-                        rightRef.current.innerText = getRightBoundHint(el)
-
-                        el.insertBefore(leftRef.current, rightRef.current)
-                        el.insertBefore(textRef.current, rightRef.current)
-                        const sel = document.getSelection()
-                        const newRange = sel.getRangeAt(0)
-                        newRange.setStart(textRef.current, direction || 0)
-                        ref.current = textRef.current
+                if ((op.isTag(el, 'ul') || op.isTag(el, 'blockquote')) && !multiSelect) {
+                    if (el.childNodes[offset]) {
+                        el = el.childNodes[offset]
+                        offset = 0
                     } else {
-                        // text
-                        el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
-                        el.parentElement.insertBefore(rightRef.current, op.lastNeighborTextNode(el).nextSibling)
+                        el = op.lastValidChild(el)
+                        offset = 0
+                    }
+                }
 
+                if (!op.isTag(el, '#text') && !multiSelect) {
+                    // 将 el 位置插入文本
+                    if (el.childNodes[offset]) {
+                        if (isTag(el.childNodes[offset], '#text')) {
+                            if (el.childNodes[offset].textContent === '') {
+                                el.childNodes[offset].textContent = ' '
+                            }
+                            el = el.childNodes[offset]
+                            offset = rightOffset
+                        } else {
+                            el.insertBefore(textRef.current, el.childNodes[offset])
+                            el = textRef.current
+                            offset = rightOffset
+
+                        }
+                    } else {
+                        el.appendChild(textRef.current)
+                        el = textRef.current
+                        offset = rightOffset
+                    }
+                }
+
+                ref.current = el
+                if (!multiSelect) {
+                    // debugger
+                    if (isTag(el, '#text') && (el.textContent === '' || el.textContent === ' ')) {
+                        el.textContent = ' '
+                        offset = rightOffset
+                    }
+                    range.setStart(el, offset)
+                    range.setEnd(el, offset)
+
+                    leftRef.current.innerText = getLeftBoundHint(el.parentElement)
+                    rightRef.current.innerText = getRightBoundHint(el.parentElement)
+                    el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
+                    el.parentElement.insertBefore(rightRef.current, op.lastNeighborTextNode(el).nextSibling)
+
+                } else {
+                    if (isTag(el, "#text")) {
                         leftRef.current.innerText = getLeftBoundHint(el.parentElement)
                         rightRef.current.innerText = getRightBoundHint(el.parentElement)
-                        range.setStart(range.startContainer, range.startOffset)
+                        el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
+                        el.parentElement.insertBefore(rightRef.current, op.lastNeighborTextNode(el).nextSibling)
+                    } else {
+                        leftRef.current.innerText = getLeftBoundHint(el)
+                        rightRef.current.innerText = getRightBoundHint(el)
+                        if (el.firstChild) {
+
+                            el.insertBefore(rightRef.current, el.lastChild.nextSibling)
+                            el.insertBefore(leftRef.current, el.firstChild)
+                        } else {
+                            el.appendChild(rightRef.current,)
+                            el.insertBefore(leftRef.current, el.firstChild)
+
+                        }
                     }
-                } else {
 
-                    el = range.commonAncestorContainer
-                    leftRef.current.innerText = getLeftBoundHint(el)
-                    rightRef.current.innerText = getRightBoundHint(el)
-                    el.insertBefore(rightRef.current, el.lastChild.nextSibling)
-                    el.insertBefore(leftRef.current, el.firstChild)
-
-                    // el.insertBefore(textRef.current, rightRef.current)
-                    // const sel = document.getSelection()
-                    // const newRange = sel.getRangeAt(0)
-                    // newRange.setStart(textRef.current, direction)
-                    // ref.current = textRef.current
                 }
-            } else if (evt.name == 'unexpand') {
+            } else if (evt.name === 'unexpand') {
                 if (ref.current) {
                     ref.current = null
                     if (leftRef.current) {
                         leftRef.current.innerText = ''
                         rightRef.current.innerText = ''
+                        leftRef.current.remove()
+                        rightRef.current.remove()
                     }
                     if (textRef.current) {
-                        if (textRef.current.textContent.trim() == '' && textRef.current.parentElement) {
+                        if (textRef.current.textContent.trim() === '' && textRef.current.parentElement) {
                             textRef.current.parentElement.removeChild(textRef.current)
                         } else {
                             textRef.current.textContent = textRef.current.textContent.trim()
