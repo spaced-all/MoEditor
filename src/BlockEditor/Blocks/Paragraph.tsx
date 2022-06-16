@@ -1,5 +1,5 @@
 import React from "react";
-import { BlockProps, BlockStates } from "./Common"
+import { Block, BlockProps, BlockStates } from "./Common"
 import { NestRender } from "./render";
 import { ContentEditable, ParagraphBlock, DefaultBlock } from "./Common"
 import * as op from "../operation"
@@ -18,7 +18,9 @@ export interface ParagraphStats extends BlockStates {
 
 export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTMLParagraphElement, HTMLParagraphElement> {
     static defaultProps = DefaultBlock.defaultProps;
-
+    public get placeholder(): string {
+        return "Type '/' for commands"
+    }
     handleBackspace = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
         const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLParagraphElement>>(e)
         if (op.isCursorLeft(this.ref.current)) {
@@ -39,8 +41,8 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
             case '#####':
                 this.props.onChangeBlockType({
                     html: '',
-                    ref: this.outerRoot(),
-                    inner: this.currentInnerRoot(),
+                    ref: this.editableRoot(),
+                    inner: this.currentContainer(),
                     type: 'header',
                     level: key.length,
                 })
@@ -49,8 +51,8 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
             case '>':
                 this.props.onChangeBlockType({
                     html: '',
-                    ref: this.outerRoot(),
-                    inner: this.currentInnerRoot(),
+                    ref: this.editableRoot(),
+                    inner: this.currentContainer(),
                     type: 'blockquote',
                     level: key.length,
                 })
@@ -81,30 +83,4 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
         }
     }
 
-    render() {
-        const data = this.latestData()
-        const element = NestRender(data.data.dom)
-
-        return <>
-            <ContentEditable
-                tagName='p'
-                contentEditable={this.state.contentEditable}
-                innerRef={this.ref}
-                onInput={this.handleInput}
-                onBlur={this.handleBlur}
-                onFocus={this.handleFocus}
-                onSelect={this.handleSelect}
-                onKeyDown={this.defaultHandleKeyDown}
-                onKeyUp={this.defaultHandleKeyup}
-                onMouseMove={this.handleMouseMove}
-                onMouseEnter={this.handleMouseEnter}
-                onMouseLeave={this.handleMouseLeave}
-                onCopy={this.handleCopy}
-                onPaste={this.handlePaste}
-            >
-                {element}
-            </ContentEditable>
-
-        </>
-    }
 }

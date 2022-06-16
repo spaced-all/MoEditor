@@ -1,0 +1,8 @@
+.editable:focus:empty::before {
+    /* padding-left: 1px; */
+    content: attr(data-placeholder);
+
+}
+
+
+/* .card :global(.editable):empty {} */

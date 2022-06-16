@@ -13,9 +13,9 @@ export function SeralizeNode(node: Node): Dom {
         children.push(SeralizeNode(node.childNodes[i]))
     }
     var attributes
-    if (node instanceof HTMLElement) {
-        attributes = node.attributes
-    }
+    // if (node instanceof HTMLElement) {
+    //     attributes = node.attributes
+    // }
     return { tagName, textContent, children, attributes }
 }
 
@@ -53,16 +53,11 @@ export function Serialize(html: string): Dom[] {
  */
 export function NestRender(dom: Dom[], depth: number = 0, formatType: 'html' | 'code' | 'plaintext' = 'html') {
     if (!dom) {
-        if (depth === 0) {
-            return <></>
-        } else {
-            return <></>
-        }
+        return ""
     }
 
     return <>
-        {(dom.length === 0 && depth === 0) && <br />}
-
+        {(dom.length === 0 && depth === 0) && ""}
         {dom.map((val, ind) => {
             var element;
 
@@ -72,9 +67,9 @@ export function NestRender(dom: Dom[], depth: number = 0, formatType: 'html' | '
                     break;
                 default:
                     if (val.children && val.children.length > 0) {
-                        element = React.createElement(val.tagName, { key: ind, ...val.attributes }, [val.textContent, NestRender(val.children, depth + 1)])
+                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, [val.textContent, NestRender(val.children, depth + 1)])
                     } else {
-                        element = React.createElement(val.tagName, { key: ind, ...val.attributes }, val.textContent)
+                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, val.textContent)
                     }
                     break
             }

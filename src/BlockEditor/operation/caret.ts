@@ -1,7 +1,4 @@
-import {
-  getTagName,
-  isTag,
-} from "./nodev2";
+import { getTagName, isTag } from "./nodev2";
 
 export class CaretPosition {
   container: Node;
@@ -16,12 +13,12 @@ export class CaretPosition {
 
 interface Condition {
   emptyText?: boolean;
-  charText?: boolean;
+  whiteText?: boolean;
   br?: boolean;
   nullable?: boolean;
 }
 
-function isValidTag(el: Node, condition?: Condition) {
+export function isValidTag(el: Node, condition?: Condition) {
   condition = condition || {};
 
   if (!el && condition.nullable !== false) {
@@ -32,7 +29,7 @@ function isValidTag(el: Node, condition?: Condition) {
     if (isTag(el, "br")) {
       return condition.br !== false;
     }
-    if ((el as HTMLElement).contentEditable !== "false") {
+    if (!(el as HTMLElement).classList.contains("bound-hint")) {
       return true;
     }
   }
@@ -41,15 +38,15 @@ function isValidTag(el: Node, condition?: Condition) {
     if (condition.emptyText !== false) {
       return true;
     }
-    if (condition.charText !== false) {
-      return el.textContent.trim() !== "";
+    if (condition.whiteText !== false) {
+      return el.textContent.length > 0;
     }
-    return el.textContent.length > 0;
+    return el.textContent.trim() !== "";
   }
   return false;
 }
 
-function nextValidNode(el: Node, condition?: Condition) {
+export function nextValidNode(el: Node, condition?: Condition) {
   while (el) {
     el = el.nextSibling as Node;
     if (isValidTag(el, condition)) {
@@ -81,7 +78,7 @@ function lastValidChild(el: Node, condition?: Condition) {
   return el;
 }
 
-function previousValidNode(el: Node, condition?: Condition) {
+export function previousValidNode(el: Node, condition?: Condition) {
   while (el) {
     el = el.previousSibling as HTMLElement;
     if (isValidTag(el, condition)) {
@@ -258,7 +255,9 @@ export function previousCaretPosition(
   offset?: number
 ): CaretPosition | null {
   const res = neighborCaretPosition(root, "left", container, offset);
-  console.log(["previousCaretPosition", res, indexOfNode(res.container)]);
+  // if(res){
+  //   console.log(["previousCaretPosition", res, indexOfNode(res.container)]);
+  // }
   return res;
 }
 
@@ -268,7 +267,9 @@ export function nextCaretPosition(
   offset?: number
 ): CaretPosition | null {
   const res = neighborCaretPosition(root, "right", container, offset);
-  console.log(["nextCaretPosition", res, indexOfNode(res.container)]);
+  // if(res){
+  //   console.log(["nextCaretPosition", res, indexOfNode(res.container)]);
+  // }
   return res;
 }
 
@@ -286,7 +287,7 @@ export function firstCaretPosition(root: Node): CaretPosition {
   if (isTag(root, "#text")) {
     return new CaretPosition(root, 0, root);
   }
-  const first = firstValidChild(root);
+  const first = firstValidChild(root, { emptyText: false });
   if (first && isTag(first, "#text")) {
     return new CaretPosition(first, 0, root);
   }
@@ -307,7 +308,7 @@ export function lastCaretPosition(root: Node): CaretPosition {
   if (isTag(root, "#text")) {
     return new CaretPosition(root, root.textContent.length, root);
   }
-  const last = lastValidChild(root);
+  const last = lastValidChild(root, { emptyText: false });
   if (last && isTag(last, "#text")) {
     return new CaretPosition(last, last.textContent.length, root);
   }
@@ -411,6 +412,10 @@ export function getCaretReletivePositionAtLastLine(root: HTMLElement): number {
   var last = lastValidChild(root);
   while (last) {
     range.selectNode(last);
+    if (isTag(last, "br")) {
+      return realOffset - getCaretReletivePosition(root, last, 0) - 1;
+    }
+
     if (Math.round(range.getBoundingClientRect().height / lineHeight) <= 1) {
       last = previousValidNode(last);
     } else {
@@ -443,6 +448,14 @@ export function getLineInfo(root: HTMLElement): {
 
   // const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
   // const first = walker.nextNode();
+
+  if (!firstValidChild(root, { emptyText: false, whiteText: false })) {
+    return {
+      lineHeight: root.offsetHeight,
+      lineNumber: 1,
+      elHeight: root.offsetHeight,
+    };
+  }
 
   var first = firstValidChild(root);
   while (first.textContent.trim() === "") {
@@ -483,7 +496,7 @@ export function isCursorLeft(
   container?: Node,
   offset?: number
 ) {
-  if (!firstValidChild(root)) {
+  if (!firstValidChild(root, { emptyText: false })) {
     return true;
   }
 
@@ -512,7 +525,7 @@ export function isCursorRight(
   container?: Node,
   offset?: number
 ) {
-  if (!firstValidChild(el)) {
+  if (!firstValidChild(el, { emptyText: false })) {
     return true;
   }
   if (!container) {
@@ -647,6 +660,14 @@ export function setCaretReletivePositionAtLastLine(
   var last = lastValidChild(root);
   while (last) {
     range.selectNode(last);
+
+    if (isTag(last, "br")) {
+      return setCaretReletivePosition(
+        root,
+        getCaretReletivePosition(root, last, 0) + offset + 1
+      );
+    }
+
     if (Math.round(range.getBoundingClientRect().height / lineHeight) <= 1) {
       last = previousValidNode(last);
     } else {

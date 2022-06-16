@@ -1,6 +1,6 @@
 export { Paragraph } from "./Paragraph";
 export type { ParagraphProps } from "./Paragraph";
-export { Section } from "./Section";
+export { Heading } from "./Heading";
 export { Blockquote } from "./Blockquote";
 export { List } from "./List";
 export { DefaultBlock } from "./Common";

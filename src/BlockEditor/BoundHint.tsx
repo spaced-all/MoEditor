@@ -3,61 +3,68 @@ import { EventManager } from "./event/emitter"
 import * as op from "./operation"
 import { isTag } from "./operation"
 
+const whiteSpace = ''
 
 const leftTag = {
-    'p': "'",
-    'td': "'",
-    'li': "'",
+    // 'p': "",
+    // 'td': "'",
+    // 'li': "",
     'b': '**',
     'i': '*',
-    's': '~',
-    'u': '_',
-    'ul': '',
-    'ol': '',
+    's': '\u00a0',
+    'u': '\u00a0',
     'code': '`',
-    'span': "'",
-    'h1': '# ',
-    'h2': '## ',
-    'h3': '### ',
-    'h4': '#### ',
-    'h5': '##### ',
+    // 'span': " ",
+    // 'h1': '\u00a0',
+    // 'h2': '\u00a0',
+    // 'h3': '\u00a0',
+    // 'h4': '\u00a0',
+    // 'h5': '\u00a0',
+    'default': '\u00a0'
 }
 
 const rightTag = {
-    'p': "'",
-    'li': "'",
-    'td': "'",
+    // 'p': "\u00a0",
+    // 'li': "",
+    // 'td': "'",
     'b': '**',
     'i': '*',
-    's': '~',
-    'u': '_',
-    'ul': '',
-    'ol': '',
+    's': '\u00a0',
+    'u': '\u00a0',
+    // 'ul': '',
+    // 'ol': '',
     'code': '`',
-    'span': "'",
-    'h1': '',
-    'h2': '',
-    'h3': '',
-    'h4': '',
-    'h5': '',
+    // 'span': " ",
+    // 'h1': '\u00a0',
+    // 'h2': '\u00a0',
+    // 'h3': '\u00a0',
+    // 'h4': '\u00a0',
+    // 'h5': '\u00a0',
+    'default': '\u00a0'
 }
 
-const getLeftBoundHint = (el: Node) => {
+const getLeftBoundHint = (el: Node, center: Node) => {
     const name = op.getTagName(el)
     if (leftTag[name] !== undefined) {
         return leftTag[name]
     }
-    return `<${name}>`
-
-
+    // https://stackoverflow.com/a/72629663/11185460
+    if (op.previousValidNode(op.firstNeighborTextNode(center))) {
+        return leftTag['default']
+    }
+    return ''
 }
-const getRightBoundHint = (el: Node) => {
+const getRightBoundHint = (el: Node, center: Node) => {
     const name = op.getTagName(el)
     if (rightTag[name] !== undefined) {
         return rightTag[name]
     }
-    return `</${name}>`
+    if (op.nextValidNode(op.lastNeighborTextNode(center))) {
+        return rightTag['default']
+    }
+    return ''
 }
+
 
 export function BoundHint(props: { eventManager: EventManager, disable: boolean }) {
     // const [ref, setRef] = useState<HTMLElement>(null)
@@ -74,6 +81,7 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
             props.eventManager.call('boundhint', { 'name': 'expand', data: {} })
         }
     }, [props.eventManager, props.disable])
+
     React.useEffect(() => {
         props.eventManager.on('boundhint', (evt) => {
             if (evt.name === 'expand') {
@@ -84,7 +92,12 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                 var el: Node;
                 var multiSelect = false;
                 var offset = 0;
-                const range = document.getSelection().getRangeAt(0)
+                const sel = document.getSelection()
+                if (!sel || sel.rangeCount === 0) {
+                    return
+                }
+                // debugger
+                const range = sel.getRangeAt(0)
                 if (range.startContainer === range.endContainer && range.startOffset === range.endOffset) {
                     el = range.startContainer
                     offset = range.startOffset
@@ -93,6 +106,8 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                     el = range.commonAncestorContainer
                     multiSelect = true
                 }
+
+
                 // TODO <br> caret move problem
 
                 // <p>|</p> -> p, 0
@@ -103,53 +118,56 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                     return
                 }
 
+                var rightOffset = direction === 'right' ? whiteSpace.length : 0
+                if (op.isParent(el, leftRef.current)) {
+                    el = op.nextValidNode(leftRef.current, { emptyText: false })
+                    offset = 0
+                }
+                if (op.isParent(el, rightRef.current)) {
+                    el = op.previousValidNode(rightRef.current, { emptyText: false })
+                    offset = el.textContent.length
+                    rightOffset = 0
+                }
+
                 if (textRef.current) {
                     // trim 会导致无文本结点，导致光标出问题
                     // textRef.current.textContent = textRef.current.textContent.trim()
                     if (textRef.current.textContent.trim() === '') {
                         // 直接删除会导致光标定位到父级结点， 使得 bound hit 定位错误
                         if (textRef.current.parentElement) {
-                            // textRef.current.parentElement.removeChild(textRef.current)
+                            textRef.current.parentElement.removeChild(textRef.current)
                             textRef.current.textContent = ''
-                            textRef.current = document.createTextNode(' ')
+                            textRef.current = document.createTextNode(whiteSpace)
                         } else {
-                            textRef.current.textContent = ' '
+                            textRef.current.textContent = whiteSpace
                         }
                     }
                 } else {
-                    textRef.current = document.createTextNode(' ')
+                    textRef.current = document.createTextNode(whiteSpace)
                 }
 
                 if (!leftRef.current) {
                     const left = document.createElement('span')
                     const right = document.createElement('span')
+                    left.classList.add('bound-hint-left')
+                    left.classList.add('bound-hint')
+                    right.classList.add('bound-hint-right')
+                    right.classList.add('bound-hint')
                     leftRef.current = left
-                    left.contentEditable = 'false'
                     rightRef.current = right
-                    right.contentEditable = 'false'
+                    // right.contentEditable = 'false'
                 }
-                const rightOffset = direction === 'right' ? 1 : 0
 
                 if (op.isTag(el, 'textarea') || op.isTag(el.childNodes[offset], 'textarea')) {
                     return
                 }
-
-                if ((op.isTag(el, 'ul') || op.isTag(el, 'blockquote')) && !multiSelect) {
-                    if (el.childNodes[offset]) {
-                        el = el.childNodes[offset]
-                        offset = 0
-                    } else {
-                        el = op.lastValidChild(el)
-                        offset = 0
-                    }
-                }
-
+                // debugger
                 if (!op.isTag(el, '#text') && !multiSelect) {
                     // 将 el 位置插入文本
                     if (el.childNodes[offset]) {
                         if (isTag(el.childNodes[offset], '#text')) {
                             if (el.childNodes[offset].textContent === '') {
-                                el.childNodes[offset].textContent = ' '
+                                el.childNodes[offset].textContent = whiteSpace
                             }
                             el = el.childNodes[offset]
                             offset = rightOffset
@@ -157,7 +175,6 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                             el.insertBefore(textRef.current, el.childNodes[offset])
                             el = textRef.current
                             offset = rightOffset
-
                         }
                     } else {
                         el.appendChild(textRef.current)
@@ -169,36 +186,50 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                 ref.current = el
                 if (!multiSelect) {
                     // debugger
-                    if (isTag(el, '#text') && (el.textContent === '' || el.textContent === ' ')) {
-                        el.textContent = ' '
+                    if (isTag(el, '#text') && (el.textContent === '' || el.textContent === '\u00a0')) {
+                        el.textContent = whiteSpace
                         offset = rightOffset
                     }
                     range.setStart(el, offset)
                     range.setEnd(el, offset)
 
-                    leftRef.current.innerText = getLeftBoundHint(el.parentElement)
-                    rightRef.current.innerText = getRightBoundHint(el.parentElement)
-                    el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
-                    el.parentElement.insertBefore(rightRef.current, op.lastNeighborTextNode(el).nextSibling)
+                    leftRef.current.innerText = getLeftBoundHint(el.parentElement, el)
+                    rightRef.current.innerText = getRightBoundHint(el.parentElement, el)
+                    if (leftRef.current.textContent !== '') {
+                        el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
+                    }
+                    if (rightRef.current.textContent !== '') {
+                        el.parentElement.insertBefore(rightRef.current, op.lastNeighborTextNode(el).nextSibling)
+                    }
 
                 } else {
                     if (isTag(el, "#text")) {
-                        leftRef.current.innerText = getLeftBoundHint(el.parentElement)
-                        rightRef.current.innerText = getRightBoundHint(el.parentElement)
-                        el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
-                        el.parentElement.insertBefore(rightRef.current, op.lastNeighborTextNode(el).nextSibling)
-                    } else {
-                        leftRef.current.innerText = getLeftBoundHint(el)
-                        rightRef.current.innerText = getRightBoundHint(el)
-                        if (el.firstChild) {
-
-                            el.insertBefore(rightRef.current, el.lastChild.nextSibling)
-                            el.insertBefore(leftRef.current, el.firstChild)
-                        } else {
-                            el.appendChild(rightRef.current,)
-                            el.insertBefore(leftRef.current, el.firstChild)
-
+                        leftRef.current.innerText = getLeftBoundHint(el.parentElement, el)
+                        rightRef.current.innerText = getRightBoundHint(el.parentElement, el)
+                        if (leftRef.current.textContent !== '') {
+                            el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
                         }
+                        if (rightRef.current.textContent !== '') {
+                            el.parentElement.insertBefore(rightRef.current, op.lastNeighborTextNode(el).nextSibling)
+                        }
+                    } else {
+                        leftRef.current.innerText = getLeftBoundHint(el, el)
+                        rightRef.current.innerText = getRightBoundHint(el, el)
+                        if (leftRef.current.textContent !== '') {
+                            if (el.firstChild) {
+                                el.insertBefore(leftRef.current, el.firstChild)
+                            } else {
+                                el.insertBefore(leftRef.current, el.firstChild)
+                            }
+                        }
+                        if (rightRef.current.textContent !== '') {
+                            if (el.firstChild) {
+                                el.insertBefore(rightRef.current, el.lastChild.nextSibling)
+                            } else {
+                                el.appendChild(rightRef.current,)
+                            }
+                        }
+
                     }
 
                 }
@@ -213,6 +244,7 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                     }
                     if (textRef.current) {
                         if (textRef.current.textContent.trim() === '' && textRef.current.parentElement) {
+                            
                             textRef.current.parentElement.removeChild(textRef.current)
                         } else {
                             textRef.current.textContent = textRef.current.textContent.trim()

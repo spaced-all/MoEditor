@@ -3,14 +3,14 @@ import {
   firstCaretPosition,
   lastCaretPosition,
   nextCaretPosition,
+  nextValidNode,
+  previousValidNode,
+  isValidTag,
 } from "./caret";
 import {
   validChildNodes,
-  isValidTag,
   isTag,
   getTagName,
-  nextValidNode,
-  previousValidNode,
   findParentMatchTagName,
 } from "./node";
 
@@ -57,7 +57,7 @@ export function deleteStyle(styleContainer: HTMLElement, root: HTMLElement) {
   }
   const sel = document.getSelection();
   const range = sel.getRangeAt(0);
-  const { startContainer, endContainer } = range;
+  // const { startContainer, endContainer } = range;
   const bchildren = validChildNodes(styleContainer);
 
   bchildren.forEach((item) => {
@@ -69,8 +69,8 @@ export function deleteStyle(styleContainer: HTMLElement, root: HTMLElement) {
     const caretPos = nextCaretPosition(root);
     setCaretPosition(caretPos, true, true, range);
   } else {
-    const left = firstCaretPosition(startContainer);
-    const right = lastCaretPosition(endContainer);
+    const left = firstCaretPosition(bchildren[0]);
+    const right = lastCaretPosition(bchildren[bchildren.length - 1]);
     setCaretPosition(left, true, false, range);
     setCaretPosition(right, false, true, range);
   }
@@ -90,7 +90,11 @@ export function applyStyle(style, root: HTMLElement, range?: Range) {
   if (!range) {
     range = sel.getRangeAt(0);
   }
-  var wrapb = findParentMatchTagName(range.commonAncestorContainer, t, root);
+  var wrapb = findParentMatchTagName(
+    range.commonAncestorContainer,
+    t,
+    root
+  ) as HTMLElement;
 
   if (wrapb) {
     // all text are under same style
@@ -104,27 +108,7 @@ export function applyStyle(style, root: HTMLElement, range?: Range) {
     // step 1. store inner nodes range container and offset
     // cannot use range.cloneRange() because it will change when dom tree changed.
 
-    const { startContainer, endContainer } = range;
-
-    // step 2. move inner nodes from b to its parents Node
-    const bchildren = validChildNodes(wrapb);
-
-    bchildren.forEach((item) => {
-      wrapb.parentElement.insertBefore(item, wrapb);
-    });
-
-    // step 3. remove b
-    wrapb.parentElement.removeChild(wrapb);
-
-    // step 4. resetRange
-    const left = firstCaretPosition(startContainer);
-    const right = lastCaretPosition(endContainer);
-    setCaretPosition(left, true, false, newRange);
-    setCaretPosition(right, false, true, newRange);
-    // newRange.setStart(startContainer, startOffset);
-    // newRange.setEnd(endContainer, endOffset);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
+    deleteStyle(wrapb, root);
     return false;
   }
 

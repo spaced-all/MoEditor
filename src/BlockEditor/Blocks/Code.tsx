@@ -41,7 +41,7 @@ export class Code extends DefaultBlock<CodeProps, CodeStats, HTMLPreElement, HTM
 
     render() {
 
-        return <pre ref={this.ref}>
+        return <pre >
             <Editor
                 className="pre-code"
                 value={this.state.code}
@@ -52,7 +52,7 @@ export class Code extends DefaultBlock<CodeProps, CodeStats, HTMLPreElement, HTM
                     fontSize: 12,
                 }}
                 onKeyDown={() => {
-                    
+
                 }}
                 onValueChange={(code) => this.setState({
                     code: code,

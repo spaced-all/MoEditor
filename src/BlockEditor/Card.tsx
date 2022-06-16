@@ -1,4 +1,4 @@
-import React from "react";
+import React, { RefObject } from "react";
 import * as block from "./Blocks"
 import styles from "./Card.module.css"
 import { Block, JumpRef } from "./Blocks/Common"
@@ -8,7 +8,7 @@ import * as op from "./operation"
 import * as BE from "./event/eventtype";
 import { EventManager, TEvent } from "./event/emitter";
 import { BoundHint } from "./BoundHint";
-
+import { FunctionButton } from "./FunctionButton"
 
 
 interface CardProps {
@@ -30,6 +30,7 @@ interface CardStats {
     initialPos?: { start: number, end: number }
     historyOffset?: number
     jumpRef?: JumpRef
+    focusBlockRef?: HTMLElement
 }
 
 
@@ -44,6 +45,11 @@ const defaultPropsV2: CardProps = {
         {
             order: 'b', type: 'paragraph', 'data': {
                 dom: [{ tagName: '#text', textContent: 'normal' }]
+            }
+        },
+        {
+            order: 'ba', type: 'paragraph', 'data': {
+                dom: []
             }
         },
         {
@@ -189,6 +195,7 @@ const defaultPropsV2: CardProps = {
 class Card extends React.Component<CardProps, CardStats> {
     static defaultProps = defaultPropsV2
     portalCaller: EventManager
+    focusBlockRef: RefObject<HTMLElement>
     constructor(props) {
         super(props);
         this.portalCaller = new EventManager()
@@ -198,29 +205,17 @@ class Card extends React.Component<CardProps, CardStats> {
             jumpRef: null,
             selectionMode: false,
             selection: {},
+            focusBlockRef: null,
         }
+        this.focusBlockRef = React.createRef()
     }
     handleComponentEvent = (evt: TEvent) => {
-        // if (evt.name ==='rerender') {
-        //     if (this.state.historyOffset) {
-        //         this.eventManager.call(evt.data.uid, { name: 'moveTo', data: { type: 'history', offset: this.state.historyOffset, from: 'above' } })
-        //     }
-        //     // evt.data.ref
-        //     // this.eventManager.call(blocks[ind + 1].order, { name: 'moveTo', data: { type: 'history', offset: offset, from: 'above' } })
-        // }
     }
     componentDidMount(): void {
-        // const nextDirtyBlocks = produce(this.state.dirtyHtml, draft => {
-        //     for (var b of this.state.blocks) {
-        //         draft[b.order] = b
-        //     }
-        // })
         this.portalCaller.on('card', this.handleComponentEvent)
-
-        // this.setState({ dirtyHtml: nextDirtyBlocks })
     }
     componentDidUpdate(prevProps: Readonly<CardProps>, prevState: Readonly<CardStats>, snapshot?: any): void {
-        console.log(this.state.cursor)
+        // console.log(this.state.cursor)
     }
 
     handleJumpToAbove = (evt, ind) => {
@@ -247,7 +242,6 @@ class Card extends React.Component<CardProps, CardStats> {
         } else {
             this.portalCaller.call('boundhint', { name: 'unexpand', 'data': {} })
         }
-        // this.setState({ historyOffset: offset, cursor: Math.min(ind + 1, blocks.length - 1) })
 
         this.setState({
             cursor: Math.min(ind + 1, blocks.length - 1),
@@ -271,9 +265,6 @@ class Card extends React.Component<CardProps, CardStats> {
     handleJumpToBelowStart = (evt, ind) => {
         const { blocks } = this.state
         // if (ind < blocks.length - 1) {
-        //     const { blocks } = this.state
-        //     this.portalCaller.call(blocks[ind + 1].order, { name: 'moveTo', data: { type: 'fisrt' } })
-        // }
 
         this.setState({
             cursor: Math.min(ind + 1, blocks.length - 1),
@@ -287,14 +278,17 @@ class Card extends React.Component<CardProps, CardStats> {
     handleChangeBlockType = (evt: BE.BlockChangeEvent<HTMLElement>, ind) => {
         const { blocks } = this.state
         // this.eventManager.call(blocks[ind].order, { name: 'changeBlockType', data: { type: evt.target.value } })
-        const newState = produce(this.state.blocks, draft => {
-            draft[ind].type = evt.type
-            draft[ind].level = evt.level
-            draft[ind].lang = evt.lang
+        const newState = produce(this.state, draft => {
+            draft.blocks[ind].type = evt.type
+            draft.blocks[ind].level = evt.level
+            draft.blocks[ind].lang = evt.lang
+            draft.cursor = ind
+            draft.historyOffset = null
+            draft.jumpRef = null
             // TODO get serialized dom from block 
             // draft[ind].data.dom = 
         })
-        this.setState({ blocks: newState, cursor: ind })
+        this.setState(newState)
     };
     handleShiftEnter = (e) => {
         this.props.onShiftEnter(e);
@@ -461,14 +455,14 @@ class Card extends React.Component<CardProps, CardStats> {
                 }
                 console.log(['Card', 'key down', e])
             }}
+
             onMouseUp={(e) => {
+                // MouseUpEvent bubbled from Block Component, and Block Component will fix caret position first,
+                // then boundhint will be applied,
+                // there is no need for boundhint to consider block type.
                 const range = document.getSelection().getRangeAt(0)
                 const target = e.target as Node
                 if (op.isTag(target, 'input')) {
-                    // const sel = document.getSelection()
-                    // const neighbor = op.nextCaretPosition(target.parentElement, target, 0)
-                    // op.setCaretPosition(neighbor)
-                    // this.portalCaller.call('boundhint', { data: { el: range.startContainer, offset: 0 }, name: 'expand' })
                     return
                 } else if (op.isTag(target, 'textarea')) {
                     return
@@ -502,14 +496,17 @@ class Card extends React.Component<CardProps, CardStats> {
                 styles.card,
                 this.state.selectionMode ? 'block-selection-mode' : '',
             ].join(' ')}>
+            <FunctionButton rel={this.state.focusBlockRef} ></FunctionButton>
             <BoundHint
                 disable={this.state.selectionMode}
                 eventManager={this.portalCaller}></BoundHint>
             {blocks.map((val, ind) => {
                 var blockType;
+                
                 switch (val.type) {
                     case 'header':
-                        blockType = block.Section
+                    case 'heading':
+                        blockType = block.Heading
                         break
                     case 'paragraph':
                         blockType = block.Paragraph
@@ -558,6 +555,13 @@ class Card extends React.Component<CardProps, CardStats> {
                     onMergeAbove: (e) => this.handleMergeAbove(e, ind),
                     onMergeBelow: (e) => this.handleMergeBelow(e, ind),
                     onJumpAbove: (evt) => this.handleJumpToAbove(evt, ind),
+                    onMouseEnter: (e) => {
+                        // console.log(e)
+                        this.setState({
+                            focusBlockRef: e.target as HTMLElement,
+                        })
+                        // this.focusBlockRef.c÷urrent = e.target as HTMLElement
+                    },
                     onSelectBlock: (evt) => {
                         console.log(['Select Block', val.order, ind,
                             evt,
@@ -612,23 +616,10 @@ class Card extends React.Component<CardProps, CardStats> {
                     onJumpToBelowStart: (evt) => this.handleJumpToBelowStart(evt, ind),
                     data: val,
                 })
-                // return <div className="selection-board">
-                //     <input type={'checkbox'} checked={this.state.selection[val.order] === true} onChange={(e) => {
-                //         const newSelection = produce(this.state.selection, draft => {
-                //             draft[val.order] = (draft[val.order] === false || draft[val.order] === undefined) ? true : false
-                //         })
-                //         this.setState({ selection: newSelection })
-                //     }}></input>
-                //     {blockEl}
-                // </div>
-                // if (this.state.selectionMode) {
-                // } else {
                 return blockEl
-                // }
             })}
             <button onClick={() => { this.setState({ cursor: cursor - 1 }) }}>up</button>
             <button onClick={() => { this.setState({ cursor: cursor + 1 }) }}>down</button>
-
         </article>
     }
 }

@@ -5,6 +5,9 @@ import * as BE from "../event/eventtype";
 import { EventManager } from "../event/emitter";
 import { BlockCaretEvent } from "../event/events";
 
+import { NestRender } from "./render";
+import "./Common.css"
+
 export interface Dom {
   tagName: string;
   inner?: boolean;
@@ -62,6 +65,7 @@ export interface JumpRef {
 export interface BlockProps {
   data?: Block;
   uid: string;
+  className?: string,
   selected?: boolean,
   selectionMode?: boolean,
   eventManager?: EventManager;
@@ -90,6 +94,7 @@ export interface BlockProps {
   onComponentUpdate?: (e: BE.ComponentUpdatedEvent<HTMLElement>) => void;
   onSelectBlock?: (e: BE.BlockEvent<HTMLElement>) => void;
   onMouseSelect?: (e: BE.MouseEvent<HTMLElement>) => void;
+  onMouseEnter?: (e: BE.MouseEvent<HTMLElement>) => void;
 }
 
 export interface IBlock<
@@ -100,7 +105,7 @@ export interface IBlock<
   > {
   props: P;
   state: S;
-  ref: RefObject<O>;
+  ref: RefObject<HTMLDivElement>;
   wrapBlockEvent<T extends BE.BlockEvent<O>>(e): T;
   handleBlur: (e) => void;
   handleFocus: (e) => void;
@@ -117,7 +122,6 @@ export interface IBlock<
   handleDelete: (e: React.KeyboardEvent<I>) => void;
   handleShiftEnter: (e: React.KeyboardEvent<I>) => void;
   handleEnter: (e: React.KeyboardEvent<I>) => void;
-  defaultHandleEnter: (e: React.KeyboardEvent<I>) => void;
   defaultHandleKeyup: (e: React.KeyboardEvent<I>) => void;
   defaultHandleKeyDown: (e: React.KeyboardEvent<I>) => void;
 }
@@ -126,19 +130,23 @@ export function ContentEditable<T>(props: {
   tagName: string;
   className?: string;
   children: React.ReactNode;
-  innerRef: React.RefObject<T>;
+  innerRef?: React.RefObject<T>;
   contentEditable: boolean;
-  onInput: (...any) => any;
-  onBlur: (...any) => any;
-  onFocus: (...any) => any;
-  onSelect: (...any) => any;
-  onKeyDown: (...any) => any;
-  onKeyUp: (...any) => any;
-  onMouseMove: (...any) => any;
-  onMouseEnter: (...any) => any;
-  onMouseLeave: (...any) => any;
-  onCopy: (...any) => any;
-  onPaste: (...any) => any;
+  placeholder?: string;
+  onInput?: (...any) => any;
+  onChange?: (...any) => any;
+  onBlur?: (...any) => any;
+  onFocus?: (...any) => any;
+  onSelect?: (...any) => any;
+  onKeyDown?: (...any) => any;
+  onKeyUp?: (...any) => any;
+  onMouseMove?: (...any) => any;
+  onMouseEnter?: (...any) => any;
+  onMouseLeave?: (...any) => any;
+  onMouseDown?: (...any) => any;
+  onMouseUp?: (...any) => any;
+  onCopy?: (...any) => any;
+  onPaste?: (...any) => any;
 }) {
   return React.createElement(
     props.tagName,
@@ -146,7 +154,9 @@ export function ContentEditable<T>(props: {
       ref: props.innerRef,
       contentEditable: props.contentEditable,
       className: props.className,
+      'data-placeholder': props.placeholder,
       onInput: props.onInput,
+      onChange: props.onChange,
       onBlur: props.onBlur,
       onFocus: props.onFocus,
       onSelect: props.onSelect,
@@ -158,6 +168,8 @@ export function ContentEditable<T>(props: {
       onMouseMove: props.onMouseMove,
       onMouseEnter: props.onMouseEnter,
       onMouseLeave: props.onMouseLeave,
+      onMouseDown: props.onMouseDown,
+      onMouseUp: props.onMouseUp,
       suppressContentEditableWarning: true,
     },
     props.children
@@ -173,6 +185,27 @@ export class DefaultBlock<
   extends React.Component<P, S>
   implements IBlock<P, S, O, I>
 {
+
+
+  protected get contentEditableName(): string {
+    return "p"
+  }
+
+  protected get className(): string {
+    return null
+  }
+
+  protected get multiContainer(): boolean {
+    return false
+  }
+
+  static supportTags = []
+  static supportType = null
+  static html2block = (html: string): Block => {
+    throw new Error("not implemented");
+  }
+
+
   static defaultProps: BlockProps = {
     uid: "",
     selected: false,
@@ -200,10 +233,12 @@ export class DefaultBlock<
     onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
   };
 
-  ref: RefObject<O>;
+  ref: RefObject<HTMLDivElement>;
+  editableRootRef: RefObject<O>; // contentEditable element
   constructor(props: P) {
     super(props);
     this.ref = React.createRef();
+    this.editableRootRef = React.createRef();
     this.state = {
       html: "",
       jumpRef: this.props.jumpRef,
@@ -214,7 +249,7 @@ export class DefaultBlock<
     } as S;
 
     this.handleShiftEnter = this.handleShiftEnter.bind(this);
-    this.defaultHandleEnter = this.defaultHandleEnter.bind(this);
+    this.handleEnter = this.handleEnter.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
     this.handleFocus = this.handleFocus.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
@@ -228,12 +263,8 @@ export class DefaultBlock<
     this.handleInput = this.handleInput.bind(this);
     this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
     this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
-    this.defaultHandleEnter = this.defaultHandleEnter.bind(this);
   }
   latestData() {
-    if (this.state.dirty) {
-      return this.state.data;
-    }
     return this.props.data;
   }
   updateData(data: Block) {
@@ -241,12 +272,12 @@ export class DefaultBlock<
   }
 
   setEeditable = (flag) => {
-    if (this.outerRoot()) {
+    if (this.editableRoot()) {
       if (flag) {
-        this.outerRoot().contentEditable = "true";
-        this.outerRoot().focus();
+        // this.editableRoot().contentEditable = "true";
+        this.editableRoot().focus();
       } else {
-        this.outerRoot().contentEditable = "false";
+        // this.editableRoot().contentEditable = "false";
       }
     }
   };
@@ -257,46 +288,42 @@ export class DefaultBlock<
   }
 
 
-
   handleComponentEvent = (evt) => {
     switch (evt.name) {
       case "innerHTML":
-        return op.validInnerHTML(this.currentInnerRoot());
+        return op.validInnerHTML(this.currentContainer());
 
       case "endCaretOffset":
-        const caretPos = this.lastCaretPosition(this.currentInnerRoot());
+        const caretPos = this.lastCaretPosition(this.currentContainer());
         return op.getCaretReletivePosition(
-          this.currentInnerRoot(),
+          this.currentContainer(),
           caretPos.container,
           caretPos.offset
         );
+      case "serialize":
+        return this.serialize();
       // return op.validInnerHTML(this.currentRoot());
       // return this.currentRoot().innerHTML;
     }
   };
   componentDidMount(): void {
     if (this.props.initialContentEditable) {
-      this.outerRoot().focus();
+      this.editableRoot().focus();
     }
     if (this.props.eventManager) {
       this.props.eventManager.on(this.props.uid, this.handleComponentEvent);
     }
-    // if (this.props.selectionMode && this.props.selected) {
-    //   this.outerRoot().classList.add('block-selected')
-    // } else {
-    //   // this.outerRoot().classList.remove('block-selected')
-    // }
   }
   componentDidUpdate(
     prevProps: Readonly<P>,
     prevState: Readonly<S>,
     snapshot?: any
   ): void {
-    const outerRoot = this.outerRoot()
-    // console.log([this.props.uid, this.props.selectionMode, this.props.selected])
+    const outerRoot = this.blockRoot()
+    const editorRoot = this.editableRoot()
     if (outerRoot) {
       if (this.props.initialContentEditable) {
-        outerRoot.focus();
+        editorRoot.focus();
       }
       if (this.props.selectionMode && this.props.selected) {
         outerRoot.classList.add('block-selected')
@@ -306,45 +333,45 @@ export class DefaultBlock<
     }
   }
 
-  currentInnerRoot = (): I => {
-    return this.ref.current as unknown as I;
+  currentContainer = (): I => {
+    return this.editableRootRef.current as unknown as I;
   };
-  firstInnerRoot = (): I => {
-    return this.ref.current as unknown as I;
+  firstContainer = (): I => {
+    return this.editableRootRef.current as unknown as I;
   };
-  lastInnerRoot = (): I => {
-    return this.ref.current as unknown as I;
+  lastContainer = (): I => {
+    return this.editableRootRef.current as unknown as I;
+  };
+  editableRoot = (): O => {
+    return this.editableRootRef.current
   };
 
-  outerRoot = (): O => {
-    return this.ref.current;
-  };
+  blockRoot = (): HTMLDivElement => {
+    return this.ref.current
+  }
 
   wrapBlockEvent<T extends BE.BlockEvent<O>>(e): T {
     e["html"] = this.state.html;
-    e["ref"] = this.outerRoot();
+    e["ref"] = this.editableRoot();
     return e;
   }
 
   handleBlur(e) {
     const newE = this.wrapBlockEvent<BE.FocusEvent<O>>(e);
     this.setEeditable(false);
-    // this.setState({
-    //   focused: false,
-    //   contentEditable: false,
-    // })
     this.props.onBlur(newE);
   }
+
   handleFocus(e) {
+    // focusEvent will triggered with mouseDown,
+    // but the focusNode/Offset will changed with mouseUp
     const newE = this.wrapBlockEvent<BE.FocusEvent<O>>(e);
     const { jumpRef } = this.props;
-    if (this.outerRoot()) {
-      this.outerRoot().contentEditable = "true";
+    if (this.editableRoot()) {
+      // this.editableRoot().contentEditable = "true";
     }
-    // this.setState({
-    //   focused: true,
-    //   contentEditable: true,
-    // })
+
+    // debugger
     if (jumpRef) {
       var caretPos;
       var innerRoot;
@@ -356,31 +383,31 @@ export class DefaultBlock<
             name: "unexpand",
           });
           if (jumpRef.from === "below") {
-            innerRoot = this.lastInnerRoot()
+            innerRoot = this.lastContainer()
             setLast = op.setCaretReletivePositionAtLastLine(
               innerRoot,
               jumpRef.offset
             );
           } else {
-            innerRoot = this.firstInnerRoot()
+            innerRoot = this.firstContainer()
             setLast = op.setCaretReletivePosition(
               innerRoot,
               jumpRef.offset
             );
           }
-          caretPos = op.currentCaretPosition(this.currentInnerRoot());
+          caretPos = op.currentCaretPosition(this.currentContainer());
           break;
         case "neighbor":
           if (jumpRef.from === "above") {
-            innerRoot = this.firstInnerRoot()
+            innerRoot = this.firstContainer()
             caretPos = op.firstCaretPosition(innerRoot);
           } else {
-            innerRoot = this.lastInnerRoot()
+            innerRoot = this.lastContainer()
             caretPos = op.lastCaretPosition(innerRoot);
           }
           break;
         case "mouse":
-          innerRoot = this.currentInnerRoot()
+          innerRoot = this.currentContainer()
           caretPos = op.currentCaretPosition(innerRoot);
           break;
       }
@@ -396,22 +423,20 @@ export class DefaultBlock<
       }
       this.props.onCaretMove(event);
     } else {
-      const caret = op.firstCaretPosition(this.firstInnerRoot());
+      const caret = op.firstCaretPosition(this.firstContainer());
       op.setCaretPosition(caret);
     }
-    // this.setState({
-    //   focused: true
-    // })
+
     this.props.onFocus(newE);
   }
 
   handleSelect(e) {
     const newE = this.wrapBlockEvent<BE.SyntheticEvent<O>>(e);
 
-    const caretPos = op.currentCaretPosition(this.currentInnerRoot());
+    const caretPos = op.currentCaretPosition(this.currentContainer());
     const event = new BlockCaretEvent(
       this.state.html,
-      this.currentInnerRoot(),
+      this.currentContainer(),
       caretPos,
       "left"
     );
@@ -420,9 +445,9 @@ export class DefaultBlock<
   }
 
   handleDataChange(e, data) {
-    var newE = this.wrapBlockEvent<BE.SyntheticEvent<O>>(e);
-    newE.html = data;
-    this.props.onDataChange(newE);
+    // var newE = this.wrapBlockEvent<BE.SyntheticEvent<O>>(e);
+    // newE.html = data;
+    // this.props.onDataChange(newE);
     e.preventDefault();
   }
 
@@ -431,26 +456,31 @@ export class DefaultBlock<
     this.props.onMergeAbove(newE);
     e.preventDefault();
   }
+
   handleMergeBelow(e) {
     const newE = this.wrapBlockEvent<BE.KeyboardEvent<O>>(e);
     this.props.onMergeBelow(newE);
     e.preventDefault();
   }
+
   handleJumpToAbove(e: React.KeyboardEvent<I>) {
     const newE = this.wrapBlockEvent<BE.KeyboardEvent<O>>(e);
     this.props.onJumpAbove(newE);
     e.preventDefault();
   }
+
   handleJumpToLeft(e: React.KeyboardEvent<I>) {
     const newE = this.wrapBlockEvent<BE.KeyboardEvent<O>>(e);
     this.props.onJumpToAboveEnd(newE);
     e.preventDefault();
   }
+
   handleJumpToBelow(e: React.KeyboardEvent<I>) {
     const newE = this.wrapBlockEvent<BE.KeyboardEvent<O>>(e);
     this.props.onJumpBelow(newE);
     e.preventDefault();
   }
+
   handleJumpToRight(e: React.KeyboardEvent<I>) {
     const newE = this.wrapBlockEvent<BE.KeyboardEvent<O>>(e);
     this.props.onJumpToBelowStart(newE);
@@ -458,20 +488,31 @@ export class DefaultBlock<
   }
 
   handleInput(e) {
-    // const nextState = produce(this.state, (draft: S) => {
-    //   draft.html = this.currentInnerRoot().innerHTML;
-    // });
-    // this.setState(nextState);
-    // this.handleDataChange(e, nextState.html);
-    e.preventDefault();
+    // debugger
+    // e.preventDefault();
+    const sel = document.getSelection()
+    const tag = sel.focusNode.parentElement
+    if (op.isTag(tag, 'span') && tag.classList.contains('bound-hint')) {
+      const right = sel.focusNode.textContent.slice(-1)
+      const left = sel.focusNode.textContent.slice(-0, -1)
+      tag.textContent = left
+      const newText = document.createTextNode(right)
+      tag.parentElement.insertBefore(newText, tag.nextSibling)
+      op.setCaretPosition(op.lastCaretPosition(newText))
+    }
   }
-  handleBackspace(e: React.KeyboardEvent<I>) { }
+
+  handleBackspace(e: React.KeyboardEvent<I>) {
+
+  }
+
   defaultHandleBackspace = (e: React.KeyboardEvent<I>) => {
     var tag;
-    if ((tag = op.isInStyleBound(this.currentInnerRoot(), "left"))) {
+    // debugger
+    if ((tag = op.isInStyleBound(this.currentContainer(), "left"))) {
       const style = op.tagToStyle(tag);
       if (style) {
-        op.deleteStyle(tag, this.currentInnerRoot());
+        op.deleteStyle(tag, this.currentContainer());
         this.props.eventManager.call("boundhint", {
           name: "expand",
           data: { force: true },
@@ -488,10 +529,10 @@ export class DefaultBlock<
   }
   defaultHandleDelete(e: React.KeyboardEvent<I>) {
     var tag;
-    if ((tag = op.isInStyleBound(this.currentInnerRoot(), "right"))) {
+    if ((tag = op.isInStyleBound(this.currentContainer(), "right"))) {
       const style = op.tagToStyle(tag);
       if (style) {
-        op.deleteStyle(tag, this.currentInnerRoot());
+        op.deleteStyle(tag, this.currentContainer());
         this.props.eventManager.call("boundhint", {
           name: "expand",
           data: { force: true },
@@ -508,47 +549,43 @@ export class DefaultBlock<
   handleSpace(e: React.KeyboardEvent<I>) { }
   handleShiftEnter(e: React.KeyboardEvent<I>) {
     op.insertNode(
-      this.currentInnerRoot(),
+      this.currentContainer(),
       document.createElement("br"),
       "right"
     );
     e.preventDefault();
   }
-  handleEnter(e: React.KeyboardEvent<I>) {
-    // const newE = this.wrapBlockEvent<BE.KeyboardEvent<E>>(e);
+  // handleEnter(e: React.KeyboardEvent<I>) {
+  //   // const newE = this.wrapBlockEvent<BE.KeyboardEvent<E>>(e);
+  //   this.props.onAppendBelow({
+  //     ref: this.outerRoot(),
+  //     inner: this.currentInnerRoot(),
+  //     html: "",
+  //     innerHTML: "",
+  //     type: "paragraph",
+  //   });
+  // }
+
+  handleAppendBelow(e: React.KeyboardEvent<I>) {
+    this.props.eventManager.call("boundhint", {
+      name: "unexpand",
+      data: {},
+    });
+    const content = op.cloneContentRight(this.currentContainer());
     this.props.onAppendBelow({
-      ref: this.outerRoot(),
-      inner: this.currentInnerRoot(),
+      ref: this.blockRoot(),
+      inner: this.currentContainer(),
       html: "",
       innerHTML: "",
       type: "paragraph",
     });
+    e.preventDefault()
   }
-  defaultHandleEnter(e: React.KeyboardEvent<I>) {
-    if (op.isCursorRight(this.currentInnerRoot())) {
-      this.props.onAppendBelow({
-        ref: this.outerRoot(),
-        inner: this.currentInnerRoot(),
-        html: "",
-        innerHTML: "",
-        type: "paragraph",
-      });
-      e.preventDefault();
-    } else if (op.isCursorLeft(this.currentInnerRoot())) {
-      this.props.onAppendAbove({
-        ref: this.outerRoot(),
-        inner: this.currentInnerRoot(),
-        html: "",
-        innerHTML: "",
-        type: "paragraph",
-      });
-      e.preventDefault();
-    } else {
-      this.handleEnter(e);
-    }
+  handleEnter(e: React.KeyboardEvent<I>) {
+    this.handleAppendBelow(e)
   }
   handleKeyUp(e: React.KeyboardEvent<I>) { }
-  defaultHandleKeyup(e: React.KeyboardEvent<I>) {
+  defaultHandleKeyup(e) {
     // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
     // console.log(["KeyUp", e.key]);
     if (this.props.selectionMode) {
@@ -558,10 +595,10 @@ export class DefaultBlock<
 
     if (e.key.match("Arrow")) {
       const direction = e.key.match("ArrowRight") ? "right" : "left";
-      const caretPos = op.currentCaretPosition(this.currentInnerRoot());
+      const caretPos = op.currentCaretPosition(this.currentContainer());
       const event = new BlockCaretEvent(
         this.state.html,
-        this.currentInnerRoot(),
+        this.currentContainer(),
         caretPos,
         direction
       );
@@ -570,11 +607,11 @@ export class DefaultBlock<
     } else if (e.key === "Backspace" || e.key === "Delete") {
       const sel = document.getSelection();
       if (op.supportedTag(sel.focusNode)) {
-        op.deleteStyle(sel.focusNode as HTMLElement, this.currentInnerRoot());
-        const caretPos = op.currentCaretPosition(this.currentInnerRoot());
+        op.deleteStyle(sel.focusNode as HTMLElement, this.currentContainer());
+        const caretPos = op.currentCaretPosition(this.currentContainer());
         const event = new BlockCaretEvent(
           this.state.html,
-          this.currentInnerRoot(),
+          this.currentContainer(),
           caretPos
         );
         this.props.onCaretMove(event);
@@ -583,18 +620,18 @@ export class DefaultBlock<
 
     }
     this.handleKeyUp(e);
+    return true
   }
 
   defaultHandleArrowKeyDown = (e: React.KeyboardEvent<I>) => {
     // 只移动光标，不用管 BoundHint
-    const root = this.currentInnerRoot();
+    const root = this.currentContainer();
     if (e.key === "ArrowUp") {
       if (op.isFirstLine(root)) {
         this.handleJumpToAbove(e);
       }
     } else if (e.key === "ArrowDown") {
       if (op.isLastLine(root)) {
-
         this.handleJumpToBelow(e);
       }
     } else if (e.key === "ArrowLeft") {
@@ -627,12 +664,14 @@ export class DefaultBlock<
     }
   };
 
+
+
   isCursorLeft = (): boolean => {
-    return op.isCursorLeft(this.currentInnerRoot());
+    return op.isCursorLeft(this.currentContainer());
   };
 
   isCursorRight = (): boolean => {
-    return op.isCursorRight(this.currentInnerRoot());
+    return op.isCursorRight(this.currentContainer());
   };
 
   isFirstLine = op.isFirstLine;
@@ -645,7 +684,7 @@ export class DefaultBlock<
     // const caretPos = op.currentCaretPosition(this.currentRoot());
     if (!e.shiftKey) {
       op.insertNode(
-        this.currentInnerRoot(),
+        this.currentContainer(),
         document.createTextNode("\u00A0"),
         "right"
       );
@@ -659,15 +698,19 @@ export class DefaultBlock<
     // }
   }
   handleMouseLeave = () => { }
-  handleMouseEnter = (e: React.MouseEvent<O>) => {
+  handleMouseEnter = (e) => {
+    e.target = this.blockRoot()
     // https://github.com/mui/material-ui/issues/7680
     // mouseEnter and mouseLeave can be triggered at the same time,
     // which will cause state unconsistancy.
-    if (e.buttons === 1 && !this.props.initialContentEditable) {
-      (e as BE.MouseEvent<O>).entered = true;
+    if (e.buttons === 1) {
+      // (e as BE.MouseEvent<O>).entered = true;
       this.props.onMouseSelect(e as BE.MouseEvent<O>)
+    } else {
+      this.props.onMouseEnter(e as BE.MouseEvent<O>)
     }
   }
+
   handleCopy = (e) => {
 
     // console.log(e)
@@ -688,9 +731,10 @@ export class DefaultBlock<
     e.preventDefault()
   }
 
-  defaultHandleKeyDown(e: React.KeyboardEvent<I>) {
+  defaultHandleKeyDown(e) {
     // const newE = this.wrapBlockEvent<BE.KeyboardEvent<O>>(e);
-    if (this.outerRoot().classList.contains('block-selected')) {
+    // debugger
+    if (this.props.selectionMode) {
       this.handleSelectedKeyDown(e)
       return
     }
@@ -699,7 +743,7 @@ export class DefaultBlock<
       if (e.shiftKey) {
         this.handleShiftEnter(e);
       } else {
-        this.defaultHandleEnter(e);
+        this.handleEnter(e);
       }
     } else if (e.code === "Space") {
       this.handleSpace(e);
@@ -720,30 +764,30 @@ export class DefaultBlock<
     } else if (e.key === "Delete") {
       this.defaultHandleDelete(e);
     } else if (e.key === "Home") {
-      const caretPos = this.firstCaretPosition(this.currentInnerRoot());
+      const caretPos = this.firstCaretPosition(this.currentContainer());
       op.setCaretPosition(caretPos);
       const event = new BlockCaretEvent(
         this.state.html,
-        this.currentInnerRoot(),
+        this.currentContainer(),
         caretPos,
         "left"
       );
       this.props.onCaretMove(event);
       e.preventDefault();
     } else if (e.key === "End") {
-      const caretPos = this.lastCaretPosition(this.currentInnerRoot());
+      const caretPos = this.lastCaretPosition(this.currentContainer());
       op.setCaretPosition(caretPos);
 
       const event = new BlockCaretEvent(
         this.state.html,
-        this.currentInnerRoot(),
+        this.currentContainer(),
         caretPos,
         "left"
       );
       this.props.onCaretMove(event);
       e.preventDefault();
     } else if (e.key === "Delete") {
-      if (op.isCursorRight(this.currentInnerRoot())) {
+      if (op.isCursorRight(this.currentContainer())) {
         this.handleMergeBelow(e);
       }
     } else if (e.key.match("Arrow")) {
@@ -751,7 +795,7 @@ export class DefaultBlock<
     } else {
       if (e.metaKey) {
         if (op.supportStyleKey(e.key)) {
-          op.applyStyle(e.key, this.currentInnerRoot());
+          op.applyStyle(e.key, this.currentContainer());
 
           this.props.eventManager.call("boundhint", {
             name: "expand",
@@ -766,5 +810,79 @@ export class DefaultBlock<
       }
       console.log(e);
     }
+  }
+
+  handleMouseDown = (e) => { }
+  defaultHandleMouseDown = (e) => {
+    this.handleMouseDown(e)
+  }
+  protected inContainer(el: Node): boolean {
+    return op.isParent(el, this.currentContainer())
+  }
+  protected fixCaret() {
+    const caretPos = op.firstCaretPosition(this.firstContainer())
+    op.setCaretPosition(caretPos)
+  }
+  handleMouseUp = (e) => {
+    // console.log()
+    // debugger
+    const sel = document.getSelection()
+    if (!this.inContainer(sel.focusNode)) {
+      this.fixCaret()
+    }
+  }
+  renderBlock(block: Block): React.ReactNode {
+    return NestRender(block.data.dom)
+  }
+
+  makeContentEditable(contentEditable: React.ReactNode) {
+    return contentEditable
+  }
+
+  public get placeholder(): string | undefined {
+    return undefined
+  }
+
+
+  render(): React.ReactNode {
+    const initialData = this.latestData()
+    return <div
+      // tabIndex={-1}
+      className={[
+        this.props.className,
+        this.className
+      ].join(' ')}
+      data-block-id={this.props.uid}
+      ref={this.ref}
+      onMouseMove={this.handleMouseMove}
+      onMouseEnter={this.handleMouseEnter}
+      onMouseLeave={this.handleMouseLeave}
+      onMouseDown={this.defaultHandleMouseDown}
+      onMouseUp={this.handleMouseUp}
+      onBlur={this.handleBlur}
+      onFocus={this.handleFocus}
+      onSelect={this.handleSelect}
+    >
+      {this.makeContentEditable(
+        <ContentEditable
+          placeholder={this.placeholder}
+          className="editable"
+          innerRef={this.editableRootRef}
+          tagName={this.contentEditableName}
+          // contentEditable={this.state.contentEditable}
+          contentEditable
+          onInput={this.handleInput}
+          onCopy={this.handleCopy}
+          onChange={this.handleDataChange}
+          onKeyDown={this.defaultHandleKeyDown}
+          onKeyUp={this.defaultHandleKeyup}
+          onPaste={this.handlePaste}
+        >
+          {this.renderBlock(initialData)}
+        </ContentEditable>
+      )}
+
+    </div>
+
   }
 }

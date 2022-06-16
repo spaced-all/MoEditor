@@ -1,3 +1,4 @@
+import { isValidTag } from "./caret";
 export function isNodeIn(el: Node, name: string, top: Node): boolean {
   var cur = el;
   while (cur !== top) {
@@ -30,22 +31,6 @@ export function isTextNode(el: Node): boolean {
   return (isTag(el, "#text") && el.textContent.length > 0) || isTag(el, "br");
 }
 
-/**
- * 1 => element node
- * 3 => text node
- * @param el
- * @returns
- */
-export function isValidTag(el: Node | null): boolean {
-  if (!el) {
-    return true;
-  }
-
-  return (
-    (el.nodeType === 1 && (el as HTMLElement).contentEditable !== "false") ||
-    isTextNode(el)
-  );
-}
 
 export function lastTextOffset(el: Node): number {
   if (isTag(el, "#text")) {
@@ -84,22 +69,6 @@ export const createCountFilter = (top: Node) => (node: Node) => {
   return NodeFilter.FILTER_ACCEPT;
 };
 
-export function nextValidNode(el: Node): Node | null {
-  var cur = el.nextSibling;
-  while (!isValidTag(cur)) {
-    cur = cur!.nextSibling;
-  }
-  return cur;
-}
-
-export function previousValidNode(el: Node): Node | null {
-  var cur = el.previousSibling;
-
-  while (!isValidTag(cur)) {
-    cur = cur!.previousSibling;
-  }
-  return cur;
-}
 
 export function firstValidChild(el: Node): Node | null {
   for (var i = 0; i < el.childNodes.length; i++) {

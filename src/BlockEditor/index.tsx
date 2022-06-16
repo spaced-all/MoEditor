@@ -1,3 +1,3 @@
-export { Paragraph } from "./Blocks/Paragraph"
-export { Section } from "./Blocks/Section"
+// export { Paragraph } from "./Blocks/Paragraph"
+// export { Heading } from "./Blocks/Heading"
 export { Card } from "./Card"

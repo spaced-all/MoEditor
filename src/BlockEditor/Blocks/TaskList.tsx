@@ -1,12 +1,12 @@
 import React from "react";
-import { BlockProps, BlockStates, ContentEditable } from "./Common"
+import { Block, BlockProps, BlockStates, ContentEditable } from "./Common"
 import { DefaultBlock } from "./Common"
 import produce from "immer"
 
 import { NestRender } from "./render";
 import * as op from "../operation"
 import * as BE from "../event/eventtype";
-
+import { VList } from "./VituralList"
 interface TaskListProps extends BlockProps {
 }
 
@@ -14,9 +14,14 @@ interface TaskListStats extends BlockStates {
     checked: {}
 }
 
-
-export class TaskList extends DefaultBlock<TaskListProps, TaskListStats, HTMLUListElement, HTMLLIElement> {
+export class TaskList extends VList<TaskListProps, TaskListStats, HTMLUListElement> {
     static defaultProps = DefaultBlock.defaultProps;
+    protected get contentEditableName(): string {
+        return 'ul'
+    }
+    protected get className(): string {
+        return 'task-list'
+    }
     constructor(props) {
         super(props)
         this.state = {
@@ -46,29 +51,29 @@ export class TaskList extends DefaultBlock<TaskListProps, TaskListStats, HTMLULi
     };
 
     handleJumpToAbove(e: any): void {
-        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
+        const innerRoot = op.findParentMatchTagName(this.currentContainer(), 'li', this.editableRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === 0) {
             // e['html']
-            e['ref'] = this.currentInnerRoot()
+            e['ref'] = this.currentContainer()
             this.props.onJumpAbove(e)
             e.preventDefault()
         }
     }
     handleJumpToBelow(e: any): void {
-        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
+        const innerRoot = op.findParentMatchTagName(this.currentContainer(), 'li', this.editableRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         const maxIndex = parseFloat(innerRoot.getAttribute('data-max-index'))
         if (index === maxIndex - 1) {
             // e['html']
-            e['ref'] = this.currentInnerRoot()
+            e['ref'] = this.currentContainer()
             this.props.onJumpBelow(e)
             e.preventDefault()
         }
     }
 
     handleJumpToLeft(e) {
-        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
+        const innerRoot = op.findParentMatchTagName(this.currentContainer(), 'li', this.editableRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === 0) {
             const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLUListElement>>(e);
@@ -80,7 +85,7 @@ export class TaskList extends DefaultBlock<TaskListProps, TaskListStats, HTMLULi
         e.preventDefault()
     }
     handleJumpToRight(e: any): void {
-        const innerRoot = op.findParentMatchTagName(this.currentInnerRoot(), 'li', this.outerRoot()) as HTMLLIElement
+        const innerRoot = op.findParentMatchTagName(this.currentContainer(), 'li', this.editableRoot()) as HTMLLIElement
         const index = parseFloat(innerRoot.getAttribute('data-index'))
         if (index === this.props.data.data.dom.length - 1) {
             const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLUListElement>>(e);
@@ -111,46 +116,27 @@ export class TaskList extends DefaultBlock<TaskListProps, TaskListStats, HTMLULi
         e.preventDefault()
     };
 
-    firstInnerRoot = () => {
-        const root = this.outerRoot()
+    firstContainer = () => {
+        const root = this.editableRoot()
         return op.lastValidChild(op.firstValidChild(root)) as HTMLLIElement
     };
-    lastInnerRoot = () => {
-        const root = this.outerRoot()
+    lastContainer = () => {
+        const root = this.editableRoot()
         return op.lastValidChild(op.lastValidChild(root)) as HTMLLIElement
     };
 
-    currentInnerRoot = () => {
+    currentContainer = () => {
         const sel = document.getSelection()
-        const innerRoot = op.findParentMatchTagName(sel.focusNode, 'p', this.outerRoot()) as HTMLLIElement
+        const innerRoot = op.findParentMatchTagName(sel.focusNode, 'p', this.editableRoot()) as HTMLLIElement
         return innerRoot
     };
     handleInput(e: any): void {
-        
+
     }
-
-    render() {
-        const data = this.latestData()
-        return <ContentEditable
-            tagName={`ul`}
-            className='task-list'
-            contentEditable={this.state.contentEditable}
-            innerRef={this.ref}
-            onInput={this.handleInput}
-            onBlur={this.handleBlur}
-            onFocus={this.handleFocus}
-            onSelect={this.handleSelect}
-            onKeyDown={this.defaultHandleKeyDown}
-            onKeyUp={this.defaultHandleKeyup}
-            onMouseMove={this.handleMouseMove}
-            onMouseEnter={this.handleMouseEnter}
-            onMouseLeave={this.handleMouseLeave}
-            onCopy={this.handleCopy}
-            onPaste={this.handlePaste}
-        >
-            {data.data.dom.map((item, ind, arr) => {
+    renderBlock(block: Block): React.ReactNode {
+        return <>
+            {block.data.dom.map((item, ind, arr) => {
                 return <>
-
                     <li
                         data-indent-level={Math.min(3, item.attributes.level)}
                         data-index={ind}
@@ -174,6 +160,6 @@ export class TaskList extends DefaultBlock<TaskListProps, TaskListStats, HTMLULi
                     </li>
                 </>
             })}
-        </ContentEditable>
+        </>
     }
 }

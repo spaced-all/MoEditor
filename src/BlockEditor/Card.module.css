@@ -2,15 +2,23 @@
     cursor: text;
     padding: 10px;
     margin: 10px;
+    transition: 200ms;
+    
 }
 
+.card * {
+    min-height: 1.5em;
+    /* white-space: "pre-wrap"!important; */
+}
 
 .card table {
     width: 100%;
 }
 
+
 .card>.selected {
     background-color: #f5f5f5;
+
 }
 
 .card pre {
@@ -86,7 +94,7 @@
 }
 
 
-/* .card p:focus {
+/* .card *:focus {
     width: fit-content;
     min-width: 10px;
 } */
@@ -132,10 +140,10 @@
     margin-left: 2em;
 }
 
-
+/* 
 .label-hover {
     background-color: gainsboro;
-}
+} */
 
 .card :global(.selection-board) {
     display: flex;
@@ -149,6 +157,7 @@
 
 .card>:global(.block-selected) {
     background-color: antiquewhite;
+    transition: 200ms;
 }
 
 .card:global(.block-selection-mode) ::selection {

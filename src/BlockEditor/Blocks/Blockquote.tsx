@@ -1,6 +1,6 @@
 import React from "react";
 import { NestRender } from "./render";
-import { BlockProps, BlockStates, ContentEditable } from "./Common"
+import { Block, BlockProps, BlockStates, ContentEditable } from "./Common"
 import { BlockquoteBlock, DefaultBlock } from "./Common"
 import { RefObject } from "react";
 import * as op from "../operation"
@@ -15,8 +15,10 @@ interface BlockquoteStats extends BlockStates {
 
 
 export class Blockquote extends DefaultBlock<BlockquoteProps, BlockquoteStats, HTMLQuoteElement, HTMLParagraphElement> {
-
     static defaultProps = DefaultBlock.defaultProps;
+    protected get contentEditableName(): string {
+        return 'p'
+    }
     pref: RefObject<HTMLParagraphElement>;
 
     constructor(props) {
@@ -24,52 +26,37 @@ export class Blockquote extends DefaultBlock<BlockquoteProps, BlockquoteStats, H
         this.pref = React.createRef<HTMLParagraphElement>()
     }
     handleBackspace = (e: React.KeyboardEvent<HTMLElement>) => {
-        if (op.isCursorLeft(this.currentInnerRoot())) {
+        if (op.isCursorLeft(this.currentContainer())) {
             this.props.onChangeBlockType({
-                html: op.validInnerHTML(this.outerRoot()), 'type': "paragraph", ref: this.outerRoot(),
-                inner: this.currentInnerRoot(),
+                html: op.validInnerHTML(this.editableRoot()), 'type': "paragraph", ref: this.editableRoot(),
+                inner: this.currentContainer(),
             })
 
             e.preventDefault()
         }
     }
-    outerRoot = () => {
-        return this.ref.current
-    };
-    currentInnerRoot = () => {
-        return this.pref.current
-    };
-    firstInnerRoot = () => {
-        return this.pref.current
-    };
-    lastInnerRoot = () => {
-        return this.pref.current
-    };
+    // blockRoot = () => {
+    //     return this.ref.current
+    // };
+    // currentContainer = () => {
+    //     return this.pref.current
+    // };
+    // firstContainer = () => {
+    //     return this.pref.current
+    // };
+    // lastContainer = () => {
+    //     return this.pref.current
+    // };
 
-    render() {
-        const data = this.latestData()
-        const element = NestRender(data.data.dom)
-
-        return <ContentEditable
-            tagName={`blockquote`}
-            contentEditable={this.state.contentEditable}
-            innerRef={this.ref}
-            onInput={this.handleInput}
-            onBlur={this.handleBlur}
-            onFocus={this.handleFocus}
-            onSelect={this.handleSelect}
-            onKeyDown={this.defaultHandleKeyDown}
-            onKeyUp={this.defaultHandleKeyup}
-            onMouseMove={this.handleMouseMove}
-            onMouseEnter={this.handleMouseEnter}
-            onMouseLeave={this.handleMouseLeave}
-            onCopy={this.handleCopy}
-            onPaste={this.handlePaste}
-        >
-            <p ref={this.pref}>
-
-                {element}
-            </p>
-        </ContentEditable>
+    // renderBlock(block: Block): React.ReactNode {
+    //     const element = NestRender(block.data.dom)
+    //     return <p ref={this.pref}>
+    //         {element}
+    //     </p>
+    // }
+    makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
+        return <blockquote>
+            {contentEditable}
+        </blockquote>
     }
 }

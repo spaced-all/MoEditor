@@ -1,5 +1,5 @@
 import React from "react";
-import { BlockProps, BlockStates, ContentEditable } from "./Common"
+import { Block, BlockProps, BlockStates, ContentEditable } from "./Common"
 import { DefaultBlock } from "./Common"
 import { NestRender } from "./render";
 import * as op from "../operation"
@@ -16,10 +16,16 @@ interface TableStats extends BlockStates {
 export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement, HTMLTableColElement> {
     static defaultProps = DefaultBlock.defaultProps;
 
+    protected get multiContainer(): boolean {
+        return true
+    }
+    protected get contentEditableName(): string {
+        return 'table'
+    }
     handleBackspace(e: React.KeyboardEvent<HTMLTableColElement>) {
-        if (op.isCursorLeft(this.currentInnerRoot())) {
-            const innerRoot = this.currentInnerRoot()
-            const tbody = op.findParentMatchTagName(innerRoot, 'tbody', this.outerRoot()) as HTMLTableSectionElement
+        if (op.isCursorLeft(this.currentContainer())) {
+            const innerRoot = this.currentContainer()
+            const tbody = op.findParentMatchTagName(innerRoot, 'tbody', this.editableRoot()) as HTMLTableSectionElement
             if (tbody.classList.contains('selected')) {
             } else {
                 tbody.classList.add('selected')
@@ -28,17 +34,17 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
         }
     };
 
-    currentInnerRoot = () => {
+    currentContainer = () => {
         const sel = document.getSelection()
-        const innerRoot = op.findParentMatchTagName(sel.focusNode, 'td', this.outerRoot()) as HTMLTableColElement
+        const innerRoot = op.findParentMatchTagName(sel.focusNode, 'td', this.editableRoot()) as HTMLTableColElement
         return innerRoot
     };
     handleKeyUp(e: React.KeyboardEvent<HTMLTableColElement>): void {
         if (e.key === 'Tab') {
-            const caretPos = op.currentCaretPosition(this.currentInnerRoot());
+            const caretPos = op.currentCaretPosition(this.currentContainer());
             const event = new BlockCaretEvent(
                 this.state.html,
-                this.currentInnerRoot(),
+                this.currentContainer(),
                 caretPos,
                 'left'
             );
@@ -69,19 +75,33 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
     handleShiftEnter(e: React.KeyboardEvent<HTMLTableColElement>) {
 
     };
+    handleEnter(e: any): void {
+        const innerRoot = this.currentContainer()
+        const rid = parseFloat(innerRoot.getAttribute('data-row'))
+        const cid = parseFloat(innerRoot.getAttribute('data-col'))
+        const maxrow = parseFloat(innerRoot.getAttribute('data-max-row'))
+        if (rid < maxrow - 1) {
+            const newRoot = this.getTableDataCellByPosition(rid + 1, cid)
+            op.setCaretPosition(op.firstCaretPosition(newRoot))
+        } else {
+            e['ref'] = this.currentContainer()
+            this.props.onJumpBelow(e)
+        }
+        e.preventDefault()
+    }
     private getTableDataCellByPosition(row: number, col: number): HTMLTableColElement {
-        const outer = this.outerRoot()
+        const outer = this.editableRoot()
         return outer.querySelector(`td[data-row="${row}"][data-col="${col}"]`) as HTMLTableColElement
     }
     private previousTableDataCell(): HTMLTableColElement {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = this.currentContainer()
         const rid = parseFloat(innerRoot.getAttribute('data-row'))
         const cid = parseFloat(innerRoot.getAttribute('data-col'))
         if (cid > 0) {
             const newRoot = op.previousValidNode(innerRoot) as HTMLTableColElement
             return newRoot
         } else if (rid > 0) {
-            const tbody = op.previousValidNode(op.findParentMatchTagName(innerRoot, 'tbody', this.outerRoot())) as HTMLTableSectionElement
+            const tbody = op.previousValidNode(op.findParentMatchTagName(innerRoot, 'tbody', this.editableRoot())) as HTMLTableSectionElement
             const newRoot = op.firstValidChild(op.lastValidChild(tbody)) as HTMLTableColElement
             return newRoot
         }
@@ -89,7 +109,7 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
     }
 
     private nextTableDataCell(): HTMLTableColElement {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = this.currentContainer()
         const rid = parseFloat(innerRoot.getAttribute('data-row'))
         const cid = parseFloat(innerRoot.getAttribute('data-col'))
         const maxrow = parseFloat(innerRoot.getAttribute('data-max-row'))
@@ -102,7 +122,7 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
             // find rid + 1, 0
             // const newRoot = op.nextValidNode(innerRoot) as HTMLTableColElement
             // op.setCaretPosition(op.firstCaretPosition(newRoot))
-            const tbody = op.nextValidNode(op.findParentMatchTagName(innerRoot, 'tbody', this.outerRoot())) as HTMLTableSectionElement
+            const tbody = op.nextValidNode(op.findParentMatchTagName(innerRoot, 'tbody', this.editableRoot())) as HTMLTableSectionElement
             const newRoot = op.firstValidChild(op.firstValidChild(tbody)) as HTMLTableColElement
             // const newRoot = op.nextValidNode(innerRoot) as HTMLTableColElement
             return newRoot
@@ -131,7 +151,7 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
         e.preventDefault()
     }
     handleJumpToAbove(e: any): void {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = this.currentContainer()
         const rid = parseFloat(innerRoot.getAttribute('data-row'))
         const cid = parseFloat(innerRoot.getAttribute('data-col'))
         // innerRoot.querySelector()
@@ -139,13 +159,13 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
             const newRoot = this.getTableDataCellByPosition(rid - 1, cid)
             op.setCaretPosition(op.firstCaretPosition(newRoot))
         } else {
-            e['ref'] = this.currentInnerRoot()
+            e['ref'] = this.currentContainer()
             this.props.onJumpAbove(e)
         }
         e.preventDefault()
     }
     handleJumpToBelow(e: any): void {
-        const innerRoot = this.currentInnerRoot()
+        const innerRoot = this.currentContainer()
         const rid = parseFloat(innerRoot.getAttribute('data-row'))
         const cid = parseFloat(innerRoot.getAttribute('data-col'))
         const maxrow = parseFloat(innerRoot.getAttribute('data-max-row'))
@@ -153,7 +173,7 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
             const newRoot = this.getTableDataCellByPosition(rid + 1, cid)
             op.setCaretPosition(op.firstCaretPosition(newRoot))
         } else {
-            e['ref'] = this.currentInnerRoot()
+            e['ref'] = this.currentContainer()
             this.props.onJumpBelow(e)
         }
         e.preventDefault()
@@ -164,60 +184,36 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
         return innerRoot
     };
 
-    firstInnerRoot = () => {
-        const root = this.outerRoot() // table -> tbody -> tr -> td
+    firstContainer = () => {
+        const root = this.editableRoot() // table -> tbody -> tr -> td
         return op.firstValidChild(op.firstValidChild(op.firstValidChild(root))) as HTMLTableColElement
     };
-    lastInnerRoot = () => {
-        const root = this.outerRoot()
+    lastContainer = () => {
+        const root = this.editableRoot()
         return op.lastValidChild(op.lastValidChild(op.lastValidChild(root))) as HTMLTableColElement
     };
-
-    render() {
-        const data = this.latestData()
-
+    
+    renderBlock(block: Block): React.ReactNode {
         return <>
-            <ContentEditable
-                tagName={`table`}
-                contentEditable={this.state.contentEditable}
-                innerRef={this.ref}
-                onInput={this.handleInput}
-                onBlur={this.handleBlur}
-                onFocus={this.handleFocus}
-                onSelect={this.handleSelect}
-                onKeyDown={this.defaultHandleKeyDown}
-                onKeyUp={this.defaultHandleKeyup}
-                onMouseMove={this.handleMouseMove}
-                onMouseEnter={this.handleMouseEnter}
-                onMouseLeave={this.handleMouseLeave}
-                onCopy={this.handleCopy}
-                onPaste={this.handlePaste}
-            >
+            {block.data.dom.map((item, ind, rows) => {
+                return <tbody data-ignore="true">
+                    <tr
+                        key={ind}
+                        className={[
+                            'editbound'
+                        ].join(" ")} >
+                        {item.children.map((child, cid, cols) => {
+                            return <td
+                                key={cid}
+                                data-row={ind}
+                                data-col={cid}
+                                data-max-row={rows.length}
+                                data-max-col={cols.length}
+                            >{child.textContent}{NestRender(child.children)}</td>
+                        })}
+                    </tr>
+                </tbody>
 
-
-                {data.data.dom.map((item, ind, rows) => {
-                    return <tbody data-ignore="true">
-                        <tr
-                            // data-indent-level={Math.min(3, item.attributes.level)}
-                            // data-index={ind}
-                            key={ind}
-                            className={[
-                                'editbound'
-                            ].join(" ")} >
-                            {item.children.map((child, cid, cols) => {
-                                return <td
-                                    key={cid}
-                                    data-row={ind}
-                                    data-col={cid}
-                                    data-max-row={rows.length}
-                                    data-max-col={cols.length}
-                                >{child.textContent}{NestRender(child.children)}</td>
-                            })}
-                        </tr>
-                    </tbody>
-
-                })}
-            </ContentEditable>
-        </>
+            })}</>
     }
 }
