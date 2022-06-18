@@ -11,14 +11,14 @@ import { BoundHint } from "./BoundHint";
 import { FunctionButton } from "./FunctionButton"
 
 
-interface CardProps {
+interface PageProps {
     blocks?: Block[]
     onShiftEnter?: (e: React.KeyboardEvent) => void
     onEnter?: (e: React.KeyboardEvent) => void
     onBlur?: (e: React.FocusEvent) => void
     onChange?: (e: React.SyntheticEvent) => void
 }
-interface CardStats {
+interface PageStats {
     blocks: Block[]
     // dirtyHtml: { [key: number]: string }
     cursor: number
@@ -39,12 +39,12 @@ const emptyBlock = {
 }
 
 
-const defaultPropsV2: CardProps = {
+const defaultPropsV2: PageProps = {
     blocks: [
         { order: 'a', type: 'heading', level: 1, 'data': { dom: [{ tagName: '#text', textContent: 'Header 1' }] } },
         {
             order: 'b', type: 'paragraph', 'data': {
-                dom: [{ tagName: '#text', textContent: 'normal' }]
+                dom: [{ tagName: '#text', textContent: 'Support Empty Text' }]
             }
         },
         {
@@ -199,7 +199,7 @@ const defaultPropsV2: CardProps = {
 }
 
 
-class Card extends React.Component<CardProps, CardStats> {
+class Page extends React.Component<PageProps, PageStats> {
     static defaultProps = defaultPropsV2
     portalCaller: EventManager
     focusBlockRef: RefObject<HTMLElement>
@@ -218,14 +218,7 @@ class Card extends React.Component<CardProps, CardStats> {
         this.ref = React.createRef()
         this.focusBlockRef = React.createRef()
     }
-    handleComponentEvent = (evt: TEvent) => {
-    }
-    componentDidMount(): void {
-        this.portalCaller.on('card', this.handleComponentEvent)
-    }
-    componentDidUpdate(prevProps: Readonly<CardProps>, prevState: Readonly<CardStats>, snapshot?: any): void {
-        // console.log(this.state.cursor)
-    }
+
 
     handleJumpToAbove = (evt, ind) => {
         const { blocks, historyOffset } = this.state
@@ -243,6 +236,41 @@ class Card extends React.Component<CardProps, CardStats> {
             }
         })
     }
+    handleJump = (
+        evt,
+        ind,
+        type: 'neighbor' | 'jump',
+        from: 'above' | 'below') => {
+        console.log([evt, ind, type, from])
+        const { blocks, historyOffset } = this.state
+        let offset = historyOffset;
+        if (!offset) {
+            if (from === 'below') {
+                offset = op.getCaretReletivePosition(evt.ref)
+            } else {
+                offset = op.getCaretReletivePositionAtLastLine(evt.ref)
+            }
+        } else {
+            this.portalCaller.call('boundhint', { name: 'unexpand', 'data': {} })
+        }
+        const newState = produce(this.state, draft => {
+            if (from === 'below') {
+                draft.cursor = Math.max(0, ind - 1)
+            } else {
+                draft.cursor = Math.min(blocks.length - 1, ind + 1)
+            }
+            if (type === 'jump') { // directly up/down
+                draft.historyOffset = offset
+            }
+            draft.jumpRef = {
+                "from": from,
+                "offset": offset,
+                "type": type
+            }
+        })
+        this.setState(newState)
+    }
+
     handleJumpToBelow = (evt, ind) => {
         const { blocks, historyOffset } = this.state
         let offset = historyOffset;
@@ -560,7 +588,7 @@ class Card extends React.Component<CardProps, CardStats> {
                     onCaretMoveTo: (e) => this.handleCaretMove(e, ind),
                     onMerge: (e) => this.handleMerge(e, ind),
                     onSplit: (e) => this.handleSplit(e, ind),
-                    onJumpAbove: (evt) => this.handleJumpToAbove(evt, ind),
+
                     onMouseEnter: (e) => {
                         this.setState({
                             focusBlockRef: e.target as HTMLElement,
@@ -590,8 +618,6 @@ class Card extends React.Component<CardProps, CardStats> {
                                 draft.selection[draft.blocks[cursor].order] = true
                             }
                             draft.selection[val.order] = true
-
-                            // draft.cursor = ind
                             if (ind < draft.selectionStart) {
                                 draft.selection = {}
                                 for (let i = draft.selectionStart; i >= ind; i--) {
@@ -612,20 +638,17 @@ class Card extends React.Component<CardProps, CardStats> {
                         console.log(newState.selection)
                         this.setState(newState)
                     },
-                    onJumpBelow: (evt) => this.handleJumpToBelow(evt, ind),
+                    onJumpBelow: (evt) => this.handleJump(evt, ind, 'jump', 'above'),
+                    onJumpToBelowStart: (evt) => this.handleJump(evt, ind, 'neighbor', 'above'),
+                    onJumpAbove: (evt) => this.handleJump(evt, ind, 'jump', 'below'),
+                    onJumpToAboveEnd: (evt) => this.handleJump(evt, ind, 'neighbor', 'below'),
                     onChangeBlockType: (evt) => this.handleChangeBlockType(evt, ind),
-                    onJumpToAboveEnd: (evt) => this.handleJumpToAboveEnd(evt, ind),
-                    onJumpToBelowStart: (evt) => this.handleJumpToBelowStart(evt, ind),
                     data: val,
                 })
                 return blockEl
             })}
-            <button onClick={() => { this.setState({ cursor: cursor - 1 }) }}>up</button>
-            <button onClick={() => { this.setState({ cursor: cursor + 1 }) }}>down</button>
         </article>
     }
 }
 
-// Card.defaultProps = defaultProps;
-
-export { Card }
+export { Page }

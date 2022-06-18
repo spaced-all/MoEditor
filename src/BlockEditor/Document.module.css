@@ -1,0 +1,9 @@
+.document article {
+    box-shadow:
+        4px 4px 20px rgba(0, 0, 0, 0.32);
+    padding-left: 5em;
+    padding-right: 5em;
+    padding-top: 2em;
+    padding-bottom: 2em;
+    margin-bottom: 1em;
+}

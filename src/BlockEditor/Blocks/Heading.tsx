@@ -1,6 +1,6 @@
 import React from "react";
 import { BlockStates, BlockProps, DefaultBlock, Block } from "./Common"
-import { NestRender } from "./render"
+import { NestRender, Serialize } from "./render"
 import * as op from "../operation"
 import * as BE from "../event/eventtype"
 import './Heading.css'
@@ -49,7 +49,7 @@ export class Heading extends DefaultBlock<HeadingProps, HeadingStats, HTMLHeadin
             e.preventDefault()
         }
     }
-    
+
     handleSpace = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
         const key = op.textContentBefore(this.ref.current).trim()
         if (key.length > 5) {
@@ -67,9 +67,14 @@ export class Heading extends DefaultBlock<HeadingProps, HeadingStats, HTMLHeadin
                 } else {
                     block.level = key.length
                 }
+
+                block.type = 'heading'
+                block.level = key.length
+                block.data.dom = Serialize(op.wrapIn(op.extractContentRight(this.editableRoot()), 'span').innerHTML)
                 this.props.onSplit({
                     'focus': block
                 })
+
                 e.preventDefault()
         }
     };

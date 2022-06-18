@@ -1,5 +1,5 @@
 import React from "react";
-import { BlockProps, BlockStates } from "./Common"
+import { Block, BlockProps, BlockStates } from "./Common"
 import { ParagraphBlock, DefaultBlock } from "./Common"
 import * as op from "../operation"
 import * as BE from "../event/eventtype"
@@ -46,39 +46,65 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
             e.preventDefault()
         }
     }
-    
+
     handleSpace = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
         const key = op.textContentBefore(this.editableRoot()).trim()
         if (key.length > 5) {
             return
         }
-        const block = this.serialize()
+        const block: Block = {
+            ...this.props.data,
+            'data': { dom: [] }
+        }
+        var children
         switch (key) {
             case '#':
             case '##':
             case '###':
             case '####':
             case '#####':
+                children = Serialize(op.wrapIn(op.extractContentRight(this.editableRoot()), 'span').innerHTML)
                 block.type = 'heading'
                 block.level = key.length
+                block.data.dom = children
                 this.props.onSplit({
                     'focus': block
                 })
                 e.preventDefault()
                 break
             case '>':
+                children = Serialize(op.wrapIn(op.extractContentRight(this.editableRoot()), 'span').innerHTML)
                 block.type = 'blockquote'
+                block.data.dom = children
+                this.props.onSplit({
+                    'focus': block
+                })
+                e.preventDefault()
+                break
+            case '1.':
+                children = Serialize(op.wrapIn(op.extractContentRight(this.editableRoot()), 'span').innerHTML)
+                block.type = 'orderedList'
+                block.data.dom = [
+                    {
+                        'tagName': 'li',
+                        'children': children,
+                        'attributes': {
+                            level: 1
+                        }
+                    }
+                ]
                 this.props.onSplit({
                     'focus': block
                 })
                 e.preventDefault()
                 break
             case '-':
-                block.type = 'blockquote'
+                children = Serialize(op.wrapIn(op.extractContentRight(this.editableRoot()), 'span').innerHTML)
+                block.type = 'list'
                 block.data.dom = [
                     {
                         'tagName': 'li',
-                        'children': block.data.dom,
+                        'children': children,
                         'attributes': {
                             level: 1
                         }

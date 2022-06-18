@@ -604,7 +604,6 @@ export class DefaultBlock<
         return
       }
     }
-    debugger
     this.handleDelete(e);
   }
   handleSpace(e: React.KeyboardEvent<I>) { }

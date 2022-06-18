@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
 
-import { Card } from './BlockEditor';
+import { Page, Document } from './BlockEditor';
 import App from './App';
 
 const root = ReactDOM.createRoot(
@@ -13,7 +13,8 @@ root.render(
   <React.StrictMode>
     <div className='center'>
       <App></App>
-      <Card />
+      {/* <Page /> */}
+      <Document></Document>
     </div>
   </React.StrictMode>
 );
