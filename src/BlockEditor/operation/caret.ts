@@ -11,7 +11,7 @@ export class CaretPosition {
   }
 }
 
-interface Condition {
+export interface Condition {
   emptyText?: boolean;
   whiteText?: boolean;
   br?: boolean;
@@ -160,6 +160,7 @@ function neighborCaretPosition(
 
   // in text node
   // <p>"t\e|x\t"</p>
+
   if (isTag(container, "#text")) {
     if (direction === "left" && offset > 0) {
       offset--;
@@ -287,7 +288,7 @@ export function firstCaretPosition(root: Node): CaretPosition {
   if (isTag(root, "#text")) {
     return new CaretPosition(root, 0, root);
   }
-  const first = firstValidChild(root, { emptyText: false });
+  const first = firstValidChild(root, {});
   if (first && isTag(first, "#text")) {
     return new CaretPosition(first, 0, root);
   }
@@ -308,7 +309,7 @@ export function lastCaretPosition(root: Node): CaretPosition {
   if (isTag(root, "#text")) {
     return new CaretPosition(root, root.textContent.length, root);
   }
-  const last = lastValidChild(root, { emptyText: false });
+  const last = lastValidChild(root, {});
   if (last && isTag(last, "#text")) {
     return new CaretPosition(last, last.textContent.length, root);
   }
@@ -383,6 +384,13 @@ export function getCaretReletivePosition(
   }
 
   let size = 0;
+  if (container === root) {
+    for (let i = 0; i < offset; i++) {
+      size += elementCharSize(container.childNodes[i]);
+    }
+    return size;
+  }
+
   while (container !== root) {
     if (isTag(container, "#text")) {
       size += offset;
@@ -505,7 +513,7 @@ export function isCursorLeft(
     container = sel.focusNode;
     offset = sel.focusOffset;
   }
-
+  
   const firstPos = firstCaretPosition(root);
   return firstPos.container === container && firstPos.offset === offset;
 }
@@ -535,7 +543,15 @@ export function isCursorRight(
   }
 
   const firstPos = lastCaretPosition(el);
-  return firstPos.container === container && firstPos.offset === offset;
+
+  if (firstPos.container === container && firstPos.offset === offset) {
+    return true;
+  }
+  // const neighbor = nextCaretPosition(el, container, offset);
+  // return (
+  //   neighbor.container === firstPos.container &&
+  //   neighbor.offset === firstPos.offset
+  // );
 }
 
 export function isFirstLine(el: HTMLElement) {
@@ -601,6 +617,15 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
   var historyOffset = 0;
   // range.setStart(cur, offset - curOffset);
   // range.setEnd(cur, offset - curOffset);
+  if (offset === 0) {
+    if (isTag(cur, "#text")) {
+      range.setStart(cur, 0);
+      range.setEnd(cur, 0);
+    } else {
+      range.setStart(root, 0);
+      range.setEnd(root, 0);
+    }
+  }
   while (cur) {
     const curOffset = elementCharSize(cur);
     if (curOffset + historyOffset < offset) {

@@ -15,7 +15,7 @@ export class Heading extends DefaultBlock<HeadingProps, HeadingStats, HTMLHeadin
     }
 
     static supportTag = ['h1', 'h2', 'h3', 'h4', 'h5']
-    
+
 
     pref: React.RefObject<HTMLSpanElement>
     constructor(props) {
@@ -25,24 +25,31 @@ export class Heading extends DefaultBlock<HeadingProps, HeadingStats, HTMLHeadin
     public get placeholder(): string {
         return `Heading ${this.props.data.level}`
     }
+
     handleBackspace = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
         if (op.isCursorLeft(this.editableRoot())) {
-            this.props.onChangeBlockType({
-                html: op.validInnerHTML(this.editableRoot()), 'type': "paragraph",
-                ref: this.editableRoot(),
-                inner: this.currentContainer(),
+            const block = this.serialize()
+            block.type = 'paragraph'
+            this.props.onSplit({
+                'focus': block
             })
             e.preventDefault()
         }
     }
-    handleDelete = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
-        const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLHeadingElement>>(e)
-        if (op.isCursorRight(this.ref.current)) {
-            this.props.onMergeBelow(newE)
+
+    handleDelete = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
+        if (op.isCursorRight(this.editableRoot())) {
+            const caretPos = op.lastCaretPosition(this.editableRoot())
+            const offset = op.getCaretReletivePosition(this.editableRoot(), caretPos.container, caretPos.offset)
+            this.props.onMerge({
+                'block': this.serialize(),
+                'direction': 'right',
+                'offset': offset
+            })
             e.preventDefault()
         }
     }
-
+    
     handleSpace = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
         const key = op.textContentBefore(this.ref.current).trim()
         if (key.length > 5) {
@@ -54,44 +61,19 @@ export class Heading extends DefaultBlock<HeadingProps, HeadingStats, HTMLHeadin
             case '###':
             case '####':
             case '#####':
+                const block = this.serialize()
                 if (key.length === this.props.data.level) {
-                    this.props.onChangeBlockType({
-                        html: '',
-                        ref: this.editableRoot(),
-                        type: 'paragraph',
-                        level: key.length,
-                        inner: this.currentContainer(),
-                    })
+                    block.type = 'paragraph'
                 } else {
-                    this.props.onChangeBlockType({
-                        html: '',
-                        ref: this.editableRoot(),
-                        inner: this.currentContainer(),
-                        type: 'header',
-                        level: key.length,
-                    })
+                    block.level = key.length
                 }
-
+                this.props.onSplit({
+                    'focus': block
+                })
                 e.preventDefault()
         }
     };
-    // currentContainer = () => {
-    //     return this.pref.current
-    // };
-    // firstContainer = () => {
-    //     return this.pref.current
-    // };
-    // lastContainer = () => {
-    //     return this.pref.current
-    // };
-    // renderBlock(block: Block): React.ReactNode {
-    //     return <>
 
-    //         <span
-    //             ref={this.pref}>
-    //             { }
-    //         </span></>
-    // }
     handleMouseDown = (e) => {
         if (e.target === this.pref.current) {
             op.setCaretPosition(op.firstCaretPosition(this.currentContainer()))

@@ -1,4 +1,4 @@
-import { isValidTag } from "./caret";
+import { isValidTag, Condition } from "./caret";
 export function isNodeIn(el: Node, name: string, top: Node): boolean {
   var cur = el;
   while (cur !== top) {
@@ -30,7 +30,6 @@ export function isTag(el: Node, name: string): boolean {
 export function isTextNode(el: Node): boolean {
   return (isTag(el, "#text") && el.textContent.length > 0) || isTag(el, "br");
 }
-
 
 export function lastTextOffset(el: Node): number {
   if (isTag(el, "#text")) {
@@ -68,7 +67,6 @@ export const createCountFilter = (top: Node) => (node: Node) => {
   }
   return NodeFilter.FILTER_ACCEPT;
 };
-
 
 export function firstValidChild(el: Node): Node | null {
   for (var i = 0; i < el.childNodes.length; i++) {
@@ -123,10 +121,10 @@ export function lastNeighborTextNode(el: Node): Node {
   return valid;
 }
 
-export function validChildNodes(el: Node): Node[] {
+export function validChildNodes(el: Node, condition?: Condition): Node[] {
   var res = [];
   for (var i = 0; i < el.childNodes.length; i++) {
-    if (isValidTag(el.childNodes[i])) {
+    if (isValidTag(el.childNodes[i], condition)) {
       res.push(el.childNodes[i]);
     }
   }
@@ -139,7 +137,7 @@ export function findParentMatchTagName(
   root: Node
 ): Node | null {
   var cur = el;
-  while (cur !== root) {
+  while (cur && cur !== root) {
     if (isTag(cur, name)) {
       return cur;
     }

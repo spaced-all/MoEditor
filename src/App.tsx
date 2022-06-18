@@ -1,25 +1,21 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
-
+import { InlineMath } from "./BlockEditor/MathComponent"
 function App() {
+  const [val, setVal] = React.useState("\\int_0^\\infty x^2 dx")
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      {/* <div>
+        <textarea value={val} onChange={(e) => setVal(e.target.value)}></textarea>
+      </div>
+      <InlineMath math={val} /> */}
+      <div contentEditable
+      tabIndex={-1}
+      suppressContentEditableWarning>
+        <input onChange={e => { console.log(e) }}></input>
+      </div>
+    </>
   );
 }
 

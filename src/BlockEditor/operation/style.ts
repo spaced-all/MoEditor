@@ -224,7 +224,10 @@ export function isInStyleBound(
       (direction === "left" && offset === 0) ||
       (direction === "right" && offset === container.childNodes.length)
     ) {
-      return container;
+      if (supportedTag(container)) {
+        return container;
+      }
+      return null;
     }
     return null;
   }

@@ -1,5 +1,6 @@
 import React from "react";
 import { CaretPosition } from "../operation";
+import { Block } from "../Blocks/Common";
 
 export interface BlockEvent<T> {
   html: string;
@@ -19,7 +20,16 @@ export interface ComponentUpdatedEvent<T> extends BlockEvent<T> {
 }
 
 export interface BlockChangeEvent<T> extends BlockEvent<T> {
-  type: "paragraph" | "header" | "list" | "enumerate" | "blockquote" | "code";
+  type:
+    | "paragraph"
+    | "heading"
+    | "blockquote"
+    | "list"
+    | "table"
+    | "code"
+    | "orderedList"
+    | "taskList";
+
   level?: number;
   lang?: number;
 }
@@ -44,3 +54,30 @@ export interface FocusEvent<T> extends React.FocusEvent<T>, BlockEvent<T> {}
 export interface SyntheticEvent<T>
   extends React.SyntheticEvent<T>,
     BlockEvent<T> {}
+
+export class MergeEvent {
+  block: Block;
+  direction: "left" | "right";
+  offset: number;
+  constructor(block, direction: "left" | "right", offset: number = 0) {
+    this.block = block;
+    this.direction = direction;
+    this.offset = offset;
+  }
+}
+
+/**
+ * list
+ *
+ */
+export class SplitEvent {
+  left?: Block;
+  right?: Block;
+  focus: Block;
+
+  constructor(focus, left, right) {
+    this.left = left;
+    this.focus = focus; // offset is always 0
+    this.right = right;
+  }
+}

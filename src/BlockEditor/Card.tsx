@@ -2,7 +2,7 @@ import React, { RefObject } from "react";
 import * as block from "./Blocks"
 import styles from "./Card.module.css"
 import { Block, JumpRef } from "./Blocks/Common"
-import { Serialize } from "./Blocks/render";
+import { Serialize, mergeBlockData } from "./Blocks/render";
 import produce from "immer"
 import * as op from "./operation"
 import * as BE from "./event/eventtype";
@@ -41,7 +41,7 @@ const emptyBlock = {
 
 const defaultPropsV2: CardProps = {
     blocks: [
-        { order: 'a', type: 'header', level: 1, 'data': { dom: [{ tagName: '#text', textContent: 'Header 1' }] } },
+        { order: 'a', type: 'heading', level: 1, 'data': { dom: [{ tagName: '#text', textContent: 'Header 1' }] } },
         {
             order: 'b', type: 'paragraph', 'data': {
                 dom: [{ tagName: '#text', textContent: 'normal' }]
@@ -72,6 +72,7 @@ const defaultPropsV2: CardProps = {
                 dom: [
                     { tagName: '#text', textContent: 'Normal Text' },
                     { tagName: '#text', textContent: 'Normal Text' },
+                    { tagName: 'math', textContent: "\\int_0^\\infty x^2 dx" },
                     { tagName: '#text', textContent: 'Normal Text' },
                     { tagName: '#text', textContent: 'Normal Text' },
                     { tagName: '#text', textContent: 'Normal Text' },
@@ -95,8 +96,9 @@ const defaultPropsV2: CardProps = {
                 ]
             }
         },
-        { order: 'e', type: 'header', level: 2, 'data': { dom: [{ tagName: '#text', textContent: 'Header 2' }] } },
-        { order: 'f', type: 'header', level: 3, 'data': { dom: [{ tagName: '#text', textContent: 'Header 3' }] } },
+        { order: 'e', type: 'heading', level: 2, 'data': { dom: [{ tagName: '#text', textContent: 'Header 2' }] } },
+        { order: 'ea', type: 'formular', 'data': { dom: [{ tagName: 'math', textContent: String.raw`c = \pm\sqrt{a^2 + b^2}` }] } },
+        { order: 'f', type: 'heading', level: 3, 'data': { dom: [{ tagName: '#text', textContent: 'Header 3' }] } },
         {
             order: 'fa', type: 'taskList', 'data': {
                 dom: [
@@ -113,42 +115,45 @@ const defaultPropsV2: CardProps = {
                 ]
             }
         },
-        { order: 'g', type: 'header', level: 4, 'data': { dom: [{ tagName: '#text', textContent: 'Header 4' }] } },
+        { order: 'g', type: 'heading', level: 4, 'data': { dom: [{ tagName: '#text', textContent: 'Header 4' }] } },
         {
             order: 'ga', type: 'orderedList', 'data': {
                 dom: [
-                    { tagName: 'li', attributes: { level: 1 }, textContent: 'list 1' },
+                    { tagName: 'li', attributes: { level: 1 }, children: [{ tagName: '#text', textContent: 'Normal Text' },] },
                     {
-                        tagName: 'li', attributes: { level: 2 }, textContent: 'list 2', children: [
+                        tagName: 'li', attributes: { level: 2 }, children: [
                             { tagName: '#text', textContent: 'Normal Text' },
                             { tagName: 'b', textContent: 'Bold Text' },
                             { tagName: 'i', textContent: 'Itali Text' },
                             { tagName: '#text', textContent: 'Normal Text' },
                         ]
                     },
-                    { tagName: 'li', attributes: { level: 1 }, textContent: 'list 1' },
+                    { tagName: 'li', attributes: { level: 1 }, children: [{ tagName: '#text', textContent: 'List 3' },] },
                 ]
             }
         },
-        { order: 'h', type: 'header', level: 5, 'data': { dom: [{ tagName: '#text', textContent: 'Header 5' }] } },
+        { order: 'h', type: 'heading', level: 5, 'data': { dom: [{ tagName: '#text', textContent: 'Header 5' }] } },
         {
             order: 'i', type: 'list', 'data': {
                 dom: [
-                    { tagName: 'li', attributes: { level: 1 }, textContent: 'list 1' },
+                    { tagName: 'li', attributes: { level: 1 }, children: [{ tagName: '#text', textContent: 'Normal Text' },] },
                     {
-                        tagName: 'li', attributes: { level: 2 }, textContent: 'list 2', children: [
+                        tagName: 'li', attributes: { level: 2 }, children: [
                             { tagName: '#text', textContent: 'Normal Text' },
                             { tagName: 'b', textContent: 'Bold Text' },
                             { tagName: 'i', textContent: 'Itali Text' },
                             { tagName: '#text', textContent: 'Normal Text' },
                         ]
                     },
-                    { tagName: 'li', attributes: { level: 1 }, textContent: 'list 1' },
+                    { tagName: 'li', attributes: { level: 1 }, children: [{ tagName: '#text', textContent: 'List 3' },] },
                 ]
             }
         },
         {
-            order: 'j', type: 'table', 'data': {
+            order: 'j',
+            type: 'table',
+            unmergeable: true,
+            'data': {
                 dom: [
                     {
                         tagName: 'tr', children: [
@@ -168,7 +173,7 @@ const defaultPropsV2: CardProps = {
                     },
                     {
                         tagName: 'tr', children: [
-                            { tagName: 'td', textContent: 'td3-1' },
+                            { tagName: 'td', textContent: 'td3-1', children: [{ tagName: 'b', textContent: 'Bold Text' },] },
                             { tagName: 'td', textContent: 'td3-2' },
                             { tagName: 'td', textContent: 'td3-3' },
                             { tagName: 'td', textContent: 'td3-4' },
@@ -178,7 +183,9 @@ const defaultPropsV2: CardProps = {
             }
         },
         {
-            order: 'k', type: 'code', level: 5, 'data': {
+            order: 'k',
+            unmergeable: true,
+            type: 'code', level: 5, 'data': {
                 dom: [
                     { tagName: 'code', attributes: { mark: true }, textContent: 'Line 1' },
                     { tagName: 'code', attributes: { mark: true }, textContent: 'Line 2' }
@@ -196,6 +203,7 @@ class Card extends React.Component<CardProps, CardStats> {
     static defaultProps = defaultPropsV2
     portalCaller: EventManager
     focusBlockRef: RefObject<HTMLElement>
+    ref: RefObject<HTMLElement>
     constructor(props) {
         super(props);
         this.portalCaller = new EventManager()
@@ -207,6 +215,7 @@ class Card extends React.Component<CardProps, CardStats> {
             selection: {},
             focusBlockRef: null,
         }
+        this.ref = React.createRef()
         this.focusBlockRef = React.createRef()
     }
     handleComponentEvent = (evt: TEvent) => {
@@ -276,7 +285,6 @@ class Card extends React.Component<CardProps, CardStats> {
 
     }
     handleChangeBlockType = (evt: BE.BlockChangeEvent<HTMLElement>, ind) => {
-        const { blocks } = this.state
         // this.eventManager.call(blocks[ind].order, { name: 'changeBlockType', data: { type: evt.target.value } })
         const newState = produce(this.state, draft => {
             draft.blocks[ind].type = evt.type
@@ -297,8 +305,9 @@ class Card extends React.Component<CardProps, CardStats> {
         const { blocks } = this.state
         const newOrder = op.midString((blocks[ind - 1] || emptyBlock).order, blocks[ind].order)
         const newState = produce(this.state, draft => {
-            const block = {
-                id: 0, order: newOrder, type: 'paragraph',
+            const block: Block = {
+                id: 0, order: newOrder,
+                type: 'paragraph',
                 data: { dom: [] }
             }
 
@@ -315,8 +324,9 @@ class Card extends React.Component<CardProps, CardStats> {
 
         const newOrder = op.midString(blocks[ind].order, (blocks[ind + 1] || emptyBlock).order)
         const newState = produce(this.state, draft => {
-            const block = {
-                id: 0, order: newOrder, type: 'paragraph',
+            const block: Block = {
+                id: 0, order: newOrder,
+                type: 'paragraph',
                 data: { dom: [] }
             }
             draft.blocks.splice(ind + 1, 0, block)
@@ -325,56 +335,57 @@ class Card extends React.Component<CardProps, CardStats> {
         })
         this.setState(newState)
     }
-    handleMergeAbove = (evt, ind) => {
+
+    handleMerge = (evt: BE.MergeEvent, ind) => {
         const { blocks } = this.state
-        console.log(['handleMergeAbove', evt])
-        const blockA = produce(this.state.blocks[ind - 1], draft => {
-            draft.data.dom = Serialize(this.portalCaller.call(blocks[ind - 1].order, { 'name': 'serialize', data: {} }))
-        })
 
-        const blockB = produce(this.state.blocks[ind], draft => {
-            draft.data.dom = Serialize(this.portalCaller.call(blocks[ind].order, { 'name': 'serialize', data: {} }))
-        })
-
-        const caretPos = this.portalCaller.call(blocks[ind - 1].order, { 'name': 'endCaretOffset', data: {} })
-        const merged = op.mergeBlockData(blockA, blockB)
+        const nind = ind + (evt.direction === 'left' ? -1 : 1)
+        const nblock = this.portalCaller.call(blocks[nind].order, { name: 'serialize', data: {} }) as Block
+        console.log(nblock)
+        const newBlocks = evt.direction === 'left' ?
+            mergeBlockData(nblock, evt.block) :
+            mergeBlockData(evt.block, nblock)
+        console.log([evt.offset])
         const newState = produce(this.state, draft => {
-            draft.blocks.splice(ind - 1, 2, merged)
-            draft.cursor = ind - 1
-            draft.historyOffset = caretPos
+            if (evt.direction === 'left') {
+                draft.blocks.splice(ind - 1, 2, newBlocks)
+                draft.cursor = ind - 1
+            } else {
+                draft.blocks.splice(ind, 2, newBlocks)
+            }
             draft.jumpRef = {
-                "from": 'below',
-                'offset': caretPos,
-                "type": 'jump'
+                'type': 'merge',
+                offset: evt.offset,
             }
         })
 
         this.setState(newState)
     }
-
-
-    handleMergeBelow = (evt, ind) => {
+    handleSplit = (evt: BE.SplitEvent, ind) => {
         const { blocks } = this.state
-        debugger
-        this.portalCaller.call('boundhint', { name: 'unexpand', 'data': {} })
-        const blockA = produce(this.state.blocks[ind], draft => {
-            draft.data.dom = Serialize(this.portalCaller.call(blocks[ind].order, { 'name': 'serialize', data: {} }))
-        })
-
-        const blockB = produce(this.state.blocks[ind + 1], draft => {
-            draft.data.dom = Serialize(this.portalCaller.call(blocks[ind + 1].order, { 'name': 'serialize', data: {} }))
-        })
-
-        const merged = op.mergeBlockData(blockA, blockB)
+        const up = blocks[ind - 1]
+        const down = blocks[ind]
+        var upOrder = up ? up.order : ""
+        var downOrder = down ? down.order : ""
+        console.log(evt.left)
         const newState = produce(this.state, draft => {
-            draft.blocks.splice(ind + 1, 1)
-            draft.blocks[ind] = merged
-            draft.cursor = ind
+            var news = [evt.left, evt.focus, evt.right].filter((item) => (item !== undefined))
+            var offset = evt.left ? 1 : 0
+            news = news.map((item, i) => {
+                item.order = op.midString(upOrder, downOrder)
+                item.lastEditTime = new Date().getTime()
+                // item order should be 'new' or React will not render because we currently use order as the component 'key' property
+                upOrder = item.order
+                return item
+            })
+
+            draft.cursor += offset
+            draft.blocks.splice(ind, 1, ...news)
+            draft.jumpRef = undefined
         })
-
         this.setState(newState)
-
     }
+
     handleCaretMove = (evt: BE.CaretEvent<HTMLElement>, ind) => {
         console.log(evt.caret)
         var cur = evt.caret.container
@@ -398,6 +409,7 @@ class Card extends React.Component<CardProps, CardStats> {
         const { blocks, cursor } = this.state
 
         return <article
+            ref={this.ref}
             onKeyDown={(e) => {
                 if (this.state.selectionMode) {
                     if (e.key === 'Enter') {
@@ -498,13 +510,13 @@ class Card extends React.Component<CardProps, CardStats> {
             ].join(' ')}>
             <FunctionButton rel={this.state.focusBlockRef} ></FunctionButton>
             <BoundHint
+                root={this.ref.current}
                 disable={this.state.selectionMode}
                 eventManager={this.portalCaller}></BoundHint>
             {blocks.map((val, ind) => {
                 var blockType;
-                
+
                 switch (val.type) {
-                    case 'header':
                     case 'heading':
                         blockType = block.Heading
                         break
@@ -517,15 +529,10 @@ class Card extends React.Component<CardProps, CardStats> {
                     case 'list':
                         blockType = block.List
                         break
-                    case 'ol':
                     case 'orderedList':
-                    case 'orderedlist':
                         blockType = block.OrderedList
                         break
-                    case 'task':
-                    case 'todo':
                     case 'taskList':
-                    case 'todoList':
                         blockType = block.TaskList
                         break
                     case 'table':
@@ -533,6 +540,9 @@ class Card extends React.Component<CardProps, CardStats> {
                         break
                     case 'code':
                         blockType = block.Code
+                        break
+                    case 'formular':
+                        blockType = block.Formular
                         break
                     default:
                         return <></>
@@ -548,12 +558,14 @@ class Card extends React.Component<CardProps, CardStats> {
                     selectionMode: this.state.selectionMode,
                     onFocus: (e) => this.handleFocus(e, ind),
                     onDataChange: (e) => this.handleDataChange(e, ind),
-                    onAppendAbove: (e) => this.handleAppendAbove(e, ind),
-                    onAppendBelow: (e) => this.handleAppendBelow(e, ind),
+                    // onAppendAbove: (e) => this.handleAppendAbove(e, ind),
+                    // onAppendBelow: (e) => this.handleAppendBelow(e, ind),
                     onCaretMove: (e) => this.handleCaretMove(e, ind),
                     onCaretMoveTo: (e) => this.handleCaretMove(e, ind),
-                    onMergeAbove: (e) => this.handleMergeAbove(e, ind),
-                    onMergeBelow: (e) => this.handleMergeBelow(e, ind),
+                    onMerge: (e) => this.handleMerge(e, ind),
+                    onSplit: (e) => this.handleSplit(e, ind),
+                    // onMergeAbove: (e) => this.handleMergeAbove(e, ind),
+                    // onMergeBelow: (e) => this.handleMergeBelow(e, ind),
                     onJumpAbove: (evt) => this.handleJumpToAbove(evt, ind),
                     onMouseEnter: (e) => {
                         // console.log(e)
@@ -578,9 +590,7 @@ class Card extends React.Component<CardProps, CardStats> {
                         this.setState(newState)
                     },
                     onMouseSelect: (evt) => {
-
                         const newState = produce(this.state, draft => {
-
                             if (!this.state.selectionMode) {
                                 draft.selectionMode = true
                                 draft.selectionStart = cursor

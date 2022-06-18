@@ -1,6 +1,7 @@
 import React from "react"
-import { Dom } from "./Common"
-
+import produce from "immer"
+import { Dom, Block } from "./Common"
+import { InlineMath } from "../MathComponent"
 export function SeralizeNode(node: Node): Dom {
     const tagName = node.nodeName.toLowerCase()
 
@@ -30,6 +31,11 @@ export function Serialize(html: string): Dom[] {
             if (node.getAttribute('data-ignore') === 'true') {
                 // table -> tbody(data-ignore='true' ) -> tr -> td
                 dom.push(SeralizeNode(node.firstChild))
+                continue
+            }
+
+            if (node.classList.contains('bound-hint')) {
+                // table -> tbody(data-ignore='true' ) -> tr -> td
                 continue
             }
         }
@@ -65,6 +71,22 @@ export function NestRender(dom: Dom[], depth: number = 0, formatType: 'html' | '
                 case '#text':
                     element = val.textContent
                     break;
+                case 'math':
+                    element = <>
+                        <input
+                            onInput={(e) => {
+                                console.log((e.target as any))
+                            }}>
+                        </input><label
+                            suppressContentEditableWarning
+                            contentEditable={'false'}>
+
+                            <InlineMath
+                                className={'math'}
+                                math={val.textContent} />
+                        </label>
+                        </>
+                    break
                 default:
                     if (val.children && val.children.length > 0) {
                         element = React.createElement(val.tagName, { ...val.attributes, key: ind }, [val.textContent, NestRender(val.children, depth + 1)])
@@ -76,4 +98,57 @@ export function NestRender(dom: Dom[], depth: number = 0, formatType: 'html' | '
             return element
         })}
     </>
+}
+
+
+const containerTagName = {
+    'li': true,
+    'td': true,
+    'tr': true,
+}
+
+export function contentDom(a: Dom[]) {
+    const dom = []
+    a.forEach((val) => {
+        if (!containerTagName[val.tagName]) {
+            dom.push(val)
+        } else {
+            dom.push(...contentDom(val.children))
+        }
+    })
+    return dom
+}
+
+export function mergeDom(a: Dom[], b: Dom[]): Dom[] {
+    if (b.length === 0) {
+        return a
+    }
+
+    if (b[0].tagName === 'li') {
+        b = b[0].children
+    }
+
+    if (a.length === 0) {
+        return b
+    }
+    if (a[0].tagName === 'li') {
+        return produce(a, draft => {
+            draft[draft.length - 1].children = [...draft[draft.length - 1].children, ...b]
+        })
+    }
+
+    // a.push(...b)
+    return [...a, ...b]
+}
+
+
+export function mergeBlockData(a: Block, b: Block): Block {
+    var merged = {
+        ...a,
+        id: a.id || b.id,
+        data: {
+            dom: mergeDom(a.data.dom, b.data.dom)
+        },
+    };
+    return merged;
 }

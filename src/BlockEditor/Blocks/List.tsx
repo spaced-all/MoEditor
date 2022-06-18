@@ -1,17 +1,9 @@
-import React from "react";
-import { Block, BlockProps, BlockStates, ContentEditable } from "./Common"
-import { ListBlock, DefaultBlock } from "./Common"
-import { RefObject } from "react";
-import produce from "immer"
-import { NestRender, Serialize } from "./render";
-import * as op from "../operation"
-import * as BE from "../event/eventtype";
-import { classicNameResolver } from "typescript";
+import { BlockProps, BlockStates } from "./Common"
+import { DefaultBlock } from "./Common"
 
 import { VList } from "./VituralList"
 
 interface ListProps extends BlockProps {
-    data: ListBlock
 }
 
 interface ListStats extends BlockStates {

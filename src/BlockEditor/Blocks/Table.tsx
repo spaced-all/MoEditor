@@ -73,7 +73,7 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
         e.preventDefault()
     };
     handleShiftEnter(e: React.KeyboardEvent<HTMLTableColElement>) {
-
+        e.preventDefault()
     };
     handleEnter(e: any): void {
         const innerRoot = this.currentContainer()
@@ -192,19 +192,19 @@ export class Table extends DefaultBlock<TableProps, TableStats, HTMLTableElement
         const root = this.editableRoot()
         return op.lastValidChild(op.lastValidChild(op.lastValidChild(root))) as HTMLTableColElement
     };
-    
+
     renderBlock(block: Block): React.ReactNode {
         return <>
             {block.data.dom.map((item, ind, rows) => {
                 return <tbody data-ignore="true">
                     <tr
-                        key={ind}
-                        className={[
-                            'editbound'
-                        ].join(" ")} >
+                        key={ind} >
                         {item.children.map((child, cid, cols) => {
                             return <td
                                 key={cid}
+                                className={[
+                                    'editbound'
+                                ].join(" ")}
                                 data-row={ind}
                                 data-col={cid}
                                 data-max-row={rows.length}

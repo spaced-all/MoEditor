@@ -1,9 +1,9 @@
 import React from "react";
-import { Block, BlockProps, BlockStates } from "./Common"
-import { NestRender } from "./render";
-import { ContentEditable, ParagraphBlock, DefaultBlock } from "./Common"
+import { BlockProps, BlockStates } from "./Common"
+import { ParagraphBlock, DefaultBlock } from "./Common"
 import * as op from "../operation"
 import * as BE from "../event/eventtype"
+import { Serialize } from "./render";
 
 
 
@@ -22,43 +22,72 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
         return "Type '/' for commands"
     }
     handleBackspace = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
-        const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLParagraphElement>>(e)
-        if (op.isCursorLeft(this.ref.current)) {
-            this.props.onMergeAbove(newE)
+        if (op.isCursorLeft(this.editableRoot())) {
+            const caretPos = op.lastCaretPosition(this.editableRoot())
+            const offset = op.getCaretReletivePosition(this.editableRoot(), caretPos.container, caretPos.offset)
+            this.props.onMerge({
+                'block': this.serialize(),
+                'direction': 'left',
+                'offset': -offset
+            })
             e.preventDefault()
         }
     }
+
+    handleDelete(e: React.KeyboardEvent<HTMLParagraphElement>) {
+        if (op.isCursorRight(this.editableRoot())) {
+            const caretPos = op.lastCaretPosition(this.editableRoot())
+            const offset = op.getCaretReletivePosition(this.editableRoot(), caretPos.container, caretPos.offset)
+            this.props.onMerge({
+                'block': this.serialize(),
+                'direction': 'right',
+                'offset': offset
+            })
+            e.preventDefault()
+        }
+    }
+    
     handleSpace = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
-        const key = op.textContentBefore(this.ref.current).trim()
+        const key = op.textContentBefore(this.editableRoot()).trim()
         if (key.length > 5) {
             return
         }
+        const block = this.serialize()
         switch (key) {
             case '#':
             case '##':
             case '###':
             case '####':
             case '#####':
-                this.props.onChangeBlockType({
-                    html: '',
-                    ref: this.editableRoot(),
-                    inner: this.currentContainer(),
-                    type: 'header',
-                    level: key.length,
+                block.type = 'heading'
+                block.level = key.length
+                this.props.onSplit({
+                    'focus': block
                 })
                 e.preventDefault()
                 break
             case '>':
-                this.props.onChangeBlockType({
-                    html: '',
-                    ref: this.editableRoot(),
-                    inner: this.currentContainer(),
-                    type: 'blockquote',
-                    level: key.length,
+                block.type = 'blockquote'
+                this.props.onSplit({
+                    'focus': block
                 })
                 e.preventDefault()
                 break
             case '-':
+                block.type = 'blockquote'
+                block.data.dom = [
+                    {
+                        'tagName': 'li',
+                        'children': block.data.dom,
+                        'attributes': {
+                            level: 1
+                        }
+                    }
+                ]
+                this.props.onSplit({
+                    'focus': block
+                })
+                e.preventDefault()
                 break
             case '[]':
             case '[ ]':
@@ -75,12 +104,5 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
                 }
         }
     };
-    handleDelete = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
-        const newE = this.wrapBlockEvent<BE.KeyboardEvent<HTMLParagraphElement>>(e)
-        if (op.isCursorRight(this.ref.current)) {
-            this.props.onMergeBelow(newE)
-            e.preventDefault()
-        }
-    }
 
 }

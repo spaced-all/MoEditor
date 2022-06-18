@@ -66,12 +66,16 @@ const getRightBoundHint = (el: Node, center: Node) => {
 }
 
 
-export function BoundHint(props: { eventManager: EventManager, disable: boolean }) {
+export function BoundHint(props: {
+    root: HTMLElement,
+    eventManager: EventManager, disable: boolean
+}) {
     // const [ref, setRef] = useState<HTMLElement>(null)
     const ref = React.useRef<Node>()
     const leftRef = React.useRef<HTMLElement>()
     const rightRef = React.useRef<HTMLElement>()
     const textRef = React.useRef<Node>()
+    const selectedLabel = React.useRef<HTMLLabelElement>()
     const disableRef = React.useRef(props.disable)
     disableRef.current = props.disable
     React.useEffect(() => {
@@ -96,18 +100,27 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                 if (!sel || sel.rangeCount === 0) {
                     return
                 }
-                // debugger
                 const range = sel.getRangeAt(0)
                 if (range.startContainer === range.endContainer && range.startOffset === range.endOffset) {
                     el = range.startContainer
                     offset = range.startOffset
-                }
-                else {
+                } else {
                     el = range.commonAncestorContainer
                     multiSelect = true
                 }
 
-
+                if (el === rightRef.current || el.parentElement === rightRef.current) {
+                    var neighbor = op.previousCaretPosition(rightRef.current.parentElement, el, offset)
+                    if (!neighbor) {
+                        neighbor = op.firstCaretPosition(rightRef.current.parentElement)
+                    }
+                    el = neighbor.container
+                    offset = neighbor.offset
+                } else if (el === leftRef.current || el.parentElement === leftRef.current) {
+                    const neighbor = op.nextCaretPosition(el.parentElement, el, offset)
+                    el = neighbor.container
+                    offset = neighbor.offset
+                }
                 // TODO <br> caret move problem
 
                 // <p>|</p> -> p, 0
@@ -117,6 +130,7 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                 if (el === ref.current && !force) {
                     return
                 }
+
 
                 var rightOffset = direction === 'right' ? whiteSpace.length : 0
                 if (op.isParent(el, leftRef.current)) {
@@ -161,6 +175,21 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                 if (op.isTag(el, 'textarea') || op.isTag(el.childNodes[offset], 'textarea')) {
                     return
                 }
+                if (selectedLabel.current) {
+                    selectedLabel.current.classList.remove('label-focused')
+                    selectedLabel.current = null
+                    ref.current = selectedLabel.current
+                }
+
+                if (op.findParentMatchTagName(el, 'label', props.root)) {
+                    leftRef.current.innerText = ''
+                    rightRef.current.innerText = ''
+                    selectedLabel.current = el as HTMLLabelElement
+
+                    (el as HTMLLabelElement).classList.add('label-focused')
+                    return
+                }
+
                 // debugger
                 if (!op.isTag(el, '#text') && !multiSelect) {
                     // 将 el 位置插入文本
@@ -193,9 +222,10 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                     range.setStart(el, offset)
                     range.setEnd(el, offset)
 
-                    leftRef.current.innerText = getLeftBoundHint(el.parentElement, el)
-                    rightRef.current.innerText = getRightBoundHint(el.parentElement, el)
+                    leftRef.current.innerText = getLeftBoundHint(el.parentElement, op.firstNeighborTextNode(el))
+                    rightRef.current.innerText = getRightBoundHint(el.parentElement, op.lastNeighborTextNode(el))
                     if (leftRef.current.textContent !== '') {
+                        // debugger
                         el.parentElement.insertBefore(leftRef.current, op.firstNeighborTextNode(el))
                     }
                     if (rightRef.current.textContent !== '') {
@@ -244,7 +274,7 @@ export function BoundHint(props: { eventManager: EventManager, disable: boolean 
                     }
                     if (textRef.current) {
                         if (textRef.current.textContent.trim() === '' && textRef.current.parentElement) {
-                            
+
                             textRef.current.parentElement.removeChild(textRef.current)
                         } else {
                             textRef.current.textContent = textRef.current.textContent.trim()

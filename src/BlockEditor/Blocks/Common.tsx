@@ -5,7 +5,7 @@ import * as BE from "../event/eventtype";
 import { EventManager } from "../event/emitter";
 import { BlockCaretEvent } from "../event/events";
 
-import { NestRender } from "./render";
+import { NestRender, Serialize } from "./render";
 import "./Common.css"
 
 export interface Dom {
@@ -20,10 +20,25 @@ export interface Dom {
   children?: Dom[];
 }
 
+
+export type BlockName =
+  | "paragraph"
+  | "heading"
+  | "blockquote"
+  | "list"
+  | "table"
+  | "code"
+  | "orderedList"
+  | "formular"
+  | "taskList";
+
+
 export interface Block {
   id?: number;
   order: string;
-  type: string;
+  lastEditTime?: number;
+  type: BlockName;
+  unmergeable?: boolean;
   [key: string]: any;
   data: {
     [key: string]: any;
@@ -32,19 +47,20 @@ export interface Block {
   };
 }
 
+
 export interface BlockRange {
   start: number;
   end: number;
 }
 
-export interface SectionBlock extends Block {
+export interface HeadingBlock extends Block {
   level: number;
 }
 
 export interface ParagraphBlock extends Block { }
 export interface BlockquoteBlock extends Block { }
 
-export interface ListBlock extends Block { }
+
 
 export interface BlockStates {
   html: string;
@@ -59,7 +75,7 @@ export interface JumpRef {
   offset?: number;
   from?: "below" | "above";
   // Arrow up/down makes jump / Arrow left/right makes neighbor, click makes mouse
-  type: "neighbor" | "jump" | "mouse";
+  type: "neighbor" | "jump" | "mouse" | "merge";
 }
 
 export interface BlockProps {
@@ -81,6 +97,8 @@ export interface BlockProps {
   onDataChange?: (e: BE.BlockEvent<HTMLElement>) => void;
   onMergeAbove?: (e: BE.KeyboardEvent<HTMLElement>) => void;
   onMergeBelow?: (e: BE.KeyboardEvent<HTMLElement>) => void;
+  onMerge?: (e: BE.MergeEvent) => void;
+  onSplit?: (e: BE.SplitEvent) => void;
   onJumpAbove?: (e: BE.KeyboardEvent<HTMLElement>) => void;
   onJumpToAboveEnd?: (e: BE.KeyboardEvent<HTMLElement>) => void;
   onJumpBelow?: (e: BE.KeyboardEvent<HTMLElement>) => void;
@@ -201,9 +219,6 @@ export class DefaultBlock<
 
   static supportTags = []
   static supportType = null
-  static html2block = (html: string): Block => {
-    throw new Error("not implemented");
-  }
 
 
   static defaultProps: BlockProps = {
@@ -282,11 +297,15 @@ export class DefaultBlock<
     }
   };
 
-  serialize(): Dom[] {
-    // return [this.outerRoot()];
-    return [];
+  serializeDom(): Dom[] {
+    return Serialize(this.editableRoot().innerHTML)
   }
-
+  serialize(dom?: Dom[]): Block {
+    return {
+      ...this.props.data,
+      'data': { dom: dom || this.serializeDom() }
+    }
+  }
 
   handleComponentEvent = (evt) => {
     switch (evt.name) {
@@ -377,6 +396,14 @@ export class DefaultBlock<
       var innerRoot;
       var setLast = false;
       switch (jumpRef.type) {
+        case "merge":
+          // jumpRef.offset
+          innerRoot = this.lastContainer()
+          const lastCaret = op.lastCaretPosition(innerRoot);
+          const offset = op.getCaretReletivePosition(innerRoot, lastCaret.container, lastCaret.offset)
+          setLast = op.setCaretReletivePosition(innerRoot, offset + jumpRef.offset)
+          caretPos = op.currentCaretPosition(innerRoot);
+          break
         case "jump":
           this.props.eventManager.call("boundhint", {
             data: {},
@@ -445,9 +472,6 @@ export class DefaultBlock<
   }
 
   handleDataChange(e, data) {
-    // var newE = this.wrapBlockEvent<BE.SyntheticEvent<O>>(e);
-    // newE.html = data;
-    // this.props.onDataChange(newE);
     e.preventDefault();
   }
 
@@ -488,27 +512,43 @@ export class DefaultBlock<
   }
 
   handleInput(e) {
-    // debugger
-    // e.preventDefault();
     const sel = document.getSelection()
     const tag = sel.focusNode.parentElement
-    if (op.isTag(tag, 'span') && tag.classList.contains('bound-hint')) {
-      const right = sel.focusNode.textContent.slice(-1)
-      const left = sel.focusNode.textContent.slice(-0, -1)
-      tag.textContent = left
-      const newText = document.createTextNode(right)
-      tag.parentElement.insertBefore(newText, tag.nextSibling)
-      op.setCaretPosition(op.lastCaretPosition(newText))
+    if (op.isTag(tag, 'span') &&
+      e.nativeEvent.inputType === 'insertText' &&
+      tag.classList.contains('bound-hint')) {
+      if (tag.classList.contains('bound-hint-right')) {
+        const right = sel.focusNode.textContent.slice(-1)
+        const left = sel.focusNode.textContent.slice(-0, -1)
+        tag.textContent = right
+        var newText = document.createTextNode(left)
+        if (op.isTag(tag.previousSibling, '#text')) {
+          tag.previousSibling.textContent = tag.previousSibling.textContent + newText.textContent
+          newText = tag.previousSibling as Text
+        } else {
+          tag.parentElement.insertBefore(newText, tag)
+        }
+        op.setCaretPosition(op.lastCaretPosition(newText))
+      } else {
+        const right = sel.focusNode.textContent.slice(-1)
+        const left = sel.focusNode.textContent.slice(-0, -1)
+        const newText = document.createTextNode(right)
+        tag.textContent = left
+        tag.parentElement.insertBefore(newText, tag.nextSibling)
+        op.setCaretPosition(op.lastCaretPosition(newText))
+      }
+      // console.log()
+      // this.props.eventManager.call("boundhint", {
+      //   name: "expand",
+      //   data: { force: true },
+      // });
     }
   }
 
-  handleBackspace(e: React.KeyboardEvent<I>) {
-
-  }
+  handleBackspace(e: React.KeyboardEvent<I>) { }
 
   defaultHandleBackspace = (e: React.KeyboardEvent<I>) => {
     var tag;
-    // debugger
     if ((tag = op.isInStyleBound(this.currentContainer(), "left"))) {
       const style = op.tagToStyle(tag);
       if (style) {
@@ -520,7 +560,15 @@ export class DefaultBlock<
         e.preventDefault();
       }
       return;
+    } else {
+      const sel = document.getSelection()
+      if (op.isTag(sel.focusNode, 'label')) {
+        sel.focusNode.parentElement.removeChild(sel.focusNode)
+        e.preventDefault()
+        return
+      }
     }
+
     this.handleBackspace(e);
   };
   handleDelete(e: React.KeyboardEvent<I>) {
@@ -540,11 +588,16 @@ export class DefaultBlock<
         e.preventDefault();
       }
       return;
-    } else if (this.isCursorRight()) {
-      this.props.onMergeBelow(this.wrapBlockEvent<BE.KeyboardEvent<O>>(e));
-      e.preventDefault();
+    } else {
+      const sel = document.getSelection()
+      if (op.isTag(sel.focusNode, 'label')) {
+        sel.focusNode.parentElement.removeChild(sel.focusNode)
+        e.preventDefault()
+        return
+      }
     }
-    this.handleBackspace(e);
+    debugger
+    this.handleDelete(e);
   }
   handleSpace(e: React.KeyboardEvent<I>) { }
   handleShiftEnter(e: React.KeyboardEvent<I>) {
@@ -555,34 +608,22 @@ export class DefaultBlock<
     );
     e.preventDefault();
   }
-  // handleEnter(e: React.KeyboardEvent<I>) {
-  //   // const newE = this.wrapBlockEvent<BE.KeyboardEvent<E>>(e);
-  //   this.props.onAppendBelow({
-  //     ref: this.outerRoot(),
-  //     inner: this.currentInnerRoot(),
-  //     html: "",
-  //     innerHTML: "",
-  //     type: "paragraph",
-  //   });
-  // }
 
-  handleAppendBelow(e: React.KeyboardEvent<I>) {
-    this.props.eventManager.call("boundhint", {
-      name: "unexpand",
-      data: {},
-    });
-    const content = op.cloneContentRight(this.currentContainer());
-    this.props.onAppendBelow({
-      ref: this.blockRoot(),
-      inner: this.currentContainer(),
-      html: "",
-      innerHTML: "",
-      type: "paragraph",
-    });
+  handleEnter(e: React.KeyboardEvent<I>): void {
+    this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
+    const contents = op.extractContentRight(this.editableRoot())
+    const block = this.serialize()
+    const temp = document.createElement('div')
+    temp.append(contents)
+    this.props.onSplit({
+      'left': block,
+      'focus': {
+        'type': 'paragraph',
+        'order': '',
+        'data': { dom: Serialize(temp.innerHTML) }
+      },
+    })
     e.preventDefault()
-  }
-  handleEnter(e: React.KeyboardEvent<I>) {
-    this.handleAppendBelow(e)
   }
   handleKeyUp(e: React.KeyboardEvent<I>) { }
   defaultHandleKeyup(e) {
@@ -814,6 +855,12 @@ export class DefaultBlock<
 
   handleMouseDown = (e) => { }
   defaultHandleMouseDown = (e) => {
+    var tag;
+    if ((tag = op.findParentMatchTagName(e.target, 'label', this.editableRoot()))) {
+      op.setCaretPosition(op.createCaretPosition(this.editableRoot(), tag, 0));
+      e.preventDefault()
+      return
+    }
     this.handleMouseDown(e)
   }
   protected inContainer(el: Node): boolean {
@@ -824,8 +871,6 @@ export class DefaultBlock<
     op.setCaretPosition(caretPos)
   }
   handleMouseUp = (e) => {
-    // console.log()
-    // debugger
     const sel = document.getSelection()
     if (!this.inContainer(sel.focusNode)) {
       this.fixCaret()

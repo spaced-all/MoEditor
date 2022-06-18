@@ -9,3 +9,4 @@ export { Table } from "./Table";
 export { Code } from "./Code";
 export { OrderedList } from "./OrderedList";
 export { TaskList } from "./TaskList";
+export { Formular } from "./Formular";

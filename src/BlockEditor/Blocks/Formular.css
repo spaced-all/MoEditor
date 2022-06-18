@@ -1,0 +1,7 @@
+.editable span {
+    min-height: 0 !important;
+}
+
+.label-focused {
+    background-color: #f5f5f5;
+}

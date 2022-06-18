@@ -1,10 +1,5 @@
-import React from "react";
-import { BlockProps, BlockStates, ContentEditable } from "./Common"
+import { BlockProps, BlockStates } from "./Common"
 import { DefaultBlock } from "./Common"
-
-import { NestRender } from "./render";
-import * as op from "../operation"
-import * as BE from "../event/eventtype";
 import { VList } from "./VituralList"
 
 interface OrderedListProps extends BlockProps {
@@ -22,4 +17,5 @@ export class OrderedList extends VList<OrderedListProps, OrderedListStats, HTMLO
     protected get className(): string {
         return 'ordered-list'
     }
+    maxIndent: number = 1
 }
