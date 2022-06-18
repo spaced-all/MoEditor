@@ -135,27 +135,30 @@ function neighborCaretPosition(
   var neighbor;
   // must be text node
   if (!isTag(container, "#text")) {
-    if (container.childNodes[offset]) {
-      // <p>|<br>\</p>
-      // <p>\<br>|<br>\</p>
-      // <p><br>|<b>\</b></p>
-      // <p>\<i>|<b>\</b></i></p>
-      // <p><br>|"text"</p>
-      if (
-        isTag(container.childNodes[offset], "#text") &&
-        direction === "right" &&
-        container.childNodes[offset].textContent.length > 0
-      ) {
-        // <p>|"text"</p>
-        return new CaretPosition(container.childNodes[offset], 1, root);
-      }
-      // container = container.childNodes[offset];
-      // offset = 0;
+    if (isTag(container, "label")) {
     } else {
-      container.appendChild(document.createTextNode(""));
+      if (container.childNodes[offset]) {
+        // <p>|<br>\</p>
+        // <p>\<br>|<br>\</p>
+        // <p><br>|<b>\</b></p>
+        // <p>\<i>|<b>\</b></i></p>
+        // <p><br>|"text"</p>
+        if (
+          isTag(container.childNodes[offset], "#text") &&
+          direction === "right" &&
+          container.childNodes[offset].textContent.length > 0
+        ) {
+          // <p>|"text"</p>
+          return new CaretPosition(container.childNodes[offset], 1, root);
+        }
+        // container = container.childNodes[offset];
+        // offset = 0;
+      } else {
+        container.appendChild(document.createTextNode(""));
+      }
+      container = container.childNodes[offset];
+      offset = 0;
     }
-    container = container.childNodes[offset];
-    offset = 0;
   }
 
   // in text node
@@ -176,7 +179,12 @@ function neighborCaretPosition(
   if (neighbor) {
     if (isTag(neighbor, "#text")) {
       // <p>"text|""t\ext"</p>
-      offset = elementBoundOffset(neighbor, direction, 1);
+      offset = elementBoundOffset(
+        neighbor,
+        direction,
+        isTag(container, "#text") ? 1 : 0
+      );
+
       return new CaretPosition(neighbor, offset, root);
     } else if (isTag(neighbor, "br")) {
       const nneighbor = neighborSibling(neighbor);
@@ -513,7 +521,7 @@ export function isCursorLeft(
     container = sel.focusNode;
     offset = sel.focusOffset;
   }
-  
+
   const firstPos = firstCaretPosition(root);
   return firstPos.container === container && firstPos.offset === offset;
 }

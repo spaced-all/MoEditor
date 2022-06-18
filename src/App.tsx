@@ -10,11 +10,11 @@ function App() {
         <textarea value={val} onChange={(e) => setVal(e.target.value)}></textarea>
       </div>
       <InlineMath math={val} /> */}
-      <div contentEditable
-      tabIndex={-1}
-      suppressContentEditableWarning>
+      <label contentEditable='false'
+        tabIndex={-1}
+        suppressContentEditableWarning>
         <input onChange={e => { console.log(e) }}></input>
-      </div>
+      </label>
     </>
   );
 }

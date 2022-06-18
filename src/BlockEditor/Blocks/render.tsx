@@ -1,7 +1,9 @@
 import React from "react"
 import produce from "immer"
 import { Dom, Block } from "./Common"
-import { InlineMath } from "../MathComponent"
+import { InlineMathLabel } from "../InlineComponent/InlineMatchLabel"
+import * as op from "../operation"
+
 export function SeralizeNode(node: Node): Dom {
     const tagName = node.nodeName.toLowerCase()
 
@@ -23,18 +25,28 @@ export function SeralizeNode(node: Node): Dom {
 export function Serialize(html: string): Dom[] {
     const temp = document.createElement('div')
     temp.innerHTML = html
-    const dom = []
+    const dom: Dom[] = []
 
     for (var i = 0; i < temp.childNodes.length; i++) {
         const node = temp.childNodes[i]
         if (node instanceof HTMLElement) {
-            if (node.getAttribute('data-ignore') === 'true') {
+            if (op.isTag(node, 'label')) {
+                const dataType = node.getAttribute('data-type')
+                switch (dataType) {
+                    case 'math':
+                        const dataMath = node.getAttribute('data-math')
+                        dom.push({
+                            'tagName': 'math',
+                            'textContent': dataMath
+                        })
+                        break
+                }
+                continue
+            } else if (node.getAttribute('data-ignore') === 'true') {
                 // table -> tbody(data-ignore='true' ) -> tr -> td
                 dom.push(SeralizeNode(node.firstChild))
                 continue
-            }
-
-            if (node.classList.contains('bound-hint')) {
+            } else if (node.classList.contains('bound-hint')) {
                 // table -> tbody(data-ignore='true' ) -> tr -> td
                 continue
             }
@@ -73,19 +85,8 @@ export function NestRender(dom: Dom[], depth: number = 0, formatType: 'html' | '
                     break;
                 case 'math':
                     element = <>
-                        <input
-                            onInput={(e) => {
-                                console.log((e.target as any))
-                            }}>
-                        </input><label
-                            suppressContentEditableWarning
-                            contentEditable={'false'}>
-
-                            <InlineMath
-                                className={'math'}
-                                math={val.textContent} />
-                        </label>
-                        </>
+                        <InlineMathLabel math={val.textContent} ></InlineMathLabel>
+                    </>
                     break
                 default:
                     if (val.children && val.children.length > 0) {

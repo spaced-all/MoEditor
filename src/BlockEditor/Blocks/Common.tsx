@@ -342,7 +342,10 @@ export class DefaultBlock<
     const editorRoot = this.editableRoot()
     if (outerRoot) {
       if (this.props.initialContentEditable) {
-        editorRoot.focus();
+        if (!op.isParent(document.activeElement, outerRoot)) {
+          editorRoot.focus();
+        }
+        // editorRoot
       }
       if (this.props.selectionMode && this.props.selected) {
         outerRoot.classList.add('block-selected')
@@ -376,6 +379,7 @@ export class DefaultBlock<
   }
 
   handleBlur(e) {
+    // debugger
     const newE = this.wrapBlockEvent<BE.FocusEvent<O>>(e);
     this.setEeditable(false);
     this.props.onBlur(newE);
@@ -386,11 +390,12 @@ export class DefaultBlock<
     // but the focusNode/Offset will changed with mouseUp
     const newE = this.wrapBlockEvent<BE.FocusEvent<O>>(e);
     const { jumpRef } = this.props;
-    if (this.editableRoot()) {
-      // this.editableRoot().contentEditable = "true";
+
+    if (op.isTag(e.target, 'input')) {
+      this.props.onFocus(newE);
+      return
     }
 
-    // debugger
     if (jumpRef) {
       var caretPos;
       var innerRoot;
@@ -468,7 +473,9 @@ export class DefaultBlock<
       "left"
     );
     this.props.onSelect(newE);
-    this.props.onCaretMove(event);
+    if (!op.isTag(e.target, 'input')) {
+      this.props.onCaretMove(event);
+    }
   }
 
   handleDataChange(e, data) {
@@ -509,6 +516,7 @@ export class DefaultBlock<
     const newE = this.wrapBlockEvent<BE.KeyboardEvent<O>>(e);
     this.props.onJumpToBelowStart(newE);
     e.preventDefault();
+
   }
 
   handleInput(e) {
@@ -781,6 +789,16 @@ export class DefaultBlock<
     }
 
     if (e.key === "Enter") {
+      if (op.isTag(e.target as Node, 'input')) {
+        var target = e.target as HTMLElement
+        this.editableRoot().focus()
+        target = op.findParentMatchTagName(target, 'label', this.currentContainer()) as HTMLElement
+        const next = op.nextCaretPosition(this.currentContainer(), target, 0)
+        op.setCaretPosition(next)
+        e.preventDefault()
+        return
+      }
+
       if (e.shiftKey) {
         this.handleShiftEnter(e);
       } else {
@@ -855,10 +873,11 @@ export class DefaultBlock<
 
   handleMouseDown = (e) => { }
   defaultHandleMouseDown = (e) => {
-    var tag;
-    if ((tag = op.findParentMatchTagName(e.target, 'label', this.editableRoot()))) {
-      op.setCaretPosition(op.createCaretPosition(this.editableRoot(), tag, 0));
-      e.preventDefault()
+    var tag: HTMLElement;
+    if ((tag = op.findParentMatchTagName(e.target, 'label', this.editableRoot()) as HTMLElement)) {
+      // // if(tag.)
+      // op.setCaretPosition(op.createCaretPosition(this.editableRoot(), tag, 0));
+      // e.preventDefault()
       return
     }
     this.handleMouseDown(e)
@@ -871,6 +890,8 @@ export class DefaultBlock<
     op.setCaretPosition(caretPos)
   }
   handleMouseUp = (e) => {
+    // console.log()
+    // debugger
     const sel = document.getSelection()
     if (!this.inContainer(sel.focusNode)) {
       this.fixCaret()

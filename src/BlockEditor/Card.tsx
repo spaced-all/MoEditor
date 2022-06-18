@@ -387,7 +387,6 @@ class Card extends React.Component<CardProps, CardStats> {
     }
 
     handleCaretMove = (evt: BE.CaretEvent<HTMLElement>, ind) => {
-        console.log(evt.caret)
         var cur = evt.caret.container
 
         const direction = evt.direction
@@ -398,8 +397,9 @@ class Card extends React.Component<CardProps, CardStats> {
     }
     handleFocus = (e, ind) => {
         console.log(['focus', ind, this.state.blocks[ind], e]) // TODO 记录光标位置，用于merge 后回滚
-
-        this.setState({ cursor: ind })
+        if (this.state.cursor !== ind) {
+            this.setState({ cursor: ind })
+        }
     }
     handleDataChange = (e: BE.BlockEvent<HTMLElement>, ind) => {
         // debugger
@@ -482,9 +482,7 @@ class Card extends React.Component<CardProps, CardStats> {
                 console.log(e)
                 this.portalCaller.call('boundhint', { data: { el: range.startContainer, offset: 0 }, name: 'expand' })
             }}
-            // onMouseMove={(e) => {
-            //     console.log((e.target as Node).nodeName)
-            // }}
+
             onMouseDownCapture={(e) => {
                 const newState = produce(this.state, draft => {
                     if (this.state.selectionMode) {
@@ -500,7 +498,7 @@ class Card extends React.Component<CardProps, CardStats> {
                     e.preventDefault()
                 }
                 const target = e.target as Node
-                if (op.isTag(target, 'input')) {
+                if (op.isTag(target, 'input') && (target as HTMLInputElement).type === 'checkbox') {
                     e.preventDefault()
                 }
             }}
@@ -558,21 +556,15 @@ class Card extends React.Component<CardProps, CardStats> {
                     selectionMode: this.state.selectionMode,
                     onFocus: (e) => this.handleFocus(e, ind),
                     onDataChange: (e) => this.handleDataChange(e, ind),
-                    // onAppendAbove: (e) => this.handleAppendAbove(e, ind),
-                    // onAppendBelow: (e) => this.handleAppendBelow(e, ind),
                     onCaretMove: (e) => this.handleCaretMove(e, ind),
                     onCaretMoveTo: (e) => this.handleCaretMove(e, ind),
                     onMerge: (e) => this.handleMerge(e, ind),
                     onSplit: (e) => this.handleSplit(e, ind),
-                    // onMergeAbove: (e) => this.handleMergeAbove(e, ind),
-                    // onMergeBelow: (e) => this.handleMergeBelow(e, ind),
                     onJumpAbove: (evt) => this.handleJumpToAbove(evt, ind),
                     onMouseEnter: (e) => {
-                        // console.log(e)
                         this.setState({
                             focusBlockRef: e.target as HTMLElement,
                         })
-                        // this.focusBlockRef.c÷urrent = e.target as HTMLElement
                     },
                     onSelectBlock: (evt) => {
                         console.log(['Select Block', val.order, ind,

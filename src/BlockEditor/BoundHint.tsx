@@ -180,13 +180,16 @@ export function BoundHint(props: {
                     selectedLabel.current = null
                     ref.current = selectedLabel.current
                 }
-
-                if (op.findParentMatchTagName(el, 'label', props.root)) {
+                var elabel;
+                if ((elabel = op.findParentMatchTagName(el, 'label', props.root))) {
+                    elabel.classList.add('label-focused')
                     leftRef.current.innerText = ''
                     rightRef.current.innerText = ''
-                    selectedLabel.current = el as HTMLLabelElement
+                    selectedLabel.current = elabel as HTMLLabelElement
 
-                    (el as HTMLLabelElement).classList.add('label-focused')
+                    el = elabel
+                    elabel.focus()
+                    ref.current = el
                     return
                 }
 

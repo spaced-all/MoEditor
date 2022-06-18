@@ -4,5 +4,17 @@
     color: #aaa;
 }
 
+label input {
+    display: none;
+}
+
+
+label.label-focused input {
+    display: unset;
+    margin-top: -2em;
+    position: absolute;
+}
+
+
 
 /* .card :global(.editable):empty {} */
