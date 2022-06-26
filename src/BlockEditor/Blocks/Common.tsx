@@ -687,13 +687,10 @@ export class DefaultBlock<
         this.handleJumpToLeft(e);
       } else {
         if (e.altKey) {
-        } else {
+        } else if (e.shiftKey) { }
+        else {
           const caretPos = op.previousCaretPosition(root);
-          if (e.shiftKey) {
-            op.setCaretPosition(caretPos, true, false);
-          } else {
-            op.setCaretPosition(caretPos);
-          }
+          op.setCaretPosition(caretPos);
           e.preventDefault();
         }
       }
