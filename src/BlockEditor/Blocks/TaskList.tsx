@@ -3,6 +3,7 @@ import { Block, BlockProps, BlockStates, ContentEditable } from "./Common"
 import { DefaultBlock } from "./Common"
 import produce from "immer"
 
+import "./TaskList.css"
 import { NestRender } from "./render";
 import * as op from "../operation"
 import * as BE from "../event/eventtype";
@@ -142,19 +143,19 @@ export class TaskList extends VList<TaskListProps, TaskListStats, HTMLUListEleme
                         data-index={ind}
                         data-max-index={arr.length}
                         className={[
-                            'editbound',
+                            'list-editbound',
                             `list-indent-${Math.min(3, item.attributes.level)}`,
                         ].join(" ")} key={ind}>
                         {/* <label></label> */}
                         <input
-                            className="list-prefix" type={'checkbox'}
-                            checked={this.state.checked[ind] === true}
-                            onChange={(e) => {
-                                const newChecked = produce(this.state.checked, draft => {
-                                    draft[ind] = e.target.checked
-                                })
-                                this.setState({ checked: newChecked })
-                            }}
+                            className="list-task-flag" type={'checkbox'}
+                        // checked={this.state.checked[ind] === true}
+                        // onChange={(e) => {
+                        //     const newChecked = produce(this.state.checked, draft => {
+                        //         draft[ind] = e.target.checked
+                        //     })
+                        //     this.setState({ checked: newChecked })
+                        // }}
                         ></input>
                         <p className="list-container">{item.textContent}{NestRender(item.children)}</p>
                     </li>

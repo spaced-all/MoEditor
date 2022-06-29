@@ -379,10 +379,18 @@ export class DefaultBlock<
   }
 
   handleBlur(e) {
-    // debugger
-    const newE = this.wrapBlockEvent<BE.FocusEvent<O>>(e);
-    this.setEeditable(false);
-    this.props.onBlur(newE);
+    console.log(['blur', e])
+
+    const el = op.findParentMatchTagName(e.target, 'label', this.currentContainer())
+    console.log([el, el.parentElement])
+    if (op.isTag(el, 'label') && !el.parentElement) {
+      console.log('label removed')
+    } else {
+      const newE = this.wrapBlockEvent<BE.FocusEvent<O>>(e);
+      this.setEeditable(false);
+      this.props.onBlur(newE);
+    }
+
   }
 
   handleFocus(e) {

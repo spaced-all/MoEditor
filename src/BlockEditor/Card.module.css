@@ -3,7 +3,7 @@
     padding: 10px;
     margin: 10px;
     transition: 200ms;
-    
+
 }
 
 .card * {
@@ -50,12 +50,21 @@
 }
 
 .card * {
-    margin: 0;
     outline-width: 0;
-    line-height: 1.5;
+    /* margin: 0.1px; */
+    /* margin: 0;
+    line-height: 1.5; */
     /* margin-bottom: 8px; */
 }
 
+.card p,
+.card blockquote,
+.card ul,
+.card li,
+.card ol {
+    margin: 0;
+    line-height: 1.5;
+}
 
 
 .card h1 {

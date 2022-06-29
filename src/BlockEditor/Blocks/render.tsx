@@ -84,9 +84,12 @@ export function NestRender(dom: Dom[], depth: number = 0, formatType: 'html' | '
                     element = val.textContent
                     break;
                 case 'math':
-                    element = <>
+                    element = <label
+                        contentEditable='false'
+                        suppressContentEditableWarning
+                    >
                         <InlineMathLabel math={val.textContent} ></InlineMathLabel>
-                    </>
+                    </label>
                     break
                 default:
                     if (val.children && val.children.length > 0) {

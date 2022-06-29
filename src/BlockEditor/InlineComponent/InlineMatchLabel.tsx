@@ -20,6 +20,11 @@ export function InlineMathLabel(props: { math: string }) {
                 } else if (e.key === 'Home') {
                     target.setSelectionRange(0, 0)
                     e.preventDefault()
+                } else if (e.key === 'Backspace') {
+                    const tgt = e.target as HTMLInputElement
+                    tgt.parentElement.remove()
+                    tgt.blur()
+                    e.preventDefault()
                 }
             } else {
                 e.preventDefault()
@@ -31,15 +36,12 @@ export function InlineMathLabel(props: { math: string }) {
         onChange={(e) => setVal(e.target.value)}></input>
     return (
         <>
-            <label
+            {ipt}
+            <data
                 data-type={'math'}
-                data-math={val}
-                contentEditable='false'
-                suppressContentEditableWarning
-            >
-                {ipt}
-                <InlineMath math={val} />
-            </label>
+                data-content={val}
+            ></data>
+            <InlineMath math={val} />
         </>
     );
 }
