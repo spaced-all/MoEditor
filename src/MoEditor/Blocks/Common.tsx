@@ -1,5 +1,9 @@
 import React from "react";
 
+export function serialize() {
+
+}
+
 
 export function renderContent() {
 

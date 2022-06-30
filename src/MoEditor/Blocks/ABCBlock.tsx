@@ -1,6 +1,9 @@
 import { ContentEditable } from "./Common"
-import { Block } from "../types";
+import { Block, ContentItem } from "../types";
 import React from "react";
+import { ContentItemRender } from "./Content";
+
+import * as op from "../dom/node"
 
 export interface ABCBlockStates {
     html: string;
@@ -96,7 +99,6 @@ export class ABCBlock<
     implements IBlock<P, S, O, I>
 {
 
-
     protected get contentEditableName(): string {
         return "p"
     }
@@ -140,8 +142,8 @@ export class ABCBlock<
         onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
     };
 
-    ref: RefObject<HTMLDivElement>;
-    editableRootRef: RefObject<O>; // contentEditable element
+    ref: React.RefObject<HTMLDivElement>;
+    editableRootRef: React.RefObject<O>; // contentEditable element
     constructor(props: P) {
         super(props);
         this.ref = React.createRef();
@@ -189,33 +191,31 @@ export class ABCBlock<
         }
     };
 
-    serializeDom(): Dom[] {
-        return Serialize(this.editableRoot().innerHTML)
+    serializeContentItem(el: HTMLElement): ContentItem {
+        return
     }
-    serialize(dom?: Dom[]): Block {
-        return {
-            ...this.props.data,
-            'data': { dom: dom || this.serializeDom() }
-        }
+
+    serialize(dom?: Block[]): Block {
+        throw new Error('not implemented.')
     }
 
     handleComponentEvent = (evt) => {
-        switch (evt.name) {
-            case "innerHTML":
-                return op.validInnerHTML(this.currentContainer());
+        // switch (evt.name) {
+        //     case "innerHTML":
+        //         return op.validInnerHTML(this.currentContainer());
 
-            case "endCaretOffset":
-                const caretPos = this.lastCaretPosition(this.currentContainer());
-                return op.getCaretReletivePosition(
-                    this.currentContainer(),
-                    caretPos.container,
-                    caretPos.offset
-                );
-            case "serialize":
-                return this.serialize();
-            // return op.validInnerHTML(this.currentRoot());
-            // return this.currentRoot().innerHTML;
-        }
+        //     case "endCaretOffset":
+        //         const caretPos = this.lastCaretPosition(this.currentContainer());
+        //         return op.getCaretReletivePosition(
+        //             this.currentContainer(),
+        //             caretPos.container,
+        //             caretPos.offset
+        //         );
+        //     case "serialize":
+        //         return this.serialize();
+        //     // return op.validInnerHTML(this.currentRoot());
+        //     // return this.currentRoot().innerHTML;
+        // }
     };
     componentDidMount(): void {
         if (this.props.initialContentEditable) {
@@ -282,7 +282,6 @@ export class ABCBlock<
             this.setEeditable(false);
             this.props.onBlur(newE);
         }
-
     }
 
     handleFocus(e) {
@@ -793,8 +792,12 @@ export class ABCBlock<
             this.fixCaret()
         }
     }
+    renderContentItem(item: ContentItem | ContentItem[]): React.ReactNode {
+        return ContentItemRender(item)
+    }
+
     renderBlock(block: Block): React.ReactNode {
-        return NestRender(block.data.dom)
+        return <></>
     }
 
     makeContentEditable(contentEditable: React.ReactNode) {
@@ -804,7 +807,6 @@ export class ABCBlock<
     public get placeholder(): string | undefined {
         return undefined
     }
-
 
     render(): React.ReactNode {
         const initialData = this.latestData()
@@ -828,10 +830,9 @@ export class ABCBlock<
             {this.makeContentEditable(
                 <ContentEditable
                     placeholder={this.placeholder}
-                    className="editable"
+                    className="block-editable"
                     innerRef={this.editableRootRef}
                     tagName={this.contentEditableName}
-                    // contentEditable={this.state.contentEditable}
                     contentEditable
                     onInput={this.handleInput}
                     onCopy={this.handleCopy}

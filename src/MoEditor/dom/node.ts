@@ -5,3 +5,50 @@ export function getTagName(el: Node) {
 export function isTag(el: Node, name: string) {
   return getTagName(el) === name;
 }
+
+export function isParent(cur: Node, parent: Node): boolean {
+  while (cur) {
+    if (cur === parent) {
+      return true;
+    }
+    cur = cur.parentNode as Node;
+  }
+  return false;
+}
+
+export function findParentMatchTagName(
+  el: Node,
+  name: string,
+  root: Node
+): Node | null {
+  var cur = el;
+  while (cur && cur !== root) {
+    if (isTag(cur, name)) {
+      return cur;
+    }
+    cur = cur.parentElement;
+  }
+  return null;
+}
+export function indexOfNode(el: Node) {
+  let i = 0;
+  while ((el = el.previousSibling)) {
+    i++;
+  }
+  return i;
+}
+
+export function elementBoundOffset(
+  el: Node,
+  direction: "left" | "right",
+  offset?: number
+) {
+  offset = offset || 0;
+  if (isTag(el, "#text")) {
+    if (direction === "left") {
+      return el.textContent.length - offset;
+    }
+    return 0 + offset;
+  }
+  return 0;
+}
