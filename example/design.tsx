@@ -1,4 +1,4 @@
-import { Document } from "MoEditor";
+import { Page } from "MoEditor";
 
 function App() {
     const [data, setData] = React.useState([])
@@ -7,7 +7,7 @@ function App() {
     }, [])
 
 
-    return <Document data={data}></Document>
+    return <Page data={data}></Page>
 }
 
 
@@ -19,7 +19,9 @@ function LazyLoad() {
     }, [])
 
 
-    return <Document
+    return <Page
+        supportBlock={['paragraph', 'blockquote']}
+
         ids={async () => {
             // get block id list of this document
         }}
@@ -39,6 +41,5 @@ function LazyLoad() {
             // 后端建议把删除用额外的 archive 标识，便于撤销操作
         }}
     >
-
-    </Document>
+    </Page>
 }
