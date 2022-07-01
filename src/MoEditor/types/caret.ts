@@ -6,6 +6,11 @@ export interface Caret {
   endOffset?: Node;
 }
 
+export interface UserCaret extends Caret {
+  user_id: number;
+  username: string;
+}
+
 export interface OffsetCaret {
   block_id: number;
   start?: number;

@@ -1,17 +1,19 @@
 import { ContentEditable } from "./Common"
-import { Block, ContentItem } from "../types";
+import { Block, Caret, ContentItem, UserCaret } from "../types";
 import React from "react";
 import { ContentItemRender } from "./Content";
+
+import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, JumpEventHandler, MergeEventHandler, SplitEventHandler } from "./events";
 
 import * as op from "../dom/node"
 
 export interface ABCBlockStates {
-    html: string;
-    jumpRef?: JumpRef;
-    contentEditable: boolean;
-    data?: Block;
-    dirty?: boolean;
-    focused: boolean
+    // html: string;
+    // jumpRef?: JumpRef;
+    // contentEditable: boolean;
+    // data?: Block;
+    // dirty?: boolean;
+    // focused: boolean
 }
 
 export interface JumpRef {
@@ -21,72 +23,84 @@ export interface JumpRef {
     type: "neighbor" | "jump" | "mouse" | "merge";
 }
 
+export interface Relative {
+
+}
+
 export interface ABCBlockProps {
     data?: Block;
     uid: string;
     className?: string,
-    selected?: boolean,
-    selectionMode?: boolean,
-    eventManager?: EventManager;
-    initialContentEditable: boolean;
-    historyOffset?: number;
-    jumpRef?: JumpRef;
-    initialPos?: { start: number; end: number };
-    onShiftEnter?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onEnter?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
-    onFocus?: (e: React.FocusEvent<HTMLElement>) => void;
+
+    // above or below, use to determine the position of the caret in this block.
+    relative?: Relative;
+
+    // block will be locked and can't be edited  if caret is not null
+    caret?: UserCaret;
+
+    // selected?: boolean,
+    // selectionMode?: boolean,
+    // eventManager?: EventManager;
+    // historyOffset?: number;
+    // jumpRef?: JumpRef;
+    // initialPos?: { start: number; end: number };
+    // onShiftEnter?: (e: React.KeyboardEvent<HTMLElement>) => void;
+    // onEnter?: (e: React.KeyboardEvent<HTMLElement>) => void;
+    // onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
+    // onFocus?: (e: React.FocusEvent<HTMLElement>) => void;
+    onUpdate?: BlockUpdateEventHandler;
     onSelect?: (e: React.SyntheticEvent<HTMLElement>) => void;
-    onDataChange?: (e: React.BlockEvent<HTMLElement>) => void;
-    onMergeAbove?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onMergeBelow?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onMerge?: (e: React.MergeEvent) => void;
-    onSplit?: (e: React.SplitEvent) => void;
-    onJumpAbove?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onJumpToAboveEnd?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onJumpBelow?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onJumpToBelowStart?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    onCaretMove?: (e: React.CaretEvent<HTMLElement>) => void;
-    onCaretMoveTo?: (e: React.CaretEvent<HTMLElement>) => void;
-    onAppendAbove?: (e: React.BlockAppendEvent<HTMLElement>) => void;
-    onAppendBelow?: (e: React.BlockAppendEvent<HTMLElement>) => void;
-    onSplitAbove?: (e: React.BlockEvent<HTMLElement>) => void;
-    onChangeBlockType?: (e: React.BlockChangeEvent<HTMLElement>) => void;
-    onComponentUpdate?: (e: React.ComponentUpdatedEvent<HTMLElement>) => void;
-    onSelectBlock?: (e: React.BlockEvent<HTMLElement>) => void;
-    onMouseSelect?: (e: React.MouseEvent<HTMLElement>) => void;
-    onMouseEnter?: (e: React.MouseEvent<HTMLElement>) => void;
+    // onDataChange?: (e: React.BlockEvent<HTMLElement>) => void;
+
+
+    // triggered by delete/backspace
+    onMerge?: MergeEventHandler;
+    // include append before and after
+    onSplit?: SplitEventHandler;
+    // triggered by arrow key
+    onJump?: JumpEventHandler;
+    // triggered by mouse and keyboard event
+    onCaretMove?: CaretChangeEventHandler;
+
+    // onJumpAbove?: (e: React.KeyboardEvent<HTMLElement>) => void;
+    // onJumpToAboveEnd?: (e: React.KeyboardEvent<HTMLElement>) => void;
+    // onJumpBelow?: (e: React.KeyboardEvent<HTMLElement>) => void;
+    // onJumpToBelowStart?: (e: React.KeyboardEvent<HTMLElement>) => void;
+
+    // onCaretMoveTo?: (e: React.CaretEvent<HTMLElement>) => void;
+    // onAppendAbove?: (e: React.BlockAppendEvent<HTMLElement>) => void;
+    // onAppendBelow?: (e: React.BlockAppendEvent<HTMLElement>) => void;
+    // onSplitAbove?: (e: React.BlockEvent<HTMLElement>) => void;
+    // onChangeBlockType?: (e: React.BlockChangeEvent<HTMLElement>) => void;
+    // onComponentUpdate?: (e: React.ComponentUpdatedEvent<HTMLElement>) => void;
+    // onSelectBlock?: (e: React.BlockEvent<HTMLElement>) => void;
+    // onMouseSelect?: (e: React.MouseEvent<HTMLElement>) => void;
+    // onMouseEnter?: (e: React.MouseEvent<HTMLElement>) => void;
 }
 
 
 export interface IBlock<
-    P extends BlockProps,
-    S extends BlockStates,
+    P extends ABCBlockProps,
+    S extends ABCBlockStates,
     O extends HTMLElement,
     I extends HTMLElement
     > {
     props: P;
     state: S;
     ref: React.RefObject<HTMLDivElement>;
-    wrapBlockEvent<T extends BE.BlockEvent<O>>(e): T;
-    handleBlur: (e) => void;
-    handleFocus: (e) => void;
-    handleSelect: (e) => void;
-    handleDataChange: (e, data) => void;
-    handleMergeAbove: (e) => void;
-    handleMergeBelow: (e) => void;
-    handleJumpToAbove: (e: React.KeyboardEvent<I>) => void;
-    handleJumpToLeft: (e: React.KeyboardEvent<I>) => void;
-    handleJumpToBelow: (e: React.KeyboardEvent<I>) => void;
-    handleJumpToRight: (e: React.KeyboardEvent<I>) => void;
-    handleInput: (e) => void;
-    handleBackspace: (e: React.KeyboardEvent<I>) => void;
-    handleDelete: (e: React.KeyboardEvent<I>) => void;
-    handleShiftEnter: (e: React.KeyboardEvent<I>) => void;
-    handleEnter: (e: React.KeyboardEvent<I>) => void;
-    defaultHandleKeyup: (e: React.KeyboardEvent<I>) => void;
-    defaultHandleKeyDown: (e: React.KeyboardEvent<I>) => void;
+    // handleBlur: (e) => void;
+    // handleFocus: (e) => void;
+    // handleSelect: (e) => void;
+    // handleDataChange: (e, data) => void;
+
+    // handleInput: (e) => void;
+
+    // defaultHandleKeyup: (e: React.KeyboardEvent<I>) => void;
+    // defaultHandleKeyDown: (e: React.KeyboardEvent<I>) => void;
 }
+
+
+
 
 
 export class ABCBlock<
@@ -111,35 +125,38 @@ export class ABCBlock<
         return false
     }
 
-    static supportTags = []
-    static supportType = null
-
+    static blockName = ''
 
     static defaultProps: ABCBlockProps = {
         uid: "",
-        selected: false,
-        initialContentEditable: false,
-        selectionMode: false,
-        onShiftEnter: (evt) => console.log(["onShiftEnter", evt]),
-        onEnter: (evt) => console.log(["onEnter", evt]),
-        onBlur: (evt) => console.log(["onBlur", evt]),
-        onFocus: (evt) => console.log(["onFocus", evt]),
-        onSelect: (evt) => console.log(["onSelect", evt]),
-        onDataChange: (evt) => console.log(["onDataChange", evt]),
-        onMergeAbove: (evt) => console.log(["onMergeAbove", evt]),
-        onMergeBelow: (evt) => console.log(["onMergeBelow", evt]),
-        onJumpAbove: (evt) => console.log(["onJumpAbove", evt]),
-        onJumpToAboveEnd: (evt) => console.log(["onJumpToAboveEnd", evt]),
-        onJumpBelow: (evt) => console.log(["onJumpBelow", evt]),
-        onJumpToBelowStart: (evt) => console.log(["onJumpToBelowStart", evt]),
-        onCaretMove: (evt) => console.log(["onCaretMove", evt]),
-        onAppendAbove: (evt) => console.log(["onAppendAbove", evt]),
-        onAppendBelow: (evt) => console.log(["onAppendBelow", evt]),
-        onSplitAbove: (evt) => console.log(["onSplitAbove", evt]),
-        onCaretMoveTo: (evt) => console.log(["onCaretMoveTo", evt]),
-        onComponentUpdate: (evt) => console.log(["onCaretMoveTo", evt]),
-        onSelectBlock: (evt) => console.log(['onSelectBlock', evt]),
-        onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
+        // selected: false,
+        onUpdate: (evt) => { console.log(['onUpdate', evt]) },
+        onSelect: (evt) => { console.log(['onSelect', evt]) },
+        onMerge: (evt) => { console.log(['onMerge', evt]) },
+        onSplit: (evt) => { console.log(['onSplit', evt]) },
+        onJump: (evt) => { console.log(['onJump', evt]) },
+        onCaretMove: (evt) => { console.log(['onCaretMove', evt]) },
+        // selectionMode: false,
+        // onShiftEnter: (evt) => console.log(["onShiftEnter", evt]),
+        // onEnter: (evt) => console.log(["onEnter", evt]),
+        // onBlur: (evt) => console.log(["onBlur", evt]),
+        // onFocus: (evt) => console.log(["onFocus", evt]),
+        // onSelect: (evt) => console.log(["onSelect", evt]),
+        // onDataChange: (evt) => console.log(["onDataChange", evt]),
+        // onMergeAbove: (evt) => console.log(["onMergeAbove", evt]),
+        // onMergeBelow: (evt) => console.log(["onMergeBelow", evt]),
+        // onJumpAbove: (evt) => console.log(["onJumpAbove", evt]),
+        // onJumpToAboveEnd: (evt) => console.log(["onJumpToAboveEnd", evt]),
+        // onJumpBelow: (evt) => console.log(["onJumpBelow", evt]),
+        // onJumpToBelowStart: (evt) => console.log(["onJumpToBelowStart", evt]),
+        // onCaretMove: (evt) => console.log(["onCaretMove", evt]),
+        // onAppendAbove: (evt) => console.log(["onAppendAbove", evt]),
+        // onAppendBelow: (evt) => console.log(["onAppendBelow", evt]),
+        // onSplitAbove: (evt) => console.log(["onSplitAbove", evt]),
+        // onCaretMoveTo: (evt) => console.log(["onCaretMoveTo", evt]),
+        // onComponentUpdate: (evt) => console.log(["onCaretMoveTo", evt]),
+        // onSelectBlock: (evt) => console.log(['onSelectBlock', evt]),
+        // onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
     };
 
     ref: React.RefObject<HTMLDivElement>;
@@ -149,47 +166,23 @@ export class ABCBlock<
         this.ref = React.createRef();
         this.editableRootRef = React.createRef();
         this.state = {
-            html: "",
-            jumpRef: this.props.jumpRef,
-            contentEditable: this.props.initialContentEditable,
-            focused: false,
-            data: this.props.data,
-            dirty: false,
+            // html: "",
+            // jumpRef: this.props.jumpRef,
+            // contentEditable: this.props.initialContentEditable,
+            // focused: false,
+            // data: this.props.data,
+            // dirty: false,
         } as S;
 
-        this.handleShiftEnter = this.handleShiftEnter.bind(this);
-        this.handleEnter = this.handleEnter.bind(this);
+
         this.handleBlur = this.handleBlur.bind(this);
         this.handleFocus = this.handleFocus.bind(this);
         this.handleSelect = this.handleSelect.bind(this);
         this.handleDataChange = this.handleDataChange.bind(this);
-        this.handleMergeAbove = this.handleMergeAbove.bind(this);
-        this.handleMergeBelow = this.handleMergeBelow.bind(this);
-        this.handleJumpToAbove = this.handleJumpToAbove.bind(this);
-        this.handleJumpToLeft = this.handleJumpToLeft.bind(this);
-        this.handleJumpToBelow = this.handleJumpToBelow.bind(this);
-        this.handleJumpToRight = this.handleJumpToRight.bind(this);
         this.handleInput = this.handleInput.bind(this);
         this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
         this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
     }
-    latestData() {
-        return this.props.data;
-    }
-    updateData(data: Block) {
-        this.setState({ data: data, dirty: true });
-    }
-
-    setEeditable = (flag) => {
-        if (this.editableRoot()) {
-            if (flag) {
-                // this.editableRoot().contentEditable = "true";
-                this.editableRoot().focus();
-            } else {
-                // this.editableRoot().contentEditable = "false";
-            }
-        }
-    };
 
     serializeContentItem(el: HTMLElement): ContentItem {
         return
@@ -199,52 +192,15 @@ export class ABCBlock<
         throw new Error('not implemented.')
     }
 
-    handleComponentEvent = (evt) => {
-        // switch (evt.name) {
-        //     case "innerHTML":
-        //         return op.validInnerHTML(this.currentContainer());
-
-        //     case "endCaretOffset":
-        //         const caretPos = this.lastCaretPosition(this.currentContainer());
-        //         return op.getCaretReletivePosition(
-        //             this.currentContainer(),
-        //             caretPos.container,
-        //             caretPos.offset
-        //         );
-        //     case "serialize":
-        //         return this.serialize();
-        //     // return op.validInnerHTML(this.currentRoot());
-        //     // return this.currentRoot().innerHTML;
-        // }
-    };
     componentDidMount(): void {
-        if (this.props.initialContentEditable) {
-            this.editableRoot().focus();
-        }
-        if (this.props.eventManager) {
-            this.props.eventManager.on(this.props.uid, this.handleComponentEvent);
-        }
+
     }
     componentDidUpdate(
         prevProps: Readonly<P>,
         prevState: Readonly<S>,
         snapshot?: any
     ): void {
-        const outerRoot = this.blockRoot()
-        const editorRoot = this.editableRoot()
-        if (outerRoot) {
-            if (this.props.initialContentEditable) {
-                if (!op.isParent(document.activeElement, outerRoot)) {
-                    editorRoot.focus();
-                }
-                // editorRoot
-            }
-            if (this.props.selectionMode && this.props.selected) {
-                outerRoot.classList.add('block-selected')
-            } else {
-                outerRoot.classList.remove('block-selected')
-            }
-        }
+
     }
 
     currentContainer = (): I => {
@@ -264,533 +220,56 @@ export class ABCBlock<
         return this.ref.current
     }
 
-    wrapBlockEvent<T extends React.BlockEvent<O>>(e): T {
-        e["html"] = this.state.html;
-        e["ref"] = this.editableRoot();
-        return e;
-    }
-
     handleBlur(e) {
-        console.log(['blur', e])
 
-        const el = op.findParentMatchTagName(e.target, 'label', this.currentContainer())
-        console.log([el, el.parentElement])
-        if (op.isTag(el, 'label') && !el.parentElement) {
-            console.log('label removed')
-        } else {
-            const newE = this.wrapBlockEvent<React.FocusEvent<O>>(e);
-            this.setEeditable(false);
-            this.props.onBlur(newE);
-        }
     }
 
     handleFocus(e) {
         // focusEvent will triggered with mouseDown,
         // but the focusNode/Offset will changed with mouseUp
-        const newE = this.wrapBlockEvent<React.FocusEvent<O>>(e);
-        const { jumpRef } = this.props;
-
-        if (op.isTag(e.target, 'input')) {
-            this.props.onFocus(newE);
-            return
-        }
-
-        if (jumpRef) {
-            var caretPos;
-            var innerRoot;
-            var setLast = false;
-            switch (jumpRef.type) {
-                case "merge":
-                    // jumpRef.offset
-                    innerRoot = this.lastContainer()
-                    const lastCaret = op.lastCaretPosition(innerRoot);
-                    const offset = op.getCaretReletivePosition(innerRoot, lastCaret.container, lastCaret.offset)
-                    setLast = op.setCaretReletivePosition(innerRoot, offset + jumpRef.offset)
-                    caretPos = op.currentCaretPosition(innerRoot);
-                    break
-                case "jump":
-                    this.props.eventManager.call("boundhint", {
-                        data: {},
-                        name: "unexpand",
-                    });
-                    if (jumpRef.from === "below") {
-                        innerRoot = this.lastContainer()
-                        setLast = op.setCaretReletivePositionAtLastLine(
-                            innerRoot,
-                            jumpRef.offset
-                        );
-                    } else {
-                        innerRoot = this.firstContainer()
-                        setLast = op.setCaretReletivePosition(
-                            innerRoot,
-                            jumpRef.offset
-                        );
-                    }
-                    caretPos = op.currentCaretPosition(this.currentContainer());
-                    break;
-                case "neighbor":
-                    if (jumpRef.from === "above") {
-                        innerRoot = this.firstContainer()
-                        caretPos = op.firstCaretPosition(innerRoot);
-                    } else {
-                        innerRoot = this.lastContainer()
-                        caretPos = op.lastCaretPosition(innerRoot);
-                    }
-                    break;
-                case "mouse":
-                    innerRoot = this.currentContainer()
-                    caretPos = op.currentCaretPosition(innerRoot);
-                    break;
-            }
-
-            const event = new BlockCaretEvent(
-                this.state.html,
-                innerRoot,
-                caretPos
-            );
-            op.setCaretPosition(caretPos);
-            if (setLast) {
-                event.offset = jumpRef.offset;
-            }
-            this.props.onCaretMove(event);
-        } else {
-            const caret = op.firstCaretPosition(this.firstContainer());
-            op.setCaretPosition(caret);
-        }
-
-        this.props.onFocus(newE);
-    }
-
-    handleSelect(e) {
-        const newE = this.wrapBlockEvent<React.SyntheticEvent<O>>(e);
-
-        const caretPos = op.currentCaretPosition(this.currentContainer());
-        const event = new BlockCaretEvent(
-            this.state.html,
-            this.currentContainer(),
-            caretPos,
-            "left"
-        );
-        this.props.onSelect(newE);
-        if (!op.isTag(e.target, 'input')) {
-            this.props.onCaretMove(event);
-        }
-    }
-
-    handleDataChange(e, data) {
-        e.preventDefault();
-    }
-
-    handleMergeAbove(e) {
-        const newE = this.wrapBlockEvent<React.KeyboardEvent<O>>(e);
-        this.props.onMergeAbove(newE);
-        e.preventDefault();
-    }
-
-    handleMergeBelow(e) {
-        const newE = this.wrapBlockEvent<React.KeyboardEvent<O>>(e);
-        this.props.onMergeBelow(newE);
-        e.preventDefault();
-    }
-
-    handleJumpToAbove(e: React.KeyboardEvent<I>) {
-        const newE = this.wrapBlockEvent<React.KeyboardEvent<O>>(e);
-        this.props.onJumpAbove(newE);
-        e.preventDefault();
-    }
-
-    handleJumpToLeft(e: React.KeyboardEvent<I>) {
-        const newE = this.wrapBlockEvent<React.KeyboardEvent<O>>(e);
-        this.props.onJumpToAboveEnd(newE);
-        e.preventDefault();
-    }
-
-    handleJumpToBelow(e: React.KeyboardEvent<I>) {
-        const newE = this.wrapBlockEvent<React.KeyboardEvent<O>>(e);
-        this.props.onJumpBelow(newE);
-        e.preventDefault();
-    }
-
-    handleJumpToRight(e: React.KeyboardEvent<I>) {
-        const newE = this.wrapBlockEvent<React.KeyboardEvent<O>>(e);
-        this.props.onJumpToBelowStart(newE);
-        e.preventDefault();
 
     }
+
+
 
     handleInput(e) {
-        const sel = document.getSelection()
-        const tag = sel.focusNode.parentElement
-        if (op.isTag(tag, 'span') &&
-            e.nativeEvent.inputType === 'insertText' &&
-            tag.classList.contains('bound-hint')) {
-            if (tag.classList.contains('bound-hint-right')) {
-                const right = sel.focusNode.textContent.slice(-1)
-                const left = sel.focusNode.textContent.slice(-0, -1)
-                tag.textContent = right
-                var newText = document.createTextNode(left)
-                if (op.isTag(tag.previousSibling, '#text')) {
-                    tag.previousSibling.textContent = tag.previousSibling.textContent + newText.textContent
-                    newText = tag.previousSibling as Text
-                } else {
-                    tag.parentElement.insertBefore(newText, tag)
-                }
-                op.setCaretPosition(op.lastCaretPosition(newText))
-            } else {
-                const right = sel.focusNode.textContent.slice(-1)
-                const left = sel.focusNode.textContent.slice(-0, -1)
-                const newText = document.createTextNode(right)
-                tag.textContent = left
-                tag.parentElement.insertBefore(newText, tag.nextSibling)
-                op.setCaretPosition(op.lastCaretPosition(newText))
-            }
-            // console.log()
-            // this.props.eventManager.call("boundhint", {
-            //   name: "expand",
-            //   data: { force: true },
-            // });
-        }
     }
 
-    handleBackspace(e: React.KeyboardEvent<I>) { }
 
-    defaultHandleBackspace = (e: React.KeyboardEvent<I>) => {
-        var tag;
-        if ((tag = op.isInStyleBound(this.currentContainer(), "left"))) {
-            const style = op.tagToStyle(tag);
-            if (style) {
-                op.deleteStyle(tag, this.currentContainer());
-                this.props.eventManager.call("boundhint", {
-                    name: "expand",
-                    data: { force: true },
-                });
-                e.preventDefault();
-            }
-            return;
-        } else {
-            const sel = document.getSelection()
-            if (op.isTag(sel.focusNode, 'label')) {
-                sel.focusNode.parentElement.removeChild(sel.focusNode)
-                e.preventDefault()
-                return
-            }
-        }
-
-        this.handleBackspace(e);
-    };
-    handleDelete(e: React.KeyboardEvent<I>) {
-        console.log(["unimplemented", "handleDelete", e]);
-        e.preventDefault();
-    }
-    defaultHandleDelete(e: React.KeyboardEvent<I>) {
-        var tag;
-        if ((tag = op.isInStyleBound(this.currentContainer(), "right"))) {
-            const style = op.tagToStyle(tag);
-            if (style) {
-                op.deleteStyle(tag, this.currentContainer());
-                this.props.eventManager.call("boundhint", {
-                    name: "expand",
-                    data: { force: true },
-                });
-                e.preventDefault();
-            }
-            return;
-        } else {
-            const sel = document.getSelection()
-            if (op.isTag(sel.focusNode, 'label')) {
-                sel.focusNode.parentElement.removeChild(sel.focusNode)
-                e.preventDefault()
-                return
-            }
-        }
-        this.handleDelete(e);
-    }
-    handleSpace(e: React.KeyboardEvent<I>) { }
-    handleShiftEnter(e: React.KeyboardEvent<I>) {
-        op.insertNode(
-            this.currentContainer(),
-            document.createElement("br"),
-            "right"
-        );
-        e.preventDefault();
-    }
-
-    handleEnter(e: React.KeyboardEvent<I>): void {
-        this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
-        const contents = op.extractContentRight(this.editableRoot())
-        const block = this.serialize()
-        const temp = document.createElement('div')
-        temp.append(contents)
-        this.props.onSplit({
-            'left': block,
-            'focus': {
-                'type': 'paragraph',
-                'order': '',
-                'data': { dom: Serialize(temp.innerHTML) }
-            },
-        })
-        e.preventDefault()
-    }
     handleKeyUp(e: React.KeyboardEvent<I>) { }
     defaultHandleKeyup(e) {
         // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
         // console.log(["KeyUp", e.key]);
-        if (this.props.selectionMode) {
-            e.preventDefault()
-            return
-        }
-
-        if (e.key.match("Arrow")) {
-            const direction = e.key.match("ArrowRight") ? "right" : "left";
-            const caretPos = op.currentCaretPosition(this.currentContainer());
-            const event = new BlockCaretEvent(
-                this.state.html,
-                this.currentContainer(),
-                caretPos,
-                direction
-            );
-            this.props.onCaretMove(event);
-            e.preventDefault();
-        } else if (e.key === "Backspace" || e.key === "Delete") {
-            const sel = document.getSelection();
-            if (op.supportedTag(sel.focusNode)) {
-                op.deleteStyle(sel.focusNode as HTMLElement, this.currentContainer());
-                const caretPos = op.currentCaretPosition(this.currentContainer());
-                const event = new BlockCaretEvent(
-                    this.state.html,
-                    this.currentContainer(),
-                    caretPos
-                );
-                this.props.onCaretMove(event);
-            }
-        } else if (e.key === 'v' && e.metaKey) {
-
-        }
-        this.handleKeyUp(e);
-        return true
     }
 
-    defaultHandleArrowKeyDown = (e: React.KeyboardEvent<I>) => {
-        // 只移动光标，不用管 BoundHint
-        const root = this.currentContainer();
-        if (e.key === "ArrowUp") {
-            if (op.isFirstLine(root)) {
-                this.handleJumpToAbove(e);
-            }
-        } else if (e.key === "ArrowDown") {
-            if (op.isLastLine(root)) {
-                this.handleJumpToBelow(e);
-            }
-        } else if (e.key === "ArrowLeft") {
-            if (this.isCursorLeft()) {
-                this.handleJumpToLeft(e);
-            } else {
-                if (e.altKey) {
-                } else if (e.shiftKey) { }
-                else {
-                    const caretPos = op.previousCaretPosition(root);
-                    op.setCaretPosition(caretPos);
-                    e.preventDefault();
-                }
-            }
-        } else if (e.key === "ArrowRight") {
-            if (this.isCursorRight()) {
-                this.handleJumpToRight(e);
-            } else {
-                if (e.altKey) {
-                } else if (e.shiftKey) {
-                } else {
-                    const caretPos = op.nextCaretPosition(root);
-                    op.setCaretPosition(caretPos);
-                    e.preventDefault();
-                }
-            }
-        }
-    };
 
-
-
-    isCursorLeft = (): boolean => {
-        return op.isCursorLeft(this.currentContainer());
-    };
-
-    isCursorRight = (): boolean => {
-        return op.isCursorRight(this.currentContainer());
-    };
-
-    isFirstLine = op.isFirstLine;
-    isLastLine = op.isLastLine;
-
-    firstCaretPosition = op.firstCaretPosition;
-    lastCaretPosition = op.lastCaretPosition;
-
-    handleTab = (e: React.KeyboardEvent<I>) => {
-        // const caretPos = op.currentCaretPosition(this.currentRoot());
-        if (!e.shiftKey) {
-            op.insertNode(
-                this.currentContainer(),
-                document.createTextNode("\u00A0"),
-                "right"
-            );
-        }
-        e.preventDefault();
-    };
-
-    handleMouseMove = (e) => {
+    defaultHandleMouseMove(e) {
         // if (e.buttons === 1 && !this.state.focused) {
         //   this.props.onSelectBlock(e)
         // }
     }
-    handleMouseLeave = () => { }
-    handleMouseEnter = (e) => {
-        e.target = this.blockRoot()
-        // https://github.com/mui/material-ui/issues/7680
-        // mouseEnter and mouseLeave can be triggered at the same time,
-        // which will cause state unconsistancy.
-        if (e.buttons === 1) {
-            // (e as React.MouseEvent<O>).entered = true;
-            this.props.onMouseSelect(e as React.MouseEvent<O>)
-        } else {
-            this.props.onMouseEnter(e as React.MouseEvent<O>)
-        }
-    }
-
-    handleCopy = (e) => {
+    defaultHandleMouseLeave(e) { }
+    handleCopy(e) {
 
         // console.log(e)
         // debugger
     }
-    handlePaste = (e) => {
+    handlePaste(e) {
         // console.log(e)
         // this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
         // debugger
     }
-    handleSelectedKeyDown(e: React.KeyboardEvent<I>) {
-        if (e.key === 'Enter') {
-            // this.outerRoot().classList.remove('block-selected')
-            // e.preventDefault()
-        } else if (e.key.match("Arrow")) {
-            // this.props.onSelectBlock()
-        }
-        e.preventDefault()
-    }
 
     defaultHandleKeyDown(e) {
-        // const newE = this.wrapBlockEvent<React.KeyboardEvent<O>>(e);
-        // debugger
-        if (this.props.selectionMode) {
-            this.handleSelectedKeyDown(e)
-            return
-        }
-
-        if (e.key === "Enter") {
-            if (op.isTag(e.target as Node, 'input')) {
-                var target = e.target as HTMLElement
-                this.editableRoot().focus()
-                target = op.findParentMatchTagName(target, 'label', this.currentContainer()) as HTMLElement
-                const next = op.nextCaretPosition(this.currentContainer(), target, 0)
-                op.setCaretPosition(next)
-                e.preventDefault()
-                return
-            }
-
-            if (e.shiftKey) {
-                this.handleShiftEnter(e);
-            } else {
-                this.handleEnter(e);
-            }
-        } else if (e.code === "Space") {
-            this.handleSpace(e);
-        } else if (e.key === "Escape") {
-            this.props.onSelectBlock({
-                html: null,
-                ref: null,
-                inner: null
-            })
-        } else if (e.key === "Tab") {
-            this.handleTab(e);
-        } else if (e.key === "Backspace") {
-            // backspace -> defaultHandleBackspace ->  default(delete one char)
-            // backspace -> defaultHandleBackspace ->  mergeAbove
-            // backspace -> defaultHandleBackspace ->  changeBlockType
-            // backspace -> defaultHandleBackspace ->  deleteStyle
-            this.defaultHandleBackspace(e);
-        } else if (e.key === "Delete") {
-            this.defaultHandleDelete(e);
-        } else if (e.key === "Home") {
-            const caretPos = this.firstCaretPosition(this.currentContainer());
-            op.setCaretPosition(caretPos);
-            const event = new BlockCaretEvent(
-                this.state.html,
-                this.currentContainer(),
-                caretPos,
-                "left"
-            );
-            this.props.onCaretMove(event);
-            e.preventDefault();
-        } else if (e.key === "End") {
-            const caretPos = this.lastCaretPosition(this.currentContainer());
-            op.setCaretPosition(caretPos);
-
-            const event = new BlockCaretEvent(
-                this.state.html,
-                this.currentContainer(),
-                caretPos,
-                "left"
-            );
-            this.props.onCaretMove(event);
-            e.preventDefault();
-        } else if (e.key === "Delete") {
-            if (op.isCursorRight(this.currentContainer())) {
-                this.handleMergeBelow(e);
-            }
-        } else if (e.key.match("Arrow")) {
-            this.defaultHandleArrowKeyDown(e);
-        } else {
-            if (e.metaKey) {
-                if (op.supportStyleKey(e.key)) {
-                    op.applyStyle(e.key, this.currentContainer());
-
-                    this.props.eventManager.call("boundhint", {
-                        name: "expand",
-                        data: { force: true },
-                    });
-                    e.preventDefault();
-                    return;
-                }
-                if (e.key === 'v') {
-                    this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
-                }
-            }
-            console.log(e);
-        }
     }
 
-    handleMouseDown = (e) => { }
-    defaultHandleMouseDown = (e) => {
-        var tag: HTMLElement;
-        if ((tag = op.findParentMatchTagName(e.target, 'label', this.editableRoot()) as HTMLElement)) {
-            // // if(tag.)
-            // op.setCaretPosition(op.createCaretPosition(this.editableRoot(), tag, 0));
-            // e.preventDefault()
-            return
-        }
+    handleMouseDown(e) { }
+    defaultHandleMouseEnter(e) { }
+    defaultHandleMouseDown(e) {
         this.handleMouseDown(e)
     }
-    protected inContainer(el: Node): boolean {
-        return op.isParent(el, this.currentContainer())
-    }
-    protected fixCaret() {
-        const caretPos = op.firstCaretPosition(this.firstContainer())
-        op.setCaretPosition(caretPos)
-    }
-    handleMouseUp = (e) => {
-        // console.log()
-        // debugger
-        const sel = document.getSelection()
-        if (!this.inContainer(sel.focusNode)) {
-            this.fixCaret()
-        }
+
+    defaultHandleMouseUp(e) {
     }
     renderContentItem(item: ContentItem | ContentItem[]): React.ReactNode {
         return ContentItemRender(item)
@@ -804,12 +283,19 @@ export class ABCBlock<
         return contentEditable
     }
 
+
+    handleSelect(e) {
+
+    }
+    handleDataChange(e) {
+
+    }
     public get placeholder(): string | undefined {
         return undefined
     }
 
     render(): React.ReactNode {
-        const initialData = this.latestData()
+        const initialData = this.props.data
         return <div
             // tabIndex={-1}
             className={[
@@ -818,11 +304,11 @@ export class ABCBlock<
             ].join(' ')}
             data-block-id={this.props.uid}
             ref={this.ref}
-            onMouseMove={this.handleMouseMove}
-            onMouseEnter={this.handleMouseEnter}
-            onMouseLeave={this.handleMouseLeave}
+            onMouseMove={this.defaultHandleMouseMove}
+            onMouseEnter={this.defaultHandleMouseEnter}
+            onMouseLeave={this.defaultHandleMouseLeave}
             onMouseDown={this.defaultHandleMouseDown}
-            onMouseUp={this.handleMouseUp}
+            onMouseUp={this.defaultHandleMouseUp}
             onBlur={this.handleBlur}
             onFocus={this.handleFocus}
             onSelect={this.handleSelect}
@@ -837,9 +323,9 @@ export class ABCBlock<
                     onInput={this.handleInput}
                     onCopy={this.handleCopy}
                     onChange={this.handleDataChange}
+                    onPaste={this.handlePaste}
                     onKeyDown={this.defaultHandleKeyDown}
                     onKeyUp={this.defaultHandleKeyup}
-                    onPaste={this.handlePaste}
                 >
                     {this.renderBlock(initialData)}
                 </ContentEditable>
@@ -848,4 +334,9 @@ export class ABCBlock<
         </div>
 
     }
+}
+
+
+export interface ABCBlockType<T extends typeof ABCBlock> {
+    block: T
 }

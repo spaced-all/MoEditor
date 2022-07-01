@@ -14,14 +14,18 @@ export interface ParagraphStats extends ABCBlockStates {
 
 export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLParagraphElement, HTMLParagraphElement> {
     // static defaultProps = ABCBlock.defaultProps;
-    static blockName = 'paragraph';
+    static blockName = 'code';
 
-    public get placeholder(): string {
-        return "Type '/' for commands"
+    protected get contentEditableName(): string {
+        return 'code'
     }
 
     renderBlock(block: Block): React.ReactNode {
-        return this.renderContentItem(block.paragraph.children)
+        return block.code.code.map((item, ind) => {
+            return <>{item}<br /></>
+        })
     }
-
-}
+    makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
+        return <pre>{contentEditable}</pre>
+    }
+}   

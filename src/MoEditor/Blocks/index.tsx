@@ -1,0 +1,5 @@
+export { Paragraph } from "./Paragraph"
+export { Heading } from "./Heading"
+export { List } from "./List"
+export { OList } from "./OrderedList"
+export { Table } from "./Table"
