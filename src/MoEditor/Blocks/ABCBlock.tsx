@@ -3,9 +3,10 @@ import { Block, Caret, ContentItem, UserCaret } from "../types";
 import React from "react";
 import { ContentItemRender } from "./Content";
 
-import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, JumpEventHandler, MergeEventHandler, SplitEventHandler } from "./events";
+import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, SplitEvent, SplitEventHandler } from "./events";
 
-import * as op from "../dom/node"
+import * as op from "../dom"
+import { BoundHint } from "../boundhint";
 
 export interface ABCBlockStates {
     // html: string;
@@ -88,6 +89,10 @@ export interface IBlock<
     props: P;
     state: S;
     ref: React.RefObject<HTMLDivElement>;
+
+    // handleJump(e: JumpEvent);
+    // handleSplit(e: SplitEvent);
+    // handleMerge(e: MergeEvent);
     // handleBlur: (e) => void;
     // handleFocus: (e) => void;
     // handleSelect: (e) => void;
@@ -158,13 +163,14 @@ export class ABCBlock<
         // onSelectBlock: (evt) => console.log(['onSelectBlock', evt]),
         // onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
     };
-
+    boundhint: BoundHint;
     ref: React.RefObject<HTMLDivElement>;
     editableRootRef: React.RefObject<O>; // contentEditable element
     constructor(props: P) {
         super(props);
         this.ref = React.createRef();
         this.editableRootRef = React.createRef();
+        this.boundhint = new BoundHint()
         this.state = {
             // html: "",
             // jumpRef: this.props.jumpRef,
@@ -182,6 +188,9 @@ export class ABCBlock<
         this.handleInput = this.handleInput.bind(this);
         this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
         this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
+        this.handleMouseDown = this.handleMouseDown.bind(this);
+        this.defaultHandleMouseDown = this.defaultHandleMouseDown.bind(this);
+        this.defaultHandleMouseUp = this.defaultHandleMouseUp.bind(this);
     }
 
     serializeContentItem(el: HTMLElement): ContentItem {
@@ -224,15 +233,42 @@ export class ABCBlock<
 
     }
 
-    handleFocus(e) {
-        // focusEvent will triggered with mouseDown,
-        // but the focusNode/Offset will changed with mouseUp
-
-    }
-
-
+    handleFocus(e) { }
 
     handleInput(e) {
+        const sel = document.getSelection()
+        const tag = sel.focusNode.parentElement
+
+        if (op.isTag(tag, 'span') &&
+            e.nativeEvent.inputType === 'insertText' &&
+            tag.classList.contains('bound-hint')) {
+
+            if (tag.classList.contains('bound-hint-right')) {
+                const right = sel.focusNode.textContent.slice(-1)
+                const left = sel.focusNode.textContent.slice(-0, -1)
+                tag.textContent = right
+                var newText = document.createTextNode(left)
+                if (op.isTag(tag.previousSibling, '#text')) {
+                    tag.previousSibling.textContent = tag.previousSibling.textContent + newText.textContent
+                    newText = tag.previousSibling as Text
+                } else {
+                    tag.parentElement.insertBefore(newText, tag)
+                }
+                op.setPosition(op.lastValidPosition(newText))
+            } else {
+                const right = sel.focusNode.textContent.slice(-1)
+                const left = sel.focusNode.textContent.slice(-0, -1)
+                const newText = document.createTextNode(right)
+                tag.textContent = left
+                tag.parentElement.insertBefore(newText, tag.nextSibling)
+                op.setPosition(op.lastValidPosition(newText))
+            }
+            // console.log()
+            // this.props.eventManager.call("boundhint", {
+            //   name: "expand",
+            //   data: { force: true },
+            // });
+        }
     }
 
 
@@ -240,6 +276,23 @@ export class ABCBlock<
     defaultHandleKeyup(e) {
         // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
         // console.log(["KeyUp", e.key]);
+
+        // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
+        // console.log(["KeyUp", e.key]);
+        
+        if (e.key.match("Arrow")) {
+            this.boundhint.autoUpdate()
+            e.preventDefault();
+        } else if (e.key === "Backspace" || e.key === "Delete") {
+            this.boundhint.autoUpdate({ force: true })
+            e.preventDefault()
+        } else if (e.metaKey) {
+            // this.boundhint.autoUpdate({ force: true })
+            e.preventDefault()
+        }
+
+        this.handleKeyUp(e);
+        return true
     }
 
 
@@ -260,16 +313,195 @@ export class ABCBlock<
         // debugger
     }
 
+    isLastLine() {
+        return op.isFirstLine(this.currentContainer())
+    }
+    isFirstLine() {
+        return op.isLastLine(this.currentContainer())
+    }
+    isCursorLeft() {
+        return op.isCursorLeft(this.currentContainer())
+    }
+    isCursorRight() {
+        return op.isCursorRight(this.currentContainer())
+    }
+
+
+    handleArrowKeyDown(e) {
+        console.log('press')
+        const root = this.currentContainer();
+        if (e.key === "ArrowUp") {
+            if (op.isFirstLine(root)) {
+                this.handleJump({ 'from': 'below', 'type': 'jump' });
+            }
+        } else if (e.key === "ArrowDown") {
+            if (op.isLastLine(root)) {
+                this.handleJump({ 'from': 'above', 'type': 'jump' });
+            }
+        } else if (e.key === "ArrowLeft") {
+            if (this.isCursorLeft()) {
+                this.handleJump({ 'from': 'below', 'type': 'neighbor' });
+            } else {
+                if (e.altKey) {
+                } else if (e.shiftKey) { }
+                else {
+                    let pos = op.previousValidPosition(root);
+                    pos = this.boundhint.safePosition(pos)
+                    op.setPosition(pos);
+                    console.log(pos)
+                    e.preventDefault();
+                }
+            }
+        } else if (e.key === "ArrowRight") {
+            if (this.isCursorRight()) {
+                this.handleJump({ 'from': 'above', 'type': 'neighbor' });
+            } else {
+                if (e.altKey) {
+                } else if (e.shiftKey) {
+                } else {
+                    let pos = op.nextValidPosition(root);
+                    pos = this.boundhint.safePosition(pos)
+                    console.log(pos)
+
+                    op.setPosition(pos);
+                    e.preventDefault();
+                }
+            }
+        }
+    }
+
+    defaultHandleDelete(e: React.KeyboardEvent) {
+        var tag;
+        if ((tag = op.isInStyleBound(this.currentContainer(), "right"))) {
+            const style = op.tagToStyle(tag);
+            if (style) {
+                op.deleteStyle(tag, this.currentContainer());
+                e.preventDefault();
+            }
+            return;
+        } else {
+            const sel = document.getSelection()
+            if (op.isTag(sel.focusNode, 'label')) {
+                sel.focusNode.parentElement.removeChild(sel.focusNode)
+                e.preventDefault()
+                return
+            }
+        }
+    }
+    defaultHandleBackspace(e: React.KeyboardEvent) {
+        var tag;
+        if ((tag = op.isInStyleBound(this.currentContainer(), "left"))) {
+            const style = op.tagToStyle(tag);
+            if (style) {
+                op.deleteStyle(tag, this.currentContainer());
+                e.preventDefault();
+            }
+            return;
+        } else {
+            const sel = document.getSelection()
+            if (op.isTag(sel.focusNode, 'label')) {
+                sel.focusNode.parentElement.removeChild(sel.focusNode)
+                e.preventDefault()
+                return
+            }
+        }
+
+        // this.handleBackspace(e);
+    }
     defaultHandleKeyDown(e) {
+        if (e.key === "Enter") {
+            // if (op.isTag(e.target as Node, 'input')) {
+            //     var target = e.target as HTMLElement
+            //     this.editableRoot().focus()
+            //     target = op.findParentMatchTagName(target, 'label', this.currentContainer()) as HTMLElement
+            //     const next = op.nextCaretPosition(this.currentContainer(), target, 0)
+            //     op.setCaretPosition(next)
+            //     e.preventDefault()
+            //     return
+            // }
+
+            // if (e.shiftKey) {
+            //     this.handleShiftEnter(e);
+            // } else {
+            //     this.handleEnter(e);
+            // }
+        } else if (e.code === "Space") {
+            // this.handleSpace(e);
+        } else if (e.key === "Escape") {
+            // this.props.onSelectBlock({
+            //     html: null,
+            //     ref: null,
+            //     inner: null
+            // })
+        } else if (e.key === "Tab") {
+            // this.handleTab(e);
+        } else if (e.key === "Backspace") {
+            // backspace -> defaultHandleBackspace ->  default(delete one char)
+            // backspace -> defaultHandleBackspace ->  mergeAbove
+            // backspace -> defaultHandleBackspace ->  changeBlockType
+            // backspace -> defaultHandleBackspace ->  deleteStyle
+            this.defaultHandleBackspace(e);
+        } else if (e.key === "Delete") {
+            this.defaultHandleDelete(e);
+        } else if (e.key === "Home") {
+            // const caretPos = this.firstCaretPosition(this.currentContainer());
+            // op.setCaretPosition(caretPos);
+            // const event = new BlockCaretEvent(
+            //     this.state.html,
+            //     this.currentContainer(),
+            //     caretPos,
+            //     "left"
+            // );
+            // this.props.onCaretMove(event);
+            // e.preventDefault();
+        } else if (e.key === "End") {
+            // const caretPos = this.lastCaretPosition(this.currentContainer());
+            // op.setCaretPosition(caretPos);
+
+            // const event = new BlockCaretEvent(
+            //     this.state.html,
+            //     this.currentContainer(),
+            //     caretPos,
+            //     "left"
+            // );
+            // this.props.onCaretMove(event);
+            // e.preventDefault();
+        } else if (e.key === "Delete") {
+            // if (op.isCursorRight(this.currentContainer())) {
+            //     this.handleMergeBelow(e);
+            // }
+        } else if (e.key.match("Arrow")) {
+            this.handleArrowKeyDown(e);
+        } else {
+            if (e.metaKey) {
+                if (op.supportStyleKey(e.key)) {
+
+                    op.applyStyle(e.key, this.currentContainer());
+                    this.boundhint.autoUpdate({ force: true })
+                    e.preventDefault();
+                    return;
+                }
+                // if (e.key === 'v') {
+                //     this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
+                // }
+            }
+            console.log(e);
+        }
     }
 
     handleMouseDown(e) { }
     defaultHandleMouseEnter(e) { }
     defaultHandleMouseDown(e) {
+        console.log(['MouseDown', document.getSelection().anchorNode])
+        // console.log(e)
         this.handleMouseDown(e)
     }
 
     defaultHandleMouseUp(e) {
+        console.log(['MouseUp', document.getSelection().anchorNode])
+        // console.log(e)
+        this.boundhint.safeMousePosition()
+        this.boundhint.autoUpdate()
     }
     renderContentItem(item: ContentItem | ContentItem[]): React.ReactNode {
         return ContentItemRender(item)
@@ -283,6 +515,10 @@ export class ABCBlock<
         return contentEditable
     }
 
+    handleJump(e: JumpEvent) {
+        console.log(['jump'])
+        this.props.onJump(e)
+    }
 
     handleSelect(e) {
 

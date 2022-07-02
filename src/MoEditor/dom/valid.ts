@@ -9,6 +9,10 @@ export interface Condition {
   nullable?: boolean;
 }
 
+export function isTextNode(el: Node): boolean {
+  return (isTag(el, "#text") && el.textContent.length > 0) || isTag(el, "br");
+}
+
 export function isValidTag(el: Node, condition?: Condition) {
   condition = condition || {};
 
@@ -308,4 +312,41 @@ export function currentCaretPosition(root: HTMLElement): Position | null {
     return new Position(container, offset, root);
   }
   return null;
+}
+
+export function firstNeighborTextNode(el: Node): Node {
+  var valid = el;
+  while (el) {
+    el = previousValidNode(el, { emptyText: true });
+    if (el && isTag(el, "#text")) {
+      valid = el;
+    } else {
+      break;
+    }
+  }
+  return valid;
+}
+
+export function lastNeighborTextNode(el: Node): Node {
+  var valid = el;
+  while (el) {
+    // el = el.nextSibling as Text;
+    el = nextValidNode(el);
+    if (el && isTag(el, "#text")) {
+      valid = el as Text;
+    } else {
+      break;
+    }
+  }
+  return valid;
+}
+
+export function validChildNodes(el: Node, condition?: Condition): Node[] {
+  var res = [];
+  for (var i = 0; i < el.childNodes.length; i++) {
+    if (isValidTag(el.childNodes[i], condition)) {
+      res.push(el.childNodes[i]);
+    }
+  }
+  return res;
 }

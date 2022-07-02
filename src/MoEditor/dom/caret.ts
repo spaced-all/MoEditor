@@ -313,7 +313,7 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
         // hidden condition: curOffset(1) + historyOffset === offset
         // "text"<br>|<br> -> 5
         // "text"<br>"|text" -> 5
-        setCaretPosition(
+        setPosition(
           nextValidPosition(root, cur.parentElement, indexOfNode(cur))
         );
         return true;
@@ -323,16 +323,14 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
           cur = firstValidChild(cur);
         } else {
           const prev = lastValidPosition(cur);
-          setCaretPosition(
-            nextValidPosition(root, prev.container, prev.offset)
-          );
+          setPosition(nextValidPosition(root, prev.container, prev.offset));
           return true;
         }
       }
     }
   }
 
-  setCaretPosition(lastValidPosition(root));
+  setPosition(lastValidPosition(root));
   return false;
 }
 
@@ -392,13 +390,13 @@ export function setCaretReletivePositionAtLastLine(
   }
 }
 
-export function setCaretPosition(
-  caretPos: Position,
+export function setPosition(
+  pos?: Position,
   start: boolean = true,
   end: boolean = true,
   range?: Range
 ): Range {
-  if (!caretPos) {
+  if (!pos) {
     return;
   }
   if (!range) {
@@ -406,9 +404,11 @@ export function setCaretPosition(
     range = sel.getRangeAt(0);
   }
   // debugger;
-  var container = caretPos.container;
-  var offset = caretPos.offset;
+  var container = pos.container;
+  var offset = pos.offset;
+
   if (
+    !isTag(container, "#text") &&
     isTag(container.childNodes[offset], "#text") &&
     container.childNodes[offset].textContent.length > 0
   ) {
@@ -416,7 +416,7 @@ export function setCaretPosition(
     offset = 0;
   }
 
-  if (caretPos.offset === -1) {
+  if (pos.offset === -1) {
     switch (getTagName(container)) {
       case "#text":
         offset = container.textContent.length;

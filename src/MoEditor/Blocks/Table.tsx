@@ -16,17 +16,25 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
     // static defaultProps = ABCBlock.defaultProps;
     static blockName = 'table';
 
+    protected get contentEditableName(): string {
+        return 'table'
+    }
+
     public get placeholder(): string {
         return "Type '/' for commands"
     }
 
     renderBlock(block: Block): React.ReactNode {
-        return block.table.children.map((row, rid) => {
-            const rowEl = row.children.map((col, cid) => {
-                return <td key={cid}>{this.renderContentItem(col.children)}</td>
-            })
-            return <tr key={rid}>{rowEl}</tr>
-        })
+        return <tbody>
+            {
+                block.table.children.map((row, rid) => {
+                    const rowEl = row.children.map((col, cid) => {
+                        return <td key={cid}>{this.renderContentItem(col.children)}</td>
+                    })
+                    return <tr key={rid}>{rowEl}</tr>
+                })
+            }
+        </tbody>
     }
 
 }

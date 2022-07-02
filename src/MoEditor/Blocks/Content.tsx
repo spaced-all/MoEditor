@@ -30,10 +30,14 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
         {(item.length === 0 && depth === 0) && ""}
         {item.map((val, ind) => {
             var element;
+            let textContent = val.textContent
+            if (textContent) {
+                textContent = textContent.replace(/\s/g, '\u00a0')
+            }
 
             switch (val.tagName) {
                 case '#text':
-                    element = val.textContent
+                    element = textContent
                     break;
                 case 'math':
                     element = <label
@@ -45,9 +49,9 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
                     break
                 default:
                     if (val.children && val.children.length > 0) {
-                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, [val.textContent, ContentItemRender(val.children, depth + 1)])
+                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, [textContent, ContentItemRender(val.children, depth + 1)])
                     } else {
-                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, val.textContent)
+                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, textContent)
                     }
                     break
             }

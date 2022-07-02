@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
 
-// import { Page, Document } from './BlockEditor';
+import { Page as PageV1, Document } from './BlockEditor';
 import { Page } from "./MoEditor"
 import App from './App';
+import { InlineMath } from './MoEditor/Inline/InlineMath';
+// import { InlineMath as OldInlineMatch } from './MoEditor/Inline/MathComponent';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -14,6 +16,7 @@ root.render(
   <React.StrictMode>
     <div className='center'>
 
+      {/* <PageV1></PageV1> */}
       {/* <Page /> */}
       <Page blocks={[
         {
@@ -86,6 +89,25 @@ root.render(
                   { 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
                 ]
               },
+            ]
+          }
+        },
+        {
+          'type': 'paragraph',
+          'order': 'f',
+          'paragraph': {
+            'children': [
+              { 'tagName': '#text', 'textContent': ' Plain Text ' },
+              {
+                'tagName': 'b', 'textContent': ' Bold ', 'children': [
+                  {
+                    'tagName': 'code', 'textContent': ' Code ', 'children': [
+                      { 'tagName': 'i', 'textContent': ' Italic ' },
+                    ]
+                  },
+                ]
+              },
+              { 'tagName': 'code', 'textContent': ' Inline Code ' },
             ]
           }
         },

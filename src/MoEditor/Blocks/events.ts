@@ -27,7 +27,10 @@ export class SplitEvent {}
 export type MergeEventHandler = (event: MergeEvent) => void;
 export type SplitEventHandler = (event: SplitEvent) => void;
 
-export class JumpEvent {}
+export class JumpEvent {
+  type: "neighbor" | "jump";
+  from: "above" | "below";
+}
 export type JumpEventHandler = (event: JumpEvent) => void;
 
 export class CaretChangeEvent {}

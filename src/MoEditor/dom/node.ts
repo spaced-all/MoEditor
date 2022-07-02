@@ -1,4 +1,7 @@
 export function getTagName(el: Node) {
+  if (!el) {
+    return null;
+  }
   return el.nodeName.toLowerCase();
 }
 

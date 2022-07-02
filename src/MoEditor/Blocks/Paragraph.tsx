@@ -1,6 +1,6 @@
 import React from "react";
 import { Block } from "../types";
-
+import { InlineMath } from "../Inline/InlineMath";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 
 export interface ParagraphProps extends ABCBlockProps {
@@ -21,7 +21,10 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
     }
 
     renderBlock(block: Block): React.ReactNode {
-        return this.renderContentItem(block.paragraph.children)
+        return <>
+            {this.renderContentItem(block.paragraph.children)}
+            <InlineMath math={'f_{i}^2(x)'}></InlineMath>
+        </>
     }
 
 }
