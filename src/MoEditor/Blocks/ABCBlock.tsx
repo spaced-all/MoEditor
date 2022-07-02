@@ -1,5 +1,5 @@
 import { ContentEditable } from "./Common"
-import { Block, Caret, ContentItem, UserCaret } from "../types";
+import { Block, Caret, ContentItem, OffsetCaret, Position, UserCaret } from "../types";
 import React from "react";
 import { ContentItemRender } from "./Content";
 
@@ -15,6 +15,7 @@ export interface ABCBlockStates {
     // data?: Block;
     // dirty?: boolean;
     // focused: boolean
+    // jumpHistory?: JumpEvent
 }
 
 export interface JumpRef {
@@ -34,10 +35,12 @@ export interface ABCBlockProps {
     className?: string,
 
     // above or below, use to determine the position of the caret in this block.
-    relative?: Relative;
 
     // block will be locked and can't be edited  if caret is not null
     caret?: UserCaret;
+    active?: boolean;
+    // initialCaret?: OffsetCaret;
+    jumpHistory?: JumpEvent
 
     // selected?: boolean,
     // selectionMode?: boolean,
@@ -59,7 +62,7 @@ export interface ABCBlockProps {
     // include append before and after
     onSplit?: SplitEventHandler;
     // triggered by arrow key
-    onJump?: JumpEventHandler;
+    onActiveShouldChange?: JumpEventHandler;
     // triggered by mouse and keyboard event
     onCaretMove?: CaretChangeEventHandler;
 
@@ -105,9 +108,6 @@ export interface IBlock<
 }
 
 
-
-
-
 export class ABCBlock<
     P extends ABCBlockProps,
     S extends ABCBlockStates,
@@ -135,11 +135,12 @@ export class ABCBlock<
     static defaultProps: ABCBlockProps = {
         uid: "",
         // selected: false,
+        active: false,
         onUpdate: (evt) => { console.log(['onUpdate', evt]) },
         onSelect: (evt) => { console.log(['onSelect', evt]) },
         onMerge: (evt) => { console.log(['onMerge', evt]) },
         onSplit: (evt) => { console.log(['onSplit', evt]) },
-        onJump: (evt) => { console.log(['onJump', evt]) },
+        onActiveShouldChange: (evt) => { console.log(['onActiveShouldChange', evt]) },
         onCaretMove: (evt) => { console.log(['onCaretMove', evt]) },
         // selectionMode: false,
         // onShiftEnter: (evt) => console.log(["onShiftEnter", evt]),
@@ -164,6 +165,8 @@ export class ABCBlock<
         // onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
     };
     boundhint: BoundHint;
+    jumpHistory?: JumpEvent
+    caret: Position;
     ref: React.RefObject<HTMLDivElement>;
     editableRootRef: React.RefObject<O>; // contentEditable element
     constructor(props: P) {
@@ -171,7 +174,9 @@ export class ABCBlock<
         this.ref = React.createRef();
         this.editableRootRef = React.createRef();
         this.boundhint = new BoundHint()
+        this.caret = null;
         this.state = {
+
             // html: "",
             // jumpRef: this.props.jumpRef,
             // contentEditable: this.props.initialContentEditable,
@@ -179,7 +184,6 @@ export class ABCBlock<
             // data: this.props.data,
             // dirty: false,
         } as S;
-
 
         this.handleBlur = this.handleBlur.bind(this);
         this.handleFocus = this.handleFocus.bind(this);
@@ -202,14 +206,20 @@ export class ABCBlock<
     }
 
     componentDidMount(): void {
-
+        if (this.props.active) {
+            this.editableRootRef.current.focus();
+            this.jumpHistory = this.props.jumpHistory
+        }
     }
     componentDidUpdate(
         prevProps: Readonly<P>,
         prevState: Readonly<S>,
         snapshot?: any
     ): void {
-
+        if (this.props.active && !prevProps.active) {
+            this.editableRootRef.current.focus();
+            this.jumpHistory = this.props.jumpHistory
+        }
     }
 
     currentContainer = (): I => {
@@ -228,12 +238,31 @@ export class ABCBlock<
     blockRoot = (): HTMLDivElement => {
         return this.ref.current
     }
-
+    handleCaretMove(e: Position) {
+        this.caret = e
+    }
     handleBlur(e) {
-
+        // console.log(['block blur', e])
+        this.boundhint.remove()
     }
 
-    handleFocus(e) { }
+    handleFocus(e) {
+        const jumpHistory = this.props.jumpHistory
+        console.log(jumpHistory)
+        if (jumpHistory) {
+            if (jumpHistory.type === 'jump') {
+                op.setCaretReletivePosition(this.editableRoot(), jumpHistory.offset)
+            } else if (jumpHistory.type === 'neighbor') {
+                if (jumpHistory.from === 'below') {
+                    let pos = op.lastValidPosition(this.editableRoot())
+                    pos = this.boundhint.safePosition(pos)
+                    op.setPosition(pos)
+                    this.boundhint.autoUpdate({ root: this.editableRoot() })
+                }
+            }
+        }
+        // this.props.onActiveShouldChange(this.props.jumpHistory)
+    }
 
     handleInput(e) {
         const sel = document.getSelection()
@@ -271,7 +300,6 @@ export class ABCBlock<
         }
     }
 
-
     handleKeyUp(e: React.KeyboardEvent<I>) { }
     defaultHandleKeyup(e) {
         // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
@@ -279,12 +307,13 @@ export class ABCBlock<
 
         // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
         // console.log(["KeyUp", e.key]);
-        
-        if (e.key.match("Arrow")) {
+
+        if (e.key.match("Arrow") || e.key === 'Home' || e.key === 'End') {
+            this.boundhint.safeMousePosition()
             this.boundhint.autoUpdate()
             e.preventDefault();
         } else if (e.key === "Backspace" || e.key === "Delete") {
-            this.boundhint.autoUpdate({ force: true })
+            this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
             e.preventDefault()
         } else if (e.metaKey) {
             // this.boundhint.autoUpdate({ force: true })
@@ -301,7 +330,9 @@ export class ABCBlock<
         //   this.props.onSelectBlock(e)
         // }
     }
+
     defaultHandleMouseLeave(e) { }
+
     handleCopy(e) {
 
         // console.log(e)
@@ -326,46 +357,79 @@ export class ABCBlock<
         return op.isCursorRight(this.currentContainer())
     }
 
-
-    handleArrowKeyDown(e) {
+    handleArrowKeyDown(e: React.KeyboardEvent) {
         console.log('press')
         const root = this.currentContainer();
         if (e.key === "ArrowUp") {
             if (op.isFirstLine(root)) {
-                this.handleJump({ 'from': 'below', 'type': 'jump' });
+                let event: JumpEvent = {
+                    'from': 'below',
+                    'type': 'jump',
+                    'offset': op.getCaretReletivePosition(this.currentContainer())
+                }
+                console.log(['Arrow Up', event.offset])
+                this.handleJump(event);
+                e.preventDefault();
+                return
             }
+            this.boundhint.autoUpdate()
         } else if (e.key === "ArrowDown") {
             if (op.isLastLine(root)) {
-                this.handleJump({ 'from': 'above', 'type': 'jump' });
+
+                let event: JumpEvent = {
+                    'from': 'above',
+                    'type': 'jump',
+                    'offset': op.getCaretReletivePositionAtLastLine(this.currentContainer())
+                }
+
+                console.log(['Arrow Down', event.offset])
+                this.handleJump(event);
+                e.preventDefault()
+                return
             }
+            this.boundhint.autoUpdate()
         } else if (e.key === "ArrowLeft") {
             if (this.isCursorLeft()) {
                 this.handleJump({ 'from': 'below', 'type': 'neighbor' });
+                e.preventDefault()
             } else {
                 if (e.altKey) {
-                } else if (e.shiftKey) { }
-                else {
-                    let pos = op.previousValidPosition(root);
-                    pos = this.boundhint.safePosition(pos)
-                    op.setPosition(pos);
-                    console.log(pos)
-                    e.preventDefault();
+                } else { }
+                const sel = document.getSelection()
+                const range = sel.getRangeAt(0)
+                let pos = op.previousValidPosition(root, range.startContainer, range.startOffset);
+                pos = this.boundhint.safePosition(pos)
+                if (e.shiftKey) {
+                    op.setPosition(pos, true, false);
                 }
+                else {
+                    op.setPosition(pos);
+                }
+                this.boundhint.autoUpdate()
+                console.log(pos)
+                e.preventDefault();
             }
         } else if (e.key === "ArrowRight") {
             if (this.isCursorRight()) {
                 this.handleJump({ 'from': 'above', 'type': 'neighbor' });
+                e.preventDefault()
             } else {
                 if (e.altKey) {
-                } else if (e.shiftKey) {
                 } else {
-                    let pos = op.nextValidPosition(root);
-                    pos = this.boundhint.safePosition(pos)
-                    console.log(pos)
-
-                    op.setPosition(pos);
-                    e.preventDefault();
                 }
+                // debugger
+                let pos = op.nextValidPosition(root);
+                console.log(pos)
+                pos = this.boundhint.safePosition(pos)
+
+                if (e.shiftKey) {
+                    op.setPosition(pos, false, true);
+                } else {
+                    op.setPosition(pos);
+                }
+                this.boundhint.autoUpdate()
+                console.log(pos)
+                e.preventDefault();
             }
         }
     }
@@ -408,8 +472,36 @@ export class ABCBlock<
 
         // this.handleBackspace(e);
     }
+    handleInputKeyDown(e: React.KeyboardEvent) {
+        const target = e.target as HTMLElement
+        const parent = op.findParentMatchTagName(target, 'label', this.currentContainer())
+
+        if (parent) {
+            this.currentContainer().focus()
+            let pos = op.createPosition(this.currentContainer(), parent, 0)
+            pos = op.nextValidPosition(this.currentContainer(), pos.container, pos.offset)
+            pos = this.boundhint.safePosition(pos)
+            op.setPosition(pos)
+            this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
+
+            e.preventDefault()
+        }
+    }
+
     defaultHandleKeyDown(e) {
+        if (op.isTag(e.target, 'input')) {
+            this.handleInputKeyDown(e)
+        }
         if (e.key === "Enter") {
+            // debugger
+            const pos = op.currentPosition(this.currentContainer())
+            if (op.isTag(pos.container, 'label')) {
+                this.boundhint.autoUpdate({ root: this.currentContainer(), enter: true, keyboardEvent: e })
+                e.preventDefault()
+                return
+            }
+
+
             // if (op.isTag(e.target as Node, 'input')) {
             //     var target = e.target as HTMLElement
             //     this.editableRoot().focus()
@@ -477,7 +569,7 @@ export class ABCBlock<
                 if (op.supportStyleKey(e.key)) {
 
                     op.applyStyle(e.key, this.currentContainer());
-                    this.boundhint.autoUpdate({ force: true })
+                    this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
                     e.preventDefault();
                     return;
                 }
@@ -492,16 +584,26 @@ export class ABCBlock<
     handleMouseDown(e) { }
     defaultHandleMouseEnter(e) { }
     defaultHandleMouseDown(e) {
-        console.log(['MouseDown', document.getSelection().anchorNode])
+        console.log(['MouseDown', this.props.active])
         // console.log(e)
+        if (!this.props.active) {
+            this.props.onActiveShouldChange({ type: 'mouse' })
+        }
         this.handleMouseDown(e)
     }
 
-    defaultHandleMouseUp(e) {
-        console.log(['MouseUp', document.getSelection().anchorNode])
-        // console.log(e)
-        this.boundhint.safeMousePosition()
-        this.boundhint.autoUpdate()
+    defaultHandleMouseUp(e: React.MouseEvent) {
+        console.log(e)
+        const valid = this.boundhint.safeMousePosition()
+        if (!valid) {
+            const parent = op.findParentMatchTagName(e.target as Node, 'label', this.currentContainer())
+            if (parent) {
+                const pos = op.createPosition(this.currentContainer(), parent, 0)
+                op.setPosition(pos)
+            }
+        }
+
+        this.boundhint.autoUpdate({ root: this.currentContainer(), click: true, mouseEvent: e })
     }
     renderContentItem(item: ContentItem | ContentItem[]): React.ReactNode {
         return ContentItemRender(item)
@@ -517,7 +619,7 @@ export class ABCBlock<
 
     handleJump(e: JumpEvent) {
         console.log(['jump'])
-        this.props.onJump(e)
+        this.props.onActiveShouldChange(e)
     }
 
     handleSelect(e) {
@@ -552,7 +654,7 @@ export class ABCBlock<
             {this.makeContentEditable(
                 <ContentEditable
                     placeholder={this.placeholder}
-                    className="block-editable"
+                    className="moe-block-editable"
                     innerRef={this.editableRootRef}
                     tagName={this.contentEditableName}
                     contentEditable

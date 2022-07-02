@@ -12,6 +12,7 @@ import { isTag, getTagName, findParentMatchTagName } from "./node";
 
 const styleToTag = {
   m: "mark",
+  a: "a",
   mark: "mark",
   b: "b",
   bold: "b",
@@ -29,6 +30,7 @@ const styleToTag = {
 // other formatting tag can be supported https://www.w3schools.com/html/html_formatting.asp
 const tagNameToStyle = {
   b: "b",
+  a: "a",
   i: "i",
   u: "u",
   s: "d",
@@ -56,11 +58,13 @@ export function deleteStyle(styleContainer: HTMLElement, root: HTMLElement) {
   // const { startContainer, endContainer } = range;
   const bchildren = validChildNodes(styleContainer);
 
-  if (bchildren.length === 1) {
-    const item = bchildren[0];
-    if (isTag(item, "#text") && item.textContent === " ") {
-      item.textContent = "";
-    }
+  const item = bchildren[0];
+  if (
+    bchildren.length === 1 &&
+    isTag(item, "#text") &&
+    item.textContent === " "
+  ) {
+    item.textContent = "";
   } else {
     bchildren.forEach((item) => {
       styleContainer.parentElement.insertBefore(item, styleContainer);

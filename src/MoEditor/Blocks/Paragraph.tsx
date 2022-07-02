@@ -21,10 +21,7 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
     }
 
     renderBlock(block: Block): React.ReactNode {
-        return <>
-            {this.renderContentItem(block.paragraph.children)}
-            <InlineMath math={'f_{i}^2(x)'}></InlineMath>
-        </>
+        return this.renderContentItem(block.paragraph.children)
     }
 
 }

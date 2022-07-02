@@ -18,20 +18,25 @@ import {
  * <i>"text"</i> = 8
  * @param el
  */
-export function elementCharSize(el: Node): number {
+export function elementCharSize(el: Node, es: boolean = true): number {
   if (!isValidTag(el)) {
     return 0;
   }
   if (isTag(el, "#text")) {
     return el.textContent.length;
   } else if (isTag(el, "br")) {
-    return 1;
+    if (es) {
+      return 1;
+    }
   } else {
     var innerSize = 0;
     el.childNodes.forEach((item) => {
-      innerSize += elementCharSize(item);
+      innerSize += elementCharSize(item, es);
     });
-    return 2 + innerSize;
+    if (es) {
+      innerSize += 2;
+    }
+    return innerSize;
   }
 }
 
@@ -45,12 +50,14 @@ export function elementCharSize(el: Node): number {
  *
  * 文本按文本的长度计算，一个 element 占额外 2 个字符
  * @param root
+ * @param es : element size
  * @returns
  */
 export function getCaretReletivePosition(
   root: HTMLElement,
   container?: Node,
-  offset?: number
+  offset?: number,
+  es: boolean = true
 ): number {
   const sel = document.getSelection();
 
@@ -62,7 +69,7 @@ export function getCaretReletivePosition(
   let size = 0;
   if (container === root) {
     for (let i = 0; i < offset; i++) {
-      size += elementCharSize(container.childNodes[i]);
+      size += elementCharSize(container.childNodes[i], es);
     }
     return size;
   }
@@ -74,7 +81,7 @@ export function getCaretReletivePosition(
     }
 
     for (let i = 0; i < offset; i++) {
-      size += elementCharSize(container.parentElement.childNodes[i]);
+      size += elementCharSize(container.parentElement.childNodes[i], es);
     }
     container = container.parentElement;
     if (container !== root) {
@@ -128,45 +135,20 @@ export function getLineInfo(root: HTMLElement): {
   lineHeight: number;
   elHeight: number;
 } {
-  const range = document.createRange();
+  const oldOverFlow = root.style.overflow;
+  const oldWhiteSpace = root.style.whiteSpace;
 
-  if (!firstValidChild(root, { emptyText: false, whiteText: false })) {
-    return {
-      lineHeight: root.offsetHeight,
-      lineNumber: 1,
-      elHeight: root.offsetHeight,
-    };
-  }
+  root.style.overflow = "hidden";
+  root.style.whiteSpace = "nowrap";
 
-  var first = firstValidChild(root);
-  while (first.textContent.trim() === "") {
-    first = nextValidNode(first);
-  }
+  const lineHeight = root.offsetHeight;
+  root.style.overflow = oldOverFlow;
+  root.style.whiteSpace = oldWhiteSpace;
 
-  var last = lastValidChild(root);
-  while (last.textContent.trim() === "") {
-    last = previousValidNode(last);
-  }
+  const lineNumber = Math.round(root.offsetHeight / lineHeight);
 
-  range.selectNode(first);
-  const firstRects = range.getClientRects();
-  var top = firstRects[0].y;
-  for (let i = 0; i < firstRects.length; i++) {
-    const rect = firstRects[i];
-    top = Math.min(rect.y, top);
-  }
-
-  range.selectNode(last);
-  const lastRects = range.getClientRects();
-  var bottom = lastRects[0].y;
-  for (let i = 0; i < lastRects.length; i++) {
-    const rect = lastRects[i];
-    bottom = Math.max(rect.y, bottom);
-  }
-
-  const lineHeight = root.offsetHeight - (bottom - top);
   return {
-    lineNumber: Math.round(root.offsetHeight / lineHeight),
+    lineNumber: lineNumber,
     lineHeight,
     elHeight: root.offsetHeight,
   };
@@ -216,7 +198,7 @@ export function isCursorRight(
   }
 
   const firstPos = lastValidPosition(el);
-
+  
   if (firstPos.container === container && firstPos.offset === offset) {
     return true;
   }
@@ -401,7 +383,12 @@ export function setPosition(
   }
   if (!range) {
     const sel = document.getSelection();
-    range = sel.getRangeAt(0);
+    if (sel.rangeCount === 0) {
+      range = document.createRange();
+      sel.addRange(range);
+    } else {
+      range = sel.getRangeAt(0);
+    }
   }
   // debugger;
   var container = pos.container;

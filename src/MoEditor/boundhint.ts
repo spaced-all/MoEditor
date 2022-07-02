@@ -1,5 +1,6 @@
 import { Caret, Position } from "./types";
 import * as op from "./dom";
+import React, { useDebugValue } from "react";
 
 const whiteSpace = "";
 
@@ -7,6 +8,7 @@ const leftTag = {
   // 'p': "",
   // 'td': "'",
   // 'li': "",
+  a: "[",
   b: "**",
   i: "*",
   s: "~",
@@ -25,6 +27,7 @@ const rightTag = {
   // 'p': "\u00a0",
   // 'li': "",
   // 'td': "'",
+  a: "]",
   b: "**",
   i: "*",
   s: "~",
@@ -58,6 +61,8 @@ export class BoundHint {
   leftText: HTMLSpanElement;
   rightText: HTMLSpanElement;
   text: Text;
+
+  label: HTMLLabelElement;
   static _instance = null;
   constructor() {
     this.left = createSpan("bound-hint-left", "bound-hint");
@@ -74,7 +79,7 @@ export class BoundHint {
       "bound-hint-text"
     );
     this.rightText.textContent = "\u00a0";
-
+    this.label = null;
     this.text = document.createTextNode(" ");
     this.ref = null;
     if (BoundHint._instance) {
@@ -148,9 +153,14 @@ export class BoundHint {
         }
       }
     } else {
+      if (!op.isTag(container.childNodes[offset], "#text")) {
+        newContainer = document.createTextNode(whiteSpace);
+        container.insertBefore(newContainer, container.childNodes[offset]);
+      } else {
+        newContainer = container.childNodes[offset];
+        newOffset = 0;
+      }
       // (!op.isTag(container.childNodes[offset], "#text"))
-      newContainer = document.createTextNode(whiteSpace);
-      container.insertBefore(newContainer, container.childNodes[offset]);
     }
     return {
       container: newContainer,
@@ -159,9 +169,10 @@ export class BoundHint {
   }
   safeMousePosition() {
     const sel = document.getSelection();
-    if (!sel) {
-      return;
+    if (!sel || sel.rangeCount === 0) {
+      return false;
     }
+
     const range = sel.getRangeAt(0);
     if (
       range.startContainer === range.endContainer &&
@@ -171,7 +182,7 @@ export class BoundHint {
       const offset = range.startOffset;
       if (op.isTag(container, "#text")) {
         if (!this.isBoundhint(container.parentElement)) {
-          return;
+          return true;
         }
 
         let newContainer = container.parentElement as Node;
@@ -204,9 +215,8 @@ export class BoundHint {
             newContainer = op.nextValidNode(newContainer);
             newPos = new Position(newContainer, 0);
           }
-        } else {
-          debugger;
         }
+
         newPos = this.safePosition(newPos);
         range.setStart(newPos.container, newPos.offset);
         range.setEnd(newPos.container, newPos.offset);
@@ -220,6 +230,7 @@ export class BoundHint {
         range.setEnd(newContainer, newOffset);
       }
     }
+    return true;
   }
 
   safePosition(pos: Position): Position {
@@ -232,8 +243,15 @@ export class BoundHint {
     return new Position(newContainer, newOffset, pos.root);
   }
 
-  autoUpdate(kwargs?: { force: boolean }) {
-    const { force } = kwargs || {};
+  autoUpdate(kwargs?: {
+    force?: boolean;
+    root: HTMLElement;
+    click?: boolean;
+    enter?: boolean;
+    mouseEvent?: React.MouseEvent;
+    keyboardEvent?: React.KeyboardEvent;
+  }) {
+    const { force, root, click, enter } = kwargs || {};
     const sel = document.getSelection();
     if (!sel) {
       this.remove();
@@ -268,6 +286,28 @@ export class BoundHint {
     if (el === this.ref && !force) {
       return;
     }
+    let pl: HTMLLabelElement;
+    if (
+      (pl = op.findParentMatchTagName(el, "label", root) as HTMLLabelElement)
+    ) {
+      const trigger = pl.querySelector("data");
+      pl.classList.add("inline-hovered");
+
+      if (enter) {
+        trigger.focus();
+      }
+      pl.classList.add("inline-key-hovered");
+      const pos = op.createPosition(root as HTMLElement, pl, 0);
+      op.setPosition(pos);
+      console.log(pos);
+      this.remove();
+      this.ref = pl;
+      this.label = pl;
+      return;
+    } else if (this.label) {
+      this.label.classList.remove("inline-key-hovered");
+      this.label.classList.remove("inline-hovered");
+    }
 
     if (!op.isTag(el, "#text")) {
       el = el.childNodes[offset];
@@ -289,8 +329,12 @@ export class BoundHint {
     });
   }
 
+  removeText() {
+    this._removeElementl(this.leftText, this.rightText);
+  }
+
   remove() {
-    this._removeElementl(this.left, this.right);
+    this._removeElementl(this.left, this.right, this.leftText, this.rightText);
 
     if (this.text.textContent.trim() === "" && this.text.parentElement) {
       this.text.parentElement.removeChild(this.text);

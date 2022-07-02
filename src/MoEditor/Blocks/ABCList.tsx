@@ -25,7 +25,6 @@ export class ABCList<
         return ``
     }
 
-
     renderBlock(block: Block): React.ReactNode {
         return this.renderContentItem(block.heading.children)
     }

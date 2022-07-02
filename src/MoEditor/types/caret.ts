@@ -12,7 +12,7 @@ export interface UserCaret extends Caret {
 }
 
 export interface OffsetCaret {
-  block_id: number;
+  // block_id: number;
   start?: number;
   end?: number;
 }

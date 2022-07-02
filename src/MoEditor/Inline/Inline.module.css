@@ -1,0 +1,11 @@
+.input:focus {
+    outline: none;
+
+}
+
+.input {
+    border: none;
+    /* width: auto; */
+    background-color: unset;
+    font-size: 1em;
+}

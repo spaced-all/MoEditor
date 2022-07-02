@@ -1,3 +1,4 @@
+import React from "react";
 import { Block } from "../types";
 
 type UpdateType = "archive" | "create" | "update";
@@ -28,8 +29,10 @@ export type MergeEventHandler = (event: MergeEvent) => void;
 export type SplitEventHandler = (event: SplitEvent) => void;
 
 export class JumpEvent {
-  type: "neighbor" | "jump";
-  from: "above" | "below";
+  // focusEvent?: React.FocusEvent;
+  type?: "neighbor" | "jump" | "mouse";
+  from?: "above" | "below";
+  offset?: number;
 }
 export type JumpEventHandler = (event: JumpEvent) => void;
 

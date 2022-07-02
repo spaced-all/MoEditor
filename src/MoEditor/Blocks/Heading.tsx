@@ -21,7 +21,7 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
     }
 
     public get placeholder(): string {
-        return "Type '/' for commands"
+        return `Heading ${this.props.data.heading.level}`
     }
 
     renderBlock(block: Block): React.ReactNode {

@@ -24,6 +24,9 @@ export function isValidTag(el: Node, condition?: Condition) {
     if (isTag(el, "br")) {
       return condition.br !== false;
     }
+    if (isTag(el, "data")) {
+      return false;
+    }
     if (!(el as HTMLElement).classList.contains("bound-hint")) {
       return true;
     }
@@ -108,34 +111,37 @@ function neighborValidPosition(
   // must be text node
   if (!isTag(container, "#text")) {
     if (isTag(container, "label")) {
-    } else {
-      if (container.childNodes[offset]) {
-        // <p>|<br>\</p>
-        // <p>\<br>|<br>\</p>
-        // <p><br>|<b>\</b></p>
-        // <p>\<i>|<b>\</b></i></p>
-        // <p><br>|"text"</p>
-        if (
-          isTag(container.childNodes[offset], "#text") &&
-          direction === "right" &&
-          container.childNodes[offset].textContent.length > 0
-        ) {
-          // <p>|"text"</p>
-          return new Position(container.childNodes[offset], 1, root);
-        }
-        // container = container.childNodes[offset];
-        // offset = 0;
-      } else {
-        container.appendChild(document.createTextNode(""));
+      offset = indexOfNode(container);
+      if (direction === "right") {
+        offset++;
       }
-      container = container.childNodes[offset];
-      offset = 0;
+      return new Position(container.parentElement, offset, root);
     }
+    if (container.childNodes[offset]) {
+      // <p>|<br>\</p>
+      // <p>\<br>|<br>\</p>
+      // <p><br>|<b>\</b></p>
+      // <p>\<i>|<b>\</b></i></p>
+      // <p><br>|"text"</p>
+      if (
+        isTag(container.childNodes[offset], "#text") &&
+        direction === "right" &&
+        container.childNodes[offset].textContent.length > 0
+      ) {
+        // <p>|"text"</p>
+        return new Position(container.childNodes[offset], 1, root);
+      }
+      // container = container.childNodes[offset];
+      // offset = 0;
+    } else {
+      container.appendChild(document.createTextNode(""));
+    }
+    container = container.childNodes[offset];
+    offset = 0;
   }
 
   // in text node
   // <p>"t\e|x\t"</p>
-
   if (isTag(container, "#text")) {
     if (direction === "left" && offset > 0) {
       offset--;
@@ -201,6 +207,7 @@ function neighborValidPosition(
   }
 
   // boundary
+  // <b><i>text<label>|</label>/</i></b>
   container = container.parentElement;
   neighbor = neighborSibling(container);
   if (neighbor) {
@@ -304,7 +311,7 @@ export function createPosition(
   return new Position(container, offset, root);
 }
 
-export function currentCaretPosition(root: HTMLElement): Position | null {
+export function currentPosition(root: HTMLElement): Position | null {
   const sel = document.getSelection();
   if (sel) {
     var container = sel.focusNode;

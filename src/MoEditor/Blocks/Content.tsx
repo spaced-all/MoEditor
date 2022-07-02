@@ -1,7 +1,8 @@
 import { ContentItem } from "../types";
 import React from "react";
-import InlineMathLabel from "../Inline/InlineMatchLabel";
-
+import { InlineMath } from "../Inline/InlineMath";
+import { InlineLink } from "../Inline/InlineLink";
+import { InlineImage } from "../Inline/InlineImage";
 
 /**
  * 
@@ -34,26 +35,31 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
             if (textContent) {
                 textContent = textContent.replace(/\s/g, '\u00a0')
             }
-
+            let elementType: any = val.tagName
             switch (val.tagName) {
                 case '#text':
                     element = textContent
-                    break;
+                    return element;
+                // case 'refer':
+                // case 'at':
+
                 case 'math':
-                    element = <label
-                        contentEditable='false'
-                        suppressContentEditableWarning
-                    >
-                        <InlineMathLabel math={val.textContent} ></InlineMathLabel>
-                    </label>
+                    element = <InlineMath math={val.textContent}></InlineMath>
+                    return element;
+                case 'img':
+                    elementType = InlineImage
                     break
+                case 'a':
+                    elementType = InlineLink
+                    break
+                // eslint-disable-next-line no-fallthrough
                 default:
-                    if (val.children && val.children.length > 0) {
-                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, [textContent, ContentItemRender(val.children, depth + 1)])
-                    } else {
-                        element = React.createElement(val.tagName, { ...val.attributes, key: ind }, textContent)
-                    }
                     break
+            }
+            if (val.children && val.children.length > 0) {
+                element = React.createElement(elementType, { ...val.attributes, key: ind }, [textContent, ContentItemRender(val.children, depth + 1)])
+            } else {
+                element = React.createElement(elementType, { ...val.attributes, key: ind }, textContent)
             }
             return element
         })}

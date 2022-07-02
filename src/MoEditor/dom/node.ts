@@ -23,8 +23,8 @@ export function findParentMatchTagName(
   el: Node,
   name: string,
   root: Node
-): Node | null {
-  var cur = el;
+): HTMLElement | null {
+  var cur = el as HTMLElement;
   while (cur && cur !== root) {
     if (isTag(cur, name)) {
       return cur;

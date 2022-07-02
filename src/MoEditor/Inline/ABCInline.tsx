@@ -1,61 +1,85 @@
 import React from "react";
 import KaTeX from "katex"
 import 'katex/dist/katex.min.css';
-interface ABCInlineProps {
-    math: string;
-}
-interface ABCInlineStates {
-    html: string
-    error: Error
+import * as op from "../dom"
+
+export interface DataAttribute {
+    'data-type': string
+    [key: string]: string
 }
 
-export class ABCInline extends React.Component<ABCInlineProps, ABCInlineStates> {
+export interface ABCInlineProps {
+
+}
+export interface ABCInlineStates {
+    focused: boolean
+    ref?: HTMLElement
+}
+
+export class ABCInline<P extends ABCInlineProps, S extends ABCInlineStates> extends React.Component<P, S> {
+
+    static inlineName = 'abc'
+
+    dataRef: React.RefObject<HTMLDataElement>
     constructor(props) {
         super(props)
         this.state = {
-            html: null,
-            error: null
-        }
-    }
-    shouldComponentUpdate(nextProps: Readonly<ABCInlineProps>, nextState: Readonly<ABCInlineStates>, nextContext: any): boolean {
-        return nextProps.math !== this.props.math || nextState.html !== this.state.html
+            focused: false
+        } as S
+        this.handleFocus = this.handleFocus.bind(this)
+        this.handleBlur = this.handleBlur.bind(this)
+        this.dataRef = React.createRef()
     }
     componentDidMount(): void {
-        this.setState(this.generateHTML())
+        // this.dataRef.current.removeEventListener()
+        // this.dataRef.current['onhover'] = (e) => {
+        //     console.log(['testhit', e])
+        // }
     }
-    componentDidUpdate(prevProps: Readonly<ABCInlineProps>, prevState: Readonly<ABCInlineStates>, snapshot?: any): void {
-        this.setState(this.generateHTML())
+    componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot?: any): void {
+        // this.dataRef.current.removeEventListener()
+        // this.dataRef.current['onhover'] = (e) => {
+        //     console.log(['testhit', e])
+        // }
+    }
+    handleFocus(e: React.FocusEvent) {
+        console.log(['unhandled label focus', e])
+        this.setState({
+            focused: true,
+            ref: e.relatedTarget as HTMLElement,
+        })
+        this.forceUpdate()
+        e.stopPropagation()
+    }
+    handleBlur(e: React.FocusEvent) {
+        this.setState({ focused: false })
+        this.forceUpdate()
+    }
+    renderEdit(): React.ReactNode {
+        return <input
+            autoFocus
+            onBlur={this.handleBlur}></input>
     }
 
-    generateHTML() {
-        const { errorColor, renderError } = {} as any;
-        let html, error;
-        try {
-
-            html = KaTeX.renderToString(this.props.math, {
-                displayMode: false,
-                errorColor,
-                throwOnError: !!renderError,
-            });
-        } catch (e) {
-            if (error instanceof KaTeX.ParseError || error instanceof TypeError) {
-                error = e
-            }
-            throw e
-        }
-        return { html, error }
+    renderDisplay(): React.ReactNode {
+        return <></>
     }
 
-    renderEdit() {
-
+    dataAttribute(): DataAttribute {
+        return { "data-type": 'abc' }
     }
 
-    renderDisplay() {
-
-    }
 
     render(): React.ReactNode {
-        console.log(['render', this.state.html])
-        return <span dangerouslySetInnerHTML={{ __html: this.state.html }} />
+        return <>
+            <data
+                ref={this.dataRef}
+                tabIndex={-1}
+                {...this.dataAttribute()}
+                onFocus={this.handleFocus}
+                onBlur={(e) => { console.log(e) }}
+            ></data>
+            {this.state.focused ? this.renderEdit() : this.renderDisplay()}
+        </>
     }
 }
