@@ -6,9 +6,6 @@
 
 }
 
-.moe-page table {
-    width: 100%;
-}
 
 
 .moe-page>.selected {
@@ -24,25 +21,7 @@
 }
 
 
-.moe-page table {
-    border-spacing: 0;
-}
 
-.moe-page table td {
-    text-align: center;
-
-    /* border-bottom: 2px solid #dddddd; */
-    border-bottom: 1px solid #dddddd;
-    padding: 8px;
-}
-
-.moe-page table tbody:first-child td {
-    /* margin: auto; */
-    /* border-bottom: 2px solid #dddddd; */
-    font-weight: 700;
-    border-top: 1px solid #dddddd;
-    padding: 8px;
-}
 
 .moe-page * {
     outline-width: 0;
@@ -172,17 +151,52 @@
     caret-color: transparent;
 }
 
-.moe-page .moe-block-editable:focus:empty::before {
+.moe-page .moe-block-editable:focus:empty::after {
     /* padding-left: 1px; */
     content: attr(data-placeholder);
     color: #aaa;
 }
 
-.moe-page h1,
-.moe-page h2,
-.moe-page h3,
-.moe-page h4,
-.moe-page h5,
-.moe-page h6 {
-    display: inline;
+/* .moe-page h1:focus:before,
+.moe-page h2:focus:before,
+.moe-page h3:focus:before,
+.moe-page h4:focus:before,
+.moe-page h5:focus:before,
+.moe-page h6:focus:before {
+ 
+} */
+
+/**
+* table part
+*/
+.moe-page table {
+    width: 100%;
+}
+
+.moe-page table {
+    border-spacing: 0;
+}
+
+.moe-page table td {
+    text-align: center;
+
+    /* border-bottom: 2px solid #dddddd; */
+    /* border-bottom: 1px solid #dddddd; */
+    padding: 8px;
+}
+
+.moe-page tbody tr td {
+    /* margin: auto; */
+    /* border-bottom: 2px solid #dddddd; */
+    border-top: 1px solid #dddddd;
+    border-right: 1px solid #dddddd;
+    border-left: 1px solid #dddddd;
+    border-bottom: 1px solid #dddddd;
+    padding: 8px;
+}
+
+.moe-page td:empty::after {
+    /* to avoid collapsed, see https://stackoverflow.com/a/66443442/11185460 */
+    content: "\00a0";
+    visibility: hidden;
 }

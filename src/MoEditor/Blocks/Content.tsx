@@ -41,7 +41,6 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
             switch (val.tagName) {
                 case '#text':
                     element = textContent
-                    console.log(['render ', element, '#text'])
                     return element;
                 case 'math':
                     // element = <InlineMath math={val.textContent}></InlineMath>
@@ -66,7 +65,7 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
             if (!elementType) {
                 debugger
             }
-            console.log(['render ', element, elementType])
+            // console.log(['render ', element, elementType])
             return element
         })}
     </>

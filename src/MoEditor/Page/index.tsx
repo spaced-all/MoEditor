@@ -136,6 +136,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                     key: block.order,
                     uid: block.order,
                     data: block,
+                    meta: {},
                     jumpHistory: active ? this.state.jumpHistory : undefined,
                     active: active,
                     onSplit: e => this.handleSplit(e, ind),

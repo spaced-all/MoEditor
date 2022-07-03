@@ -1,17 +1,19 @@
 import React, { useEffect, useLayoutEffect } from "react";
+import ReactDOM from "react-dom";
 import { useFloating } from '@floating-ui/react-dom';
 
 interface PositionProps {
     block?: boolean
     children: React.ReactNode
-    related: React.RefObject<HTMLElement>
+    tagName: string
+    related: React.ReactNode
     style?: React.CSSProperties
     placement?: string
     xOffset?: number
     yOffset?: number
 }
 
-export default function Position(props: PositionProps) {
+export default function PositionEl(props: PositionProps) {
     const { block, children, placement, xOffset, yOffset } = props
     const { x, y, reference, floating, strategy, update } = useFloating({
         'placement': placement as any
@@ -25,18 +27,21 @@ export default function Position(props: PositionProps) {
         paddingBottom: '0.2em',
         paddingRight: '0.2em',
         paddingLeft: '0.2em',
-        
+
         ...props.style
     }
 
-    useLayoutEffect(() => {
-        reference(props.related.current)
-    }, [props.related])
-
+    let floatingEl;
     if (props.block) {
-        return <div ref={floating} style={style}>{children}</div>
+        floatingEl = <div ref={floating} style={style}>{children}</div>
     } else {
-
-        return <span ref={floating} style={style}>{children}</span>
+        floatingEl = <span ref={floating} style={style}>{children}</span>
     }
+
+    return <>
+        {React.createElement(props.tagName, { ref: reference }, props.related)}
+
+        {ReactDOM.createPortal(floatingEl, document.body)}
+
+    </>
 }

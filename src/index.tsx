@@ -95,7 +95,7 @@ const data1: DefaultBlockData[] = [
   {
     'type': 'orderedList',
     'order': 'd',
-    'list': {
+    'orderedlist': {
       'children': [
         { 'level': 1, 'children': [{ 'tagName': '#text', 'textContent': ' Plain Text ' },] },
         { 'level': 1, 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
@@ -120,6 +120,12 @@ const data1: DefaultBlockData[] = [
           'children': [
             { 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
             { 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
+          ]
+        },
+        {
+          'children': [
+            { 'children': [{ 'tagName': '#text', 'textContent': '' }] },
+            { 'children': [{ 'tagName': '#text', 'textContent': '' }] },
           ]
         },
       ]
@@ -160,7 +166,7 @@ const data1: DefaultBlockData[] = [
   },
 ]
 
-const data2: DefaultBlockData[] = [data1[9]]
+const data2: DefaultBlockData[] = [data1[6]]
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -171,7 +177,7 @@ root.render(
 
       {/* <PageV1></PageV1> */}
       {/* <Page /> */}
-      <Page blocks={data2}></Page>
+      <Page blocks={data1}></Page>
     </div>
   </React.StrictMode>
 );

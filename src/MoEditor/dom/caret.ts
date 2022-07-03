@@ -84,7 +84,7 @@ export function getCaretReletivePosition(
     if (isTag(container, "#text")) {
       size += offset;
     } else {
-      size++;
+      // size++;
     }
 
     offset = indexOfNode(container);
@@ -288,6 +288,7 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
       range.setStart(root, 0);
       range.setEnd(root, 0);
     }
+    return true;
   }
   while (cur) {
     const curOffset = elementCharSize(cur);

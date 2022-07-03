@@ -193,7 +193,7 @@ export abstract class VList<P extends BlockProps, S extends BlockStates, O exten
             e.preventDefault()
         }
     }
-
+    
     handleJumpToLeft(e) {
         const container = this.currentContainer()
         const index = parseFloat(container.getAttribute('data-index'))

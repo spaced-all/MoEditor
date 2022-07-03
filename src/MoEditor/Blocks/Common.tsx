@@ -30,6 +30,7 @@ export function ContentEditable<T>(props: {
     onMouseUp?: (...any) => any;
     onCopy?: (...any) => any;
     onPaste?: (...any) => any;
+    onContextMenu?: (...any) => any;
 }) {
     return React.createElement(
         props.tagName,
@@ -53,6 +54,7 @@ export function ContentEditable<T>(props: {
             onMouseLeave: props.onMouseLeave,
             onMouseDown: props.onMouseDown,
             onMouseUp: props.onMouseUp,
+            onContextMenu: props.onContextMenu,
             suppressContentEditableWarning: true,
         },
         props.children

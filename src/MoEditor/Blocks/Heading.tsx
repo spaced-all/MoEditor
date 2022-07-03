@@ -2,6 +2,7 @@ import React from "react";
 import { DefaultBlockData, HeadingData } from "../types";
 import * as op from "../dom"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
+import Position from "../Components/Position";
 
 export interface HeadingProps extends ABCBlockProps {
 
@@ -17,8 +18,8 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
     static blockName = 'heading';
 
     protected get contentEditableName(): string {
-        // return `h${this.level}`
-        return `span`
+        return `h${this.level}`
+        // return `span`
     }
 
     public get placeholder(): string {
@@ -98,13 +99,26 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
     makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
         return <div
             className="heading">
-            {React.createElement(`h${this.level}`, {},
+            {/* {React.createElement(`h${this.level}`, {},
                 [
                     this.props.active ? '#'.repeat(this.level) + ' ' : null,
-                    contentEditable
                 ]
-            )}
+            )} */}
             {
+                this.props.active &&
+                <Position
+                    placement="left-start"
+                    xOffset={-24}
+                    yOffset={4}
+                    block={false}
+                    related={this.editableRootRef}>
+                    <span style={{ color: '#BEC0BF', fontSize: 12 }}>
+                        {this.contentEditableName}
+                    </span>
+                </Position>
+            }
+            {
+                contentEditable
 
             }
 

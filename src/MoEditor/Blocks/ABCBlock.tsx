@@ -1,5 +1,5 @@
 import { ContentEditable } from "./Common"
-import { DefaultBlockData, Caret, ContentItem, OffsetCaret, Position, UserCaret } from "../types";
+import { DefaultBlockData, Caret, ContentItem, OffsetCaret, Position, UserCaret, MetaInfo } from "../types";
 import React from "react";
 import { ContentItemRender } from "./Content";
 
@@ -33,7 +33,7 @@ export interface ABCBlockProps {
     data?: DefaultBlockData;
     uid: string;
     className?: string,
-
+    meta: MetaInfo
     // above or below, use to determine the position of the caret in this block.
 
     // block will be locked and can't be edited  if caret is not null
@@ -134,6 +134,7 @@ export class ABCBlock<
 
     static defaultProps: ABCBlockProps = {
         uid: "",
+        meta: {},
         // selected: false,
         active: false,
         onUpdate: (evt) => { console.log(['onUpdate', evt]) },
@@ -192,13 +193,21 @@ export class ABCBlock<
         this.handleSelect = this.handleSelect.bind(this);
         this.handleDataChange = this.handleDataChange.bind(this);
         this.handleInput = this.handleInput.bind(this);
+
         this.handleBackspace = this.handleBackspace.bind(this);
+        this.handleEnter = this.handleEnter.bind(this)
+        this.handleTab = this.handleTab.bind(this)
+        this.handleSpace = this.handleSpace.bind(this)
+
         this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
         this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
+
         this.handleMouseDown = this.handleMouseDown.bind(this);
         this.defaultHandleMouseDown = this.defaultHandleMouseDown.bind(this);
+
         this.defaultHandleMouseUp = this.defaultHandleMouseUp.bind(this);
-        this.handleEnter = this.handleEnter.bind(this)
+
+
         this.clearJumpHistory = this.clearJumpHistory.bind(this)
         this.serialize = this.serialize.bind(this)
         this.serializeData = this.serializeData.bind(this)
@@ -322,27 +331,28 @@ export class ABCBlock<
         this.boundhint.remove()
     }
 
-    handleFocus(e) {
+    handleFocus(e: React.FocusEvent) {
+        console.log([this, 'focus', e])
         const jumpHistory = this.props.jumpHistory
-
         if (jumpHistory) {
             if (jumpHistory.type === 'jump') {
                 // debugger
-                const res = op.setCaretReletivePosition(this.editableRoot(), jumpHistory.offset)
+                let root = jumpHistory.from === 'below' ? this.lastContainer() : this.firstContainer()
+                const res = op.setCaretReletivePosition(root, jumpHistory.offset)
                 if (!res) {
                     this.jumpHistory = jumpHistory
-                    console.log('set jumpHistory')
                 } else {
                     this.clearJumpHistory()
                 }
                 console.log(['focused', jumpHistory.offset, res, this.jumpHistory ? this.jumpHistory.offset : null])
                 return
             } else if (jumpHistory.type === 'neighbor') {
+                let root = jumpHistory.from === 'below' ? this.lastContainer() : this.firstContainer()
                 if (jumpHistory.from === 'below') {
-                    let pos = op.lastValidPosition(this.editableRoot())
+                    let pos = op.lastValidPosition(root)
                     pos = this.boundhint.safePosition(pos)
                     op.setPosition(pos)
-                    this.boundhint.autoUpdate({ root: this.editableRoot() })
+                    this.boundhint.autoUpdate({ root: root })
                 }
                 this.clearJumpHistory()
             }
@@ -387,6 +397,9 @@ export class ABCBlock<
         }
     }
 
+    handleContextMenu(e: React.MouseEvent) {
+        console.log(e)
+    }
     handleKeyUp(e: React.KeyboardEvent<I>) { }
     defaultHandleKeyup(e) {
         // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
@@ -534,6 +547,10 @@ export class ABCBlock<
         }
     }
 
+    shouldComponentUpdate(nextProps: Readonly<P>, nextState: Readonly<S>, nextContext: any): boolean {
+        return nextProps.data.lastEditTime !== this.props.data.lastEditTime || nextProps.active !== this.props.active
+    }
+
     defaultHandleDelete(e: React.KeyboardEvent) {
         var tag;
         if ((tag = op.isInStyleBound(this.currentContainer(), "right"))) {
@@ -596,8 +613,11 @@ export class ABCBlock<
             e.preventDefault()
         }
     }
+    handleTab(e: React.KeyboardEvent) {
 
+    }
     defaultHandleKeyDown(e) {
+        console.log(['keydown', e])
         if (op.isTag(e.target, 'input')) {
             this.handleInputKeyDown(e)
         }
@@ -635,7 +655,7 @@ export class ABCBlock<
             //     inner: null
             // })
         } else if (e.key === "Tab") {
-            // this.handleTab(e);
+            this.handleTab(e);
         } else if (e.key === "Backspace") {
             // backspace -> defaultHandleBackspace ->  default(delete one char)
             // backspace -> defaultHandleBackspace ->  mergeAbove
@@ -693,11 +713,9 @@ export class ABCBlock<
         }
     }
 
-    handleMouseDown(e) { }
+    handleMouseDown(e: React.MouseEvent) { }
     defaultHandleMouseEnter(e) { }
     defaultHandleMouseDown(e) {
-        console.log(['MouseDown', this.props.active])
-        // console.log(e)
         if (!this.props.active) {
             this.props.onActiveShouldChange({ type: 'mouse' })
         }
@@ -761,6 +779,7 @@ export class ABCBlock<
             onBlur={this.handleBlur}
             onFocus={this.handleFocus}
             onSelect={this.handleSelect}
+            onContextMenu={this.handleContextMenu}
         >
             {this.makeContentEditable(
                 <ContentEditable

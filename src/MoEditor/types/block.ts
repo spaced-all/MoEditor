@@ -21,6 +21,12 @@ export interface IndentItem {
   children?: ContentItem[];
 }
 
+export interface OrderedIndentItem {
+  level: number;
+  marker?: number; // 1.2.3. for first level, a.b.c. for second level, etc.
+  children?: ContentItem[];
+}
+
 export interface TodoItem extends IndentItem {
   progress: boolean;
 }
@@ -55,8 +61,9 @@ export interface TableColItem {
 export interface TableData {
   children: TableColItem[];
 }
+export type TableDataFrame = ContentItem[][][];
 
-export interface OrderedListData extends ABCListData<IndentItem> {}
+export interface OrderedListData extends ABCListData<OrderedIndentItem> {}
 export interface UnorderedListData extends ABCListData<IndentItem> {}
 export interface TodoData {
   // 可以和待办事项结合，直接从另一个表取数据
@@ -124,3 +131,5 @@ export interface DefaultBlock {
 export type BlockData<T> = T;
 
 export type DefaultBlockData = BlockData<DefaultBlock>;
+
+export interface MetaInfo {}
