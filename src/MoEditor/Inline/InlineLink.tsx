@@ -24,6 +24,7 @@ export class InlineLink extends ABCInline<InlineLinkProps, InlineLinkStates> {
                     window.open(this.props.href)
                 }
             }}
+            
             // onMouseEnter={() => { console.log('label mouse') }}
             // onMouseLeave={() => { console.log('label mouse') }}
             href={this.props.href}>{this.props.children}</a>

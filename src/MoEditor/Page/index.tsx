@@ -1,23 +1,24 @@
 import React from "react";
-import { Block, BlockId } from "../types"
+import { DefaultBlockData, BlockId } from "../types"
 import produce from "immer"
-import { BlockUpdateEventHandler, JumpEvent } from "../Blocks/events";
+import { BlockUpdateEventHandler, JumpEvent, SplitEvent } from "../Blocks/events";
 
 import { blockRegistor } from "../plugable"
 import { ABCBlock } from "../Blocks/ABCBlock";
 import { MonoRequestFn } from "../types/api";
 import "./page.css"
+import { midString } from "../utils";
 
 interface PageProps {
     ids?: BlockId[]
-    blocks?: Block[]
+    blocks?: DefaultBlockData[]
     lazy_ids?: () => MonoRequestFn<{ ids: BlockId[] }>
-    lazy_blocks?: (ids: BlockId[]) => MonoRequestFn<{ blocks: Block[] }>
+    lazy_blocks?: (ids: BlockId[]) => MonoRequestFn<{ blocks: DefaultBlockData[] }>
     onUpdate?: BlockUpdateEventHandler
 }
 
 interface PageStates {
-    orderedBlock?: { [key: string]: Block }
+    orderedBlock?: { [key: string]: DefaultBlockData }
     order?: string[]
     focused: string
     jumpHistory?: JumpEvent
@@ -67,16 +68,41 @@ export class Page extends React.Component<PageProps, PageStates> {
                 })
             })
         }
-
-
     }
 
     componentDidUpdate(prevProps: Readonly<PageProps>, prevState: Readonly<PageStates>, snapshot?: any): void {
 
     }
 
+    handleSplit(evt: SplitEvent, ind: number) {
+        const { order } = this.state
+        let upOrder = order[ind - 1]
+        let downOrder = order[ind]
 
-    handleActiveShouldChange(e: JumpEvent, ind) {
+        const newState = produce(this.state, draft => {
+            var news = [evt.left, evt.focus, evt.right].filter((item) => (item !== undefined))
+            var offset = evt.left ? 1 : 0
+            news = news.map((item, i) => {
+                item.order = midString(upOrder, downOrder)
+                item.lastEditTime = new Date().getTime()
+                // item order should be 'new' or React will not render because we currently use order as the component 'key' property
+                upOrder = item.order
+                return item
+            })
+            // draft.order
+            // draft.cursor += offset
+            const pops = draft.order.splice(ind, 1, ...news.map(item => item.order))
+            pops.forEach(item => {
+                delete draft.orderedBlock[item]
+            })
+            news.forEach(item => draft.orderedBlock[item.order] = item)
+            draft.focused = draft.order[ind + offset]
+            draft.jumpHistory = null
+        })
+        this.setState(newState)
+
+    }
+    handleActiveShouldChange(e: JumpEvent, ind: number) {
         const newState = produce(this.state, draft => {
             if (e.type === 'mouse') {
                 draft.jumpHistory = null
@@ -89,7 +115,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                 draft.jumpHistory = e
             }
         })
-        console.log([this.state.focused, newState.focused])
+        // console.log([this.state.focused, newState.focused])
         this.setState(newState)
     }
     render(): React.ReactNode {
@@ -101,7 +127,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                 var blockType;
 
                 blockType = blockRegistor.Create(block.type)
-                // console.log([block.type, blockType])
+                console.log([block.type, block])
                 if (!blockType) {
                     return <></>
                 }
@@ -112,6 +138,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                     data: block,
                     jumpHistory: active ? this.state.jumpHistory : undefined,
                     active: active,
+                    onSplit: e => this.handleSplit(e, ind),
                     onActiveShouldChange: e => this.handleActiveShouldChange(e, ind),
                 })
                 return blockEl

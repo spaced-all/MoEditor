@@ -1,12 +1,12 @@
 import React from "react";
-import { Block } from "../types";
+import { DefaultBlockData } from "../types";
 
 type UpdateType = "archive" | "create" | "update";
 
 export class UpdateData {
-  data: Block;
+  data: DefaultBlockData;
   type: UpdateType;
-  constructor(data: Block, type: UpdateType) {
+  constructor(data: DefaultBlockData, type: UpdateType) {
     this.data = data;
     this.type = type;
   }
@@ -24,7 +24,22 @@ export class BlockUpdateEvent {
 export type BlockUpdateEventHandler = (event: BlockUpdateEvent) => void;
 
 export class MergeEvent {}
-export class SplitEvent {}
+
+/**
+ * list
+ *
+ */
+export class SplitEvent {
+  left?: DefaultBlockData;
+  right?: DefaultBlockData;
+  focus: DefaultBlockData;
+
+  constructor(focus, left, right) {
+    this.left = left;
+    this.focus = focus; // offset is always 0
+    this.right = right;
+  }
+}
 export type MergeEventHandler = (event: MergeEvent) => void;
 export type SplitEventHandler = (event: SplitEvent) => void;
 

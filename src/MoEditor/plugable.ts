@@ -4,11 +4,11 @@
  * All Block and inlineElement should be registed here.
  */
 
-import { Block, BlockType } from "./types";
+import { DefaultBlockData, BlockTypeName } from "./types";
 import { ABCBlock, ABCBlockType } from "./Blocks/ABCBlock";
 
 class BlockRegistor {
-  types: { [key: string | BlockType]: typeof ABCBlock };
+  types: { [key: string | BlockTypeName]: typeof ABCBlock };
   static _instance = null;
   constructor() {
     if (BlockRegistor._instance) {
@@ -20,7 +20,7 @@ class BlockRegistor {
   regist<T extends typeof ABCBlock>(block: T) {
     this.types[block.blockName] = block;
   }
-  Create(blockType: string | BlockType) {
+  Create(blockType: string | BlockTypeName) {
     let res = this.types[blockType];
     if (!res) {
       res = this.types["default"];

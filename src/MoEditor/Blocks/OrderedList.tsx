@@ -1,5 +1,5 @@
 import React from "react";
-import { Block } from "../types";
+import { DefaultBlockData } from "../types";
 
 import { ABCList, ABCListProps, ABCListStats } from "./ABCList";
 
@@ -20,8 +20,8 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
         return 'ol'
     }
 
-    renderBlock(block: Block): React.ReactNode {
-        return block.list.children.map((item, ind) => {
+    renderBlock(block: DefaultBlockData): React.ReactNode {
+        return block.orderedlist.children.map((item, ind) => {
             return <li key={ind}>{this.renderContentItem(item.children)}</li>
         })
     }

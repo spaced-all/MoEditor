@@ -1,5 +1,5 @@
 import React from "react";
-import { Block } from "../types";
+import { DefaultBlockData } from "../types";
 
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 
@@ -24,7 +24,7 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         return "Type '/' for commands"
     }
 
-    renderBlock(block: Block): React.ReactNode {
+    renderBlock(block: DefaultBlockData): React.ReactNode {
         return <tbody>
             {
                 block.table.children.map((row, rid) => {

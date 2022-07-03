@@ -1,5 +1,5 @@
 import { ContentEditable } from "./Common"
-import { Block, Caret, ContentItem, OffsetCaret, Position, UserCaret } from "../types";
+import { DefaultBlockData, Caret, ContentItem, OffsetCaret, Position, UserCaret } from "../types";
 import React from "react";
 import { ContentItemRender } from "./Content";
 
@@ -30,7 +30,7 @@ export interface Relative {
 }
 
 export interface ABCBlockProps {
-    data?: Block;
+    data?: DefaultBlockData;
     uid: string;
     className?: string,
 
@@ -142,6 +142,8 @@ export class ABCBlock<
         onSplit: (evt) => { console.log(['onSplit', evt]) },
         onActiveShouldChange: (evt) => { console.log(['onActiveShouldChange', evt]) },
         onCaretMove: (evt) => { console.log(['onCaretMove', evt]) },
+
+
         // selectionMode: false,
         // onShiftEnter: (evt) => console.log(["onShiftEnter", evt]),
         // onEnter: (evt) => console.log(["onEnter", evt]),
@@ -190,18 +192,92 @@ export class ABCBlock<
         this.handleSelect = this.handleSelect.bind(this);
         this.handleDataChange = this.handleDataChange.bind(this);
         this.handleInput = this.handleInput.bind(this);
+        this.handleBackspace = this.handleBackspace.bind(this);
         this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
         this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
         this.handleMouseDown = this.handleMouseDown.bind(this);
         this.defaultHandleMouseDown = this.defaultHandleMouseDown.bind(this);
         this.defaultHandleMouseUp = this.defaultHandleMouseUp.bind(this);
+        this.handleEnter = this.handleEnter.bind(this)
+        this.clearJumpHistory = this.clearJumpHistory.bind(this)
+        this.serialize = this.serialize.bind(this)
+        this.serializeData = this.serializeData.bind(this)
     }
 
-    serializeContentItem(el: HTMLElement): ContentItem {
-        return
+    clearJumpHistory() {
+        this.jumpHistory = null
     }
 
-    serialize(dom?: Block[]): Block {
+    static serializeContentItem(el: HTMLElement[] | HTMLElement): ContentItem[] {
+        if (Array.isArray(el)) {
+            return el.map(ABCBlock.serializeContentItem).flat()
+        }
+        if (!op.isValidTag(el)) {
+            return []
+        }
+
+        const elName = op.getTagName(el)
+        let res: ContentItem
+        switch (elName) {
+            case "label":
+                const data = el.querySelector('data')
+                const tagName = data.getAttribute('data-type')
+                const value = data.getAttribute('data-value')
+                let dataKeys = data.getAttribute('data-key')
+                const attributes = {}
+                if (dataKeys) {
+                    dataKeys.split(' ').forEach(item => {
+                        attributes[item] = data.getAttribute(`data-${item}`)
+                    })
+                }
+                // const dataKeys = data.getAttribute('data-keys').split(' ')
+
+                res = {
+                    'tagName': tagName,
+                    'attributes': attributes,
+                    'textContent': value
+                }
+                break
+            case "#text":
+                res = {
+                    'tagName': elName,
+                    'textContent': el.textContent
+                }
+                break
+            default:
+                const children = []
+                if (op.fullTextElement(el)) {
+                    res = {
+                        'tagName': elName,
+                        'textContent': el.textContent
+                    }
+                } else {
+                    el.childNodes.forEach(item => children.push(...ABCBlock.serializeContentItem(item as HTMLElement)))
+                    res = {
+                        'tagName': elName,
+                        'children': children,
+                        'textContent': ''
+                    }
+                }
+                if (elName === 'a') {
+                    res['attributes'] = {
+                        href: el.getAttribute('href')
+                    }
+                }
+
+                break
+        }
+        return [res]
+    }
+
+    static serializeBlockElement(el: HTMLElement): DefaultBlockData {
+        throw new Error('not implemented.')
+    }
+
+    serializeData() {
+        throw new Error('not implemented.')
+    }
+    serialize(): DefaultBlockData {
         throw new Error('not implemented.')
     }
 
@@ -248,10 +324,19 @@ export class ABCBlock<
 
     handleFocus(e) {
         const jumpHistory = this.props.jumpHistory
-        console.log(jumpHistory)
+
         if (jumpHistory) {
             if (jumpHistory.type === 'jump') {
-                op.setCaretReletivePosition(this.editableRoot(), jumpHistory.offset)
+                // debugger
+                const res = op.setCaretReletivePosition(this.editableRoot(), jumpHistory.offset)
+                if (!res) {
+                    this.jumpHistory = jumpHistory
+                    console.log('set jumpHistory')
+                } else {
+                    this.clearJumpHistory()
+                }
+                console.log(['focused', jumpHistory.offset, res, this.jumpHistory ? this.jumpHistory.offset : null])
+                return
             } else if (jumpHistory.type === 'neighbor') {
                 if (jumpHistory.from === 'below') {
                     let pos = op.lastValidPosition(this.editableRoot())
@@ -259,9 +344,11 @@ export class ABCBlock<
                     op.setPosition(pos)
                     this.boundhint.autoUpdate({ root: this.editableRoot() })
                 }
+                this.clearJumpHistory()
             }
         }
-        // this.props.onActiveShouldChange(this.props.jumpHistory)
+
+        this.clearJumpHistory()
     }
 
     handleInput(e) {
@@ -276,7 +363,7 @@ export class ABCBlock<
                 const right = sel.focusNode.textContent.slice(-1)
                 const left = sel.focusNode.textContent.slice(-0, -1)
                 tag.textContent = right
-                var newText = document.createTextNode(left)
+                var newText = op.makeText(left)
                 if (op.isTag(tag.previousSibling, '#text')) {
                     tag.previousSibling.textContent = tag.previousSibling.textContent + newText.textContent
                     newText = tag.previousSibling as Text
@@ -287,7 +374,7 @@ export class ABCBlock<
             } else {
                 const right = sel.focusNode.textContent.slice(-1)
                 const left = sel.focusNode.textContent.slice(-0, -1)
-                const newText = document.createTextNode(right)
+                const newText = op.makeText(right)
                 tag.textContent = left
                 tag.parentElement.insertBefore(newText, tag.nextSibling)
                 op.setPosition(op.lastValidPosition(newText))
@@ -367,6 +454,10 @@ export class ABCBlock<
                     'type': 'jump',
                     'offset': op.getCaretReletivePosition(this.currentContainer())
                 }
+                if (this.jumpHistory) {
+                    event.offset = this.jumpHistory.offset
+                    this.clearJumpHistory()
+                }
                 console.log(['Arrow Up', event.offset])
                 this.handleJump(event);
                 e.preventDefault();
@@ -381,7 +472,10 @@ export class ABCBlock<
                     'type': 'jump',
                     'offset': op.getCaretReletivePositionAtLastLine(this.currentContainer())
                 }
-
+                if (this.jumpHistory) {
+                    event.offset = this.jumpHistory.offset
+                    this.jumpHistory = null
+                }
                 console.log(['Arrow Down', event.offset])
                 this.handleJump(event);
                 e.preventDefault()
@@ -389,15 +483,17 @@ export class ABCBlock<
             }
             this.boundhint.autoUpdate()
         } else if (e.key === "ArrowLeft") {
-            if (this.isCursorLeft()) {
+            const sel = document.getSelection()
+            const range = sel.getRangeAt(0)
+            let pos = op.previousValidPosition(root, range.startContainer, range.startOffset);
+            if (!pos) {
+                // on left bound
                 this.handleJump({ 'from': 'below', 'type': 'neighbor' });
                 e.preventDefault()
             } else {
                 if (e.altKey) {
                 } else { }
-                const sel = document.getSelection()
-                const range = sel.getRangeAt(0)
-                let pos = op.previousValidPosition(root, range.startContainer, range.startOffset);
+
                 pos = this.boundhint.safePosition(pos)
                 if (e.shiftKey) {
                     op.setPosition(pos, true, false);
@@ -410,7 +506,11 @@ export class ABCBlock<
                 e.preventDefault();
             }
         } else if (e.key === "ArrowRight") {
-            if (this.isCursorRight()) {
+            const sel = document.getSelection()
+            const range = sel.getRangeAt(0)
+            let pos = op.nextValidPosition(root, range.endContainer, range.endOffset);
+            if (!pos) {
+                // on right bound
                 this.handleJump({ 'from': 'above', 'type': 'neighbor' });
                 e.preventDefault()
             } else {
@@ -418,8 +518,8 @@ export class ABCBlock<
                 } else {
                 }
                 // debugger
-                let pos = op.nextValidPosition(root);
-                console.log(pos)
+
+
                 pos = this.boundhint.safePosition(pos)
 
                 if (e.shiftKey) {
@@ -428,7 +528,7 @@ export class ABCBlock<
                     op.setPosition(pos);
                 }
                 this.boundhint.autoUpdate()
-                console.log(pos)
+
                 e.preventDefault();
             }
         }
@@ -470,7 +570,16 @@ export class ABCBlock<
             }
         }
 
-        // this.handleBackspace(e);
+        this.handleBackspace(e);
+    }
+    handleBackspace(e: React.KeyboardEvent) {
+
+    }
+    handleEnter(e: React.KeyboardEvent) {
+
+    }
+    handleSpace(e: React.KeyboardEvent) {
+
     }
     handleInputKeyDown(e: React.KeyboardEvent) {
         const target = e.target as HTMLElement
@@ -515,10 +624,10 @@ export class ABCBlock<
             // if (e.shiftKey) {
             //     this.handleShiftEnter(e);
             // } else {
-            //     this.handleEnter(e);
+            this.handleEnter(e);
             // }
         } else if (e.code === "Space") {
-            // this.handleSpace(e);
+            this.handleSpace(e);
         } else if (e.key === "Escape") {
             // this.props.onSelectBlock({
             //     html: null,
@@ -577,7 +686,10 @@ export class ABCBlock<
                 //     this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
                 // }
             }
-            console.log(e);
+        }
+
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+            this.clearJumpHistory()
         }
     }
 
@@ -593,7 +705,6 @@ export class ABCBlock<
     }
 
     defaultHandleMouseUp(e: React.MouseEvent) {
-        console.log(e)
         const valid = this.boundhint.safeMousePosition()
         if (!valid) {
             const parent = op.findParentMatchTagName(e.target as Node, 'label', this.currentContainer())
@@ -609,7 +720,7 @@ export class ABCBlock<
         return ContentItemRender(item)
     }
 
-    renderBlock(block: Block): React.ReactNode {
+    renderBlock(block: DefaultBlockData): React.ReactNode {
         return <></>
     }
 

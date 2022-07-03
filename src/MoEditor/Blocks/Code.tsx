@@ -1,5 +1,5 @@
 import React from "react";
-import { Block } from "../types";
+import { DefaultBlockData } from "../types";
 
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 
@@ -20,7 +20,7 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
         return 'code'
     }
 
-    renderBlock(block: Block): React.ReactNode {
+    renderBlock(block: DefaultBlockData): React.ReactNode {
         return block.code.code.map((item, ind) => {
             return <>{item}<br /></>
         })

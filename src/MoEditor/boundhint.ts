@@ -80,7 +80,7 @@ export class BoundHint {
     );
     this.rightText.textContent = "\u00a0";
     this.label = null;
-    this.text = document.createTextNode(" ");
+    this.text = op.makeText(" ");
     this.ref = null;
     if (BoundHint._instance) {
       return BoundHint._instance;
@@ -118,7 +118,7 @@ export class BoundHint {
 
     const left = op.firstNeighborTextNode(el);
     const right = op.lastNeighborTextNode(el);
-    console.log([left.textContent, right.textContent]);
+    // console.log([left.textContent, right.textContent]);
     if (op.previousValidNode(left) && left.previousSibling !== this.left) {
       left.parentElement.insertBefore(this.leftText, left);
     } else {
@@ -148,13 +148,13 @@ export class BoundHint {
       } else {
         // if(ty
         while (!container.childNodes[offset]) {
-          newContainer = document.createTextNode(whiteSpace);
+          newContainer = op.makeText(whiteSpace);
           container.appendChild(newContainer);
         }
       }
     } else {
       if (!op.isTag(container.childNodes[offset], "#text")) {
-        newContainer = document.createTextNode(whiteSpace);
+        newContainer = op.makeText(whiteSpace);
         container.insertBefore(newContainer, container.childNodes[offset]);
       } else {
         newContainer = container.childNodes[offset];
@@ -283,13 +283,14 @@ export class BoundHint {
       range.setEnd(endContainer, endOffset);
       multiSelect = true;
     }
+
     if (el === this.ref && !force) {
       return;
     }
-    let pl: HTMLLabelElement;
-    if (
-      (pl = op.findParentMatchTagName(el, "label", root) as HTMLLabelElement)
-    ) {
+
+    let pl = op.findParentMatchTagName(el, "label", root) as HTMLLabelElement;
+    if (pl) {
+      // focusNode is label
       const trigger = pl.querySelector("data");
       pl.classList.add("inline-hovered");
 
@@ -339,7 +340,7 @@ export class BoundHint {
     if (this.text.textContent.trim() === "" && this.text.parentElement) {
       this.text.parentElement.removeChild(this.text);
     } else {
-      this.text = document.createTextNode("");
+      this.text = op.makeText("");
     }
   }
 }

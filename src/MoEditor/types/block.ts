@@ -36,7 +36,7 @@ export interface HeadingData {
 
 export interface BlockQuoteData {
   color?: string;
-  icon: string;
+  icon?: string;
   children?: ContentItem[];
 }
 
@@ -86,7 +86,7 @@ export interface ImageData {
   caption?: ContentItem[];
 }
 
-export type BlockType =
+export type BlockTypeName =
   | "heading"
   | "paragraph"
   | "blockquote"
@@ -99,11 +99,12 @@ export type BlockType =
   | "link"
   | "formular";
 
-export interface Block {
+export interface DefaultBlock {
   id?: BlockId;
   order: string;
+  lastEditTime?: number;
   archived?: boolean;
-  type: BlockType;
+  type: BlockTypeName;
 
   heading?: HeadingData;
   paragraph?: ParagraphData;
@@ -119,3 +120,7 @@ export interface Block {
   code?: CodeData;
   link?: LinkCardData;
 }
+
+export type BlockData<T> = T;
+
+export type DefaultBlockData = BlockData<DefaultBlock>;

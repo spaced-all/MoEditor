@@ -9,16 +9,16 @@ export interface DataAttribute {
     [key: string]: string
 }
 
-export interface ABCInlineProps {
+export interface ABCLabelProps {
     data: ContentItem
 
 }
-export interface ABCInlineStates {
+export interface ABCLabelStates {
     focused: boolean
     ref?: HTMLElement
 }
 
-export class ABCInline<P extends ABCInlineProps, S extends ABCInlineStates> extends React.Component<P, S> {
+export class ABCLabel<P extends ABCLabelProps, S extends ABCLabelStates> extends React.Component<P, S> {
 
     static inlineName = 'abc'
 

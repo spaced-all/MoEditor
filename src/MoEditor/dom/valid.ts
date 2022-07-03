@@ -108,7 +108,7 @@ function neighborValidPosition(
 
   var inner;
   var neighbor;
-  // must be text node
+
   if (!isTag(container, "#text")) {
     if (isTag(container, "label")) {
       offset = indexOfNode(container);
@@ -131,13 +131,14 @@ function neighborValidPosition(
         // <p>|"text"</p>
         return new Position(container.childNodes[offset], 1, root);
       }
-      // container = container.childNodes[offset];
-      // offset = 0;
+      container = container.childNodes[offset];
+      offset = 0;
     } else {
-      container.appendChild(document.createTextNode(""));
+      // <p><br><b>|</b></p>
+      // <p><br><b></b>|</p>
     }
-    container = container.childNodes[offset];
-    offset = 0;
+    // container = container.childNodes[offset];
+    // offset = 0;
   }
 
   // in text node
@@ -150,6 +151,15 @@ function neighborValidPosition(
       offset++;
       return new Position(container, offset, root);
     }
+  } else {
+    // <p><br><b>|</b>|</p>
+    // <p><br><b>|</b>|<br></p>
+    // <p><br><b></b>|</p>
+    offset = indexOfNode(container);
+    if (direction === "right") {
+      offset++;
+    }
+    return new Position(container.parentElement, offset, root);
   }
   // 除了不允许空文本，可允许 text / br / 其他任意tag
   neighbor = neighborSibling(container, { emptyText: false });

@@ -1,5 +1,5 @@
 import React from "react";
-import { Block } from "../types";
+import { DefaultBlockData } from "../types";
 
 import { ABCList, ABCListProps, ABCListStats } from "./ABCList";
 
@@ -20,7 +20,7 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
         return 'ul'
     }
 
-    renderBlock(block: Block): React.ReactNode {
+    renderBlock(block: DefaultBlockData): React.ReactNode {
         return block.list.children.map((item, ind) => {
             return <li key={ind}>{this.renderContentItem(item.children)}</li>
         })

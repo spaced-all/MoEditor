@@ -26,25 +26,26 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
         item = [item]
     }
 
-
+    
     return <>
         {(item.length === 0 && depth === 0) && ""}
-        {item.map((val, ind) => {
+        {item.map((val, ind, arr) => {
             var element;
             let textContent = val.textContent
             if (textContent) {
                 textContent = textContent.replace(/\s/g, '\u00a0')
+            } else {
+                textContent = ''
             }
             let elementType: any = val.tagName
             switch (val.tagName) {
                 case '#text':
                     element = textContent
+                    console.log(['render ', element, '#text'])
                     return element;
-                // case 'refer':
-                // case 'at':
-
                 case 'math':
-                    element = <InlineMath math={val.textContent}></InlineMath>
+                    // element = <InlineMath math={val.textContent}></InlineMath>
+                    element = <InlineMath data={val} />
                     return element;
                 case 'img':
                     elementType = InlineImage
@@ -56,11 +57,16 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
                 default:
                     break
             }
+
             if (val.children && val.children.length > 0) {
                 element = React.createElement(elementType, { ...val.attributes, key: ind }, [textContent, ContentItemRender(val.children, depth + 1)])
             } else {
                 element = React.createElement(elementType, { ...val.attributes, key: ind }, textContent)
             }
+            if (!elementType) {
+                debugger
+            }
+            console.log(['render ', element, elementType])
             return element
         })}
     </>

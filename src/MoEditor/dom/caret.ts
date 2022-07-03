@@ -9,6 +9,8 @@ import {
   nextValidPosition,
   lastValidChild,
   firstValidChild,
+  previousValidPosition,
+  createPosition,
 } from "./valid";
 /**
  * <br> = 1
@@ -23,11 +25,16 @@ export function elementCharSize(el: Node, es: boolean = true): number {
     return 0;
   }
   if (isTag(el, "#text")) {
+    // |t|e|x|t|
     return el.textContent.length;
   } else if (isTag(el, "br")) {
+    // |<br>|
     if (es) {
       return 1;
     }
+  } else if (isTag(el, "label")) {
+    // |<label>[any]</label>|
+    return 2;
   } else {
     var innerSize = 0;
     el.childNodes.forEach((item) => {
@@ -65,7 +72,6 @@ export function getCaretReletivePosition(
     container = sel.focusNode;
     offset = sel.focusOffset;
   }
-
   let size = 0;
   if (container === root) {
     for (let i = 0; i < offset; i++) {
@@ -77,8 +83,11 @@ export function getCaretReletivePosition(
   while (container !== root) {
     if (isTag(container, "#text")) {
       size += offset;
-      offset = indexOfNode(container);
+    } else {
+      size++;
     }
+
+    offset = indexOfNode(container);
 
     for (let i = 0; i < offset; i++) {
       size += elementCharSize(container.parentElement.childNodes[i], es);
@@ -180,15 +189,15 @@ export function isCursorLeft(
  * <p>text|</p>
  * <p>text<i>text</i>|</p>
  * <p>text<i></i>|</p>
- * @param el 根元素
+ * @param root 根元素
  * @returns
  */
 export function isCursorRight(
-  el: HTMLElement,
+  root: HTMLElement,
   container?: Node,
   offset?: number
 ) {
-  if (!firstValidChild(el, { emptyText: false })) {
+  if (!firstValidChild(root, { emptyText: false })) {
     return true;
   }
   if (!container) {
@@ -197,16 +206,16 @@ export function isCursorRight(
     offset = sel.focusOffset;
   }
 
-  const firstPos = lastValidPosition(el);
-  
-  if (firstPos.container === container && firstPos.offset === offset) {
+  // let pos = lastValidPosition(root);
+
+  // if (pos.container === container && pos.offset === offset) {
+  //   return true;
+  // }
+
+  if (!nextValidPosition(root, container, offset)) {
     return true;
   }
-  // const neighbor = nextCaretPosition(el, container, offset);
-  // return (
-  //   neighbor.container === firstPos.container &&
-  //   neighbor.offset === firstPos.offset
-  // );
+  return false;
 }
 
 export function isFirstLine(el: HTMLElement) {
@@ -264,10 +273,9 @@ export function isLastLine(el: HTMLElement) {
  * @param offset
  */
 export function setCaretReletivePosition(root: HTMLElement, offset: number) {
-  // debugger;
   const sel = document.getSelection();
   const range = sel.getRangeAt(0);
-
+  // debugger;
   var cur = firstValidChild(root);
   var historyOffset = 0;
   // range.setStart(cur, offset - curOffset);
@@ -299,6 +307,15 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
           nextValidPosition(root, cur.parentElement, indexOfNode(cur))
         );
         return true;
+      } else if (isTag(cur, "label")) {
+        // debugger;
+        if (curOffset + historyOffset === offset) {
+          cur = nextValidNode(cur, { emptyText: false });
+          historyOffset += curOffset;
+        } else {
+          setPosition(createPosition(root, cur, 0));
+          return true;
+        }
       } else {
         if (curOffset + historyOffset > offset) {
           historyOffset++;

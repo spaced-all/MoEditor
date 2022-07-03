@@ -6,7 +6,7 @@ import Position from "../Components/Position";
 import * as op from "../dom"
 import styles from "./Inline.module.css"
 interface InlineMathProps extends ABCInlineProps {
-    math: string;
+    // math: string;
 }
 interface InlineMathStates extends ABCInlineStates {
     html: string;
@@ -18,11 +18,11 @@ interface InlineMathStates extends ABCInlineStates {
 export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
     iptref: React.RefObject<HTMLInputElement>
     lbref: React.RefObject<HTMLLabelElement>
-    constructor(props) {
+    constructor(props: InlineMathProps) {
         super(props)
         this.state = {
             focused: false,
-            math: props.math,
+            math: props.data.textContent,
             html: null,
             error: null
         }
@@ -125,6 +125,7 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
     dataAttribute(): DataAttribute {
         return {
             "data-type": 'math',
+            "data-key": "value",
             'data-value': this.state.math
         }
     }

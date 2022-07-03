@@ -177,3 +177,12 @@
     content: attr(data-placeholder);
     color: #aaa;
 }
+
+.moe-page h1,
+.moe-page h2,
+.moe-page h3,
+.moe-page h4,
+.moe-page h5,
+.moe-page h6 {
+    display: inline;
+}

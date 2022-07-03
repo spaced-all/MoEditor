@@ -1,5 +1,5 @@
 import React from "react";
-import { Block } from "../types";
+import { DefaultBlockData } from "../types";
 
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 
@@ -25,7 +25,7 @@ export class ABCList<
         return ``
     }
 
-    renderBlock(block: Block): React.ReactNode {
+    renderBlock(block: DefaultBlockData): React.ReactNode {
         return this.renderContentItem(block.heading.children)
     }
 
