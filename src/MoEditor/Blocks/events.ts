@@ -48,6 +48,8 @@ export class JumpEvent {
   type?: "neighbor" | "jump" | "mouse";
   from?: "above" | "below";
   offset?: number;
+  // is true, will return false if has no neighbor container
+  noPropagation?: boolean;
 }
 export type JumpEventHandler = (event: JumpEvent) => void;
 

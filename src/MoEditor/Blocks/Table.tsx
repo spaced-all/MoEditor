@@ -37,7 +37,7 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         this.parseTableDataToArray = this.parseTableDataToArray.bind(this)
         this.parseTableDataToFrame = this.parseTableDataToFrame.bind(this)
         this.activeTableAt = this.activeTableAt.bind(this)
-        this.activeTableRow = this.activeTableRow.bind(this)
+        this.activeContainer = this.activeContainer.bind(this)
         this.state = {
             df: this.parseTableDataToFrame(props.data.table),
             pos: { rid: 0, cid: 0 }
@@ -110,128 +110,89 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         })
         return df
     }
-    currentContainer = (): HTMLTableCellElement => {
+    currentContainer(): HTMLTableCellElement {
         const sel = document.getSelection()
         const container = op.findParentMatchTagName(sel.focusNode, 'td', this.editableRoot()) as HTMLTableCellElement
         return container
     };
-
-    firstContainer = (): HTMLTableCellElement => {
+    firstContainer(): HTMLTableCellElement {
         // debugger
         const outer = this.editableRoot()
         return op.firstValidChild(op.firstValidChild(outer)) as HTMLTableCellElement
         // return this.editableRootRef.current as unknown as I;
     };
+    lastContainer(): HTMLTableCellElement {
+        return op.lastValidChild(op.lastValidChild(this.editableRoot())) as HTMLTableCellElement
 
-    previousContainer(el: HTMLTableCellElement) {
+    };
+    previousContainer(el?: HTMLTableCellElement): HTMLTableCellElement {
+        if (!el) {
+            el = this.currentContainer()
+        }
         let res = el.previousElementSibling
         if (!res && el.parentElement.previousElementSibling) {
             res = el.parentElement.previousElementSibling.lastChild as HTMLTableCellElement
         }
-        return res
+        return res as HTMLTableCellElement
     }
-    nextContainer(el: HTMLTableCellElement) {
+    nextContainer(el?: HTMLTableCellElement): HTMLTableCellElement {
+        if (!el) {
+            el = this.currentContainer()
+        }
         let res = el.nextElementSibling
         if (!res && el.parentElement.nextElementSibling) {
             res = el.parentElement.nextElementSibling.firstChild as HTMLTableCellElement
         }
-        return res
+        return res as HTMLTableCellElement
     }
 
-    previousRowContainer(el: HTMLTableCellElement) {
+    previousRowContainer(el?: HTMLTableCellElement): HTMLTableCellElement {
+        if (!el) {
+            el = this.currentContainer()
+        }
         const index = op.indexOfNode(el)
         if (el.parentElement.previousElementSibling) {
-            return el.parentElement.previousElementSibling.childNodes[index]
+            return el.parentElement.previousElementSibling.childNodes[index] as HTMLTableCellElement
         }
     }
-    nextRowContainer(el: HTMLTableCellElement) {
+    nextRowContainer(el?: HTMLTableCellElement): HTMLTableCellElement {
+        if (!el) {
+            el = this.currentContainer()
+        }
         const index = op.indexOfNode(el)
         if (el.parentElement.nextElementSibling) {
-            return el.parentElement.nextElementSibling.childNodes[index]
-        }
-    }
-    lastContainer = (): HTMLTableCellElement => {
-        return op.lastValidChild(op.lastValidChild(this.editableRoot())) as HTMLTableCellElement
-        // return this.editableRootRef.current as unknown as I;
-    };
-
-    handleJump(e: JumpEvent): void {
-        if (e.type === 'mouse') {
-            return
-        }
-
-        let cur = this.currentContainer()
-        let direction, neighbor, offset;
-        if (e.type === 'jump') {
-            if (e.from === 'below') {
-                neighbor = this.previousRowContainer(cur)
-                direction = 'offset'
-            } else {
-                neighbor = this.nextRowContainer(cur)
-                direction = 'offset'
-            }
-            offset = op.getCaretReletivePosition(cur)
-        } else if (e.type === 'neighbor') {
-            if (e.from === 'below') {
-                neighbor = this.previousContainer(cur)
-                direction = 'right'
-            } else {
-                neighbor = this.nextContainer(cur)
-                direction = 'left'
-            }
-        }
-        if (neighbor) {
-            this.activeTableRow(neighbor, direction, offset)
-        } else {
-            this.props.onActiveShouldChange(e)
+            return el.parentElement.nextElementSibling.childNodes[index] as HTMLTableCellElement
         }
     }
 
-    activeTableRow(el, direction: 'left' | 'right' | 'offset' = 'left', offset?: number) {
-        if (direction === 'left') {
-            op.setCaretReletivePosition(el as HTMLElement, 0)
-        } else if (direction === 'right') {
-            const pos = op.lastValidPosition(el)
-            op.setPosition(pos)
-        } else {
-            op.setCaretReletivePosition(el, offset)
-        }
-    }
     activeTableAt(rid, cid) {
         const outer = this.editableRoot()
-        this.activeTableRow(outer.childNodes[rid].childNodes[cid], 'left')
+        this.activeContainer(outer.childNodes[rid].childNodes[cid], 'left')
         this.setState({
             pos: { rid, cid }
         })
     }
 
     handleTab(e: React.KeyboardEvent<Element>): void {
-        const cur = this.currentContainer()
-        let neighbor;
-        if (e.shiftKey) {
-            neighbor = this.previousContainer(cur)
-        } else {
-            neighbor = this.nextContainer(cur)
-        }
-        if (neighbor) {
-            this.activeTableRow(neighbor, e.shiftKey ? 'left' : 'right')
-        } else {
-            if (!e.shiftKey) {
-                // add a new row
-                const df = this.state.df
-                const empty: ContentItem[] = [{ 'tagName': '#text', 'textContent': '' }]
-                const row = []
-                for (let i = 0; i < df.columns.length; i++) {
-                    row.push(empty)
-                }
-                const newDf = df.append([row], [df.index.length])
-
-                this.setState({ df: newDf, pos: { rid: df.index.length, cid: 0 } })
-                this.forceUpdate()
-            }
-        }
-
         e.preventDefault()
+        let hasNeighbor = this.processJumpEvent({
+            'from': e.shiftKey ? 'below' : 'above',
+            'type': 'neighbor',
+            'noPropagation': true
+        })
+        if (!hasNeighbor && !e.shiftKey) {
+            const df = this.state.df
+            const empty: ContentItem[] = [{ 'tagName': '#text', 'textContent': '' }]
+            const row = []
+            for (let i = 0; i < df.columns.length; i++) {
+                row.push(empty)
+            }
+            const newDf = df.append([row], [df.index.length])
+
+            this.setState({ df: newDf, pos: { rid: df.index.length, cid: 0 } })
+            this.forceUpdate()
+        }
+
     }
     handleMouseDown(e: React.MouseEvent<Element, MouseEvent>): void {
     }

@@ -307,15 +307,28 @@ export class ABCBlock<
         }
     }
 
-    currentContainer = (): I => {
-        return this.editableRootRef.current as unknown as I;
-    };
-    firstContainer = (): I => {
-        return this.editableRootRef.current as unknown as I;
-    };
-    lastContainer = (): I => {
-        return this.editableRootRef.current as unknown as I;
-    };
+    currentContainer(): I {
+        return this.editableRoot() as any as I
+    }
+    firstContainer(): I {
+        return this.editableRoot() as any as I
+    }
+    lastContainer(): I {
+        return this.editableRoot() as any as I
+    }
+    previousContainer(el?: I): I {
+        return null
+    }
+    nextContainer(el?: I): I {
+        return null
+    }
+    previousRowContainer(el?: I): I {
+        return null
+    }
+    nextRowContainer(el?: I): I {
+        return null
+    }
+
     editableRoot = (): O => {
         return this.editableRootRef.current
     };
@@ -323,6 +336,7 @@ export class ABCBlock<
     blockRoot = (): HTMLDivElement => {
         return this.ref.current
     }
+
     handleCaretMove(e: Position) {
         this.caret = e
     }
@@ -457,11 +471,23 @@ export class ABCBlock<
         return op.isCursorRight(this.currentContainer())
     }
 
+    activeContainer(el, direction: 'left' | 'right' | 'offset' = 'left', offset?: number) {
+        if (direction === 'left') {
+            op.setCaretReletivePosition(el as HTMLElement, 0)
+        } else if (direction === 'right') {
+            const pos = op.lastValidPosition(el)
+            op.setPosition(pos)
+        } else {
+            op.setCaretReletivePosition(el, offset)
+        }
+    }
+
     handleArrowKeyDown(e: React.KeyboardEvent) {
         console.log('press')
         const root = this.currentContainer();
         if (e.key === "ArrowUp") {
             if (op.isFirstLine(root)) {
+
                 let event: JumpEvent = {
                     'from': 'below',
                     'type': 'jump',
@@ -472,7 +498,7 @@ export class ABCBlock<
                     this.clearJumpHistory()
                 }
                 console.log(['Arrow Up', event.offset])
-                this.handleJump(event);
+                this.processJumpEvent(event);
                 e.preventDefault();
                 return
             }
@@ -490,7 +516,7 @@ export class ABCBlock<
                     this.jumpHistory = null
                 }
                 console.log(['Arrow Down', event.offset])
-                this.handleJump(event);
+                this.processJumpEvent(event);
                 e.preventDefault()
                 return
             }
@@ -501,7 +527,7 @@ export class ABCBlock<
             let pos = op.previousValidPosition(root, range.startContainer, range.startOffset);
             if (!pos) {
                 // on left bound
-                this.handleJump({ 'from': 'below', 'type': 'neighbor' });
+                this.processJumpEvent({ 'from': 'below', 'type': 'neighbor' });
                 e.preventDefault()
             } else {
                 if (e.altKey) {
@@ -524,7 +550,7 @@ export class ABCBlock<
             let pos = op.nextValidPosition(root, range.endContainer, range.endOffset);
             if (!pos) {
                 // on right bound
-                this.handleJump({ 'from': 'above', 'type': 'neighbor' });
+                this.processJumpEvent({ 'from': 'above', 'type': 'neighbor' });
                 e.preventDefault()
             } else {
                 if (e.altKey) {
@@ -746,9 +772,42 @@ export class ABCBlock<
         return contentEditable
     }
 
-    handleJump(e: JumpEvent) {
-        console.log(['jump'])
-        this.props.onActiveShouldChange(e)
+    processJumpEvent(e: JumpEvent): boolean {
+        if (e.type === 'mouse') {
+            return true
+        }
+
+        let cur = this.currentContainer()
+        let direction, neighbor, offset;
+        if (e.type === 'jump') {
+            if (e.from === 'below') {
+                neighbor = this.previousRowContainer(cur)
+                direction = 'offset'
+            } else {
+                neighbor = this.nextRowContainer(cur)
+                direction = 'offset'
+            }
+            offset = op.getCaretReletivePosition(cur)
+        } else if (e.type === 'neighbor') {
+            if (e.from === 'below') {
+                neighbor = this.previousContainer(cur)
+                direction = 'right'
+            } else {
+                neighbor = this.nextContainer(cur)
+                direction = 'left'
+            }
+        }
+        if (neighbor) {
+            this.activeContainer(neighbor, direction, offset)
+        } else {
+            if (e.noPropagation) {
+                return false
+            } else {
+                this.props.onActiveShouldChange(e)
+                return true
+            }
+        }
+        return true
     }
 
     handleSelect(e) {

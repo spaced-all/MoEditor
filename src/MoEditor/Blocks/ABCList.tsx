@@ -33,55 +33,66 @@ export class ABCList<
         return container
     };
 
-
     firstContainer = (): I => {
         return op.firstValidChild(this.editableRoot()) as I
-        // return this.editableRootRef.current as unknown as I;
     };
-
-    previousContainer(el: I) {
-        return el.previousElementSibling
-    }
-    nextContainer(el: I) {
-        return el.nextElementSibling
-    }
 
     lastContainer = (): I => {
         return op.lastValidChild(this.editableRoot()) as I
-        // return this.editableRootRef.current as unknown as I;
     };
+
+    previousContainer(el?: I): I {
+        if (!el) {
+            el = this.currentContainer()
+        }
+        return el.previousElementSibling as I
+    }
+    nextContainer(el?: I): I {
+        if (!el) {
+            el = this.currentContainer()
+        }
+        return el.nextElementSibling as I
+    }
+
+    nextRowContainer(el?: I): I {
+        return this.nextContainer(el)
+    }
+    previousRowContainer(el?: I): I {
+        return this.previousContainer(el)
+    }
+
 
     renderBlock(block: DefaultBlockData): React.ReactNode {
         return this.renderContentItem(block.heading.children)
     }
-    handleJump(e: JumpEvent): void {
-        const cur = this.currentContainer()
+    // processJumpEvent(e: JumpEvent): boolean {
+    //     const cur = this.currentContainer()
 
-        if ((e.from === 'below' && !this.previousContainer(cur)) ||
-            (e.from === 'above' && !this.nextContainer(cur))) {
-            this.props.onActiveShouldChange(e)
-            return
-        }
+    //     if ((e.from === 'below' && !this.previousContainer(cur)) ||
+    //         (e.from === 'above' && !this.nextContainer(cur))) {
+    //         this.props.onActiveShouldChange(e)
+    //         return
+    //     }
 
-        const neighbor = e.from === 'below' ? this.previousContainer(cur) : this.nextContainer(cur)
-        if (e.type === 'jump') {
-            let offset;
-            if (e.from === 'below') {
-                offset = op.getCaretReletivePosition(cur)
-                op.setCaretReletivePosition(neighbor as HTMLElement, offset)
-            } else {
-                offset = op.getCaretReletivePositionAtLastLine(cur)
-                op.setCaretReletivePositionAtLastLine(neighbor as HTMLElement, offset)
-            }
-        } else if (e.type === 'neighbor') {
-            let pos
-            if (e.from === 'above') {
-                pos = op.firstValidPosition(neighbor as HTMLElement)
-            } else {
-                pos = op.lastValidPosition(neighbor as HTMLElement)
-            }
-            op.setPosition(pos)
-        }
-        this.boundhint.autoUpdate()
-    }
+    //     const neighbor = e.from === 'below' ? this.previousContainer(cur) : this.nextContainer(cur)
+    //     if (e.type === 'jump') {
+    //         let offset;
+    //         if (e.from === 'below') {
+    //             offset = op.getCaretReletivePosition(cur)
+    //             op.setCaretReletivePosition(neighbor as HTMLElement, offset)
+    //         } else {
+    //             offset = op.getCaretReletivePositionAtLastLine(cur)
+    //             op.setCaretReletivePositionAtLastLine(neighbor as HTMLElement, offset)
+    //         }
+    //     } else if (e.type === 'neighbor') {
+    //         let pos
+    //         if (e.from === 'above') {
+    //             pos = op.firstValidPosition(neighbor as HTMLElement)
+    //         } else {
+    //             pos = op.lastValidPosition(neighbor as HTMLElement)
+    //         }
+    //         op.setPosition(pos)
+    //     }
+    //     this.boundhint.autoUpdate()
+    // }
 }
