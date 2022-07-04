@@ -14,7 +14,7 @@ export interface ABCListStats extends ABCBlockStates {
 
 
 
-export class ABCList<
+export abstract class ABCList<
     P extends ABCBlockProps,
     S extends ABCBlockStates,
     O extends HTMLElement, // outer block element type
@@ -60,7 +60,6 @@ export class ABCList<
     previousRowContainer(el?: I): I {
         return this.previousContainer(el)
     }
-
 
     renderBlock(block: DefaultBlockData): React.ReactNode {
         return this.renderContentItem(block.heading.children)

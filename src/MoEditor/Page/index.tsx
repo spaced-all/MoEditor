@@ -4,7 +4,7 @@ import produce from "immer"
 import { BlockUpdateEventHandler, JumpEvent, SplitEvent } from "../Blocks/events";
 
 import { blockRegistor } from "../plugable"
-import { ABCBlock } from "../Blocks/ABCBlock";
+import { ABCBlock, ABCBlockType } from "../Blocks/ABCBlock";
 import { MonoRequestFn } from "../types/api";
 import "./page.css"
 import { midString } from "../utils";
@@ -124,7 +124,8 @@ export class Page extends React.Component<PageProps, PageStates> {
         return <article className="moe-page">
             {order.map((oid, ind) => {
                 const block = orderedBlock[oid]
-                var blockType;
+
+                var blockType: ABCBlockType<any>;
 
                 blockType = blockRegistor.Create(block.type)
                 console.log([block.type, block])
@@ -132,7 +133,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                     return <></>
                 }
                 const active = this.state.focused === block.order
-                const blockEl = React.createElement(blockType as typeof ABCBlock, {
+                const blockEl = React.createElement(blockType, {
                     key: block.order,
                     uid: block.order,
                     data: block,
@@ -140,6 +141,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                     jumpHistory: active ? this.state.jumpHistory : undefined,
                     active: active,
                     onSplit: e => this.handleSplit(e, ind),
+
                     onActiveShouldChange: e => this.handleActiveShouldChange(e, ind),
                 })
                 return blockEl

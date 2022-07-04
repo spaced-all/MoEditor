@@ -1,18 +1,24 @@
 import React from "react";
-import { DefaultBlockData } from "../types";
+import { DefaultBlock, DefaultBlockData } from "../types";
 
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 
-export interface ParagraphProps extends ABCBlockProps {
+export interface CodeProps extends ABCBlockProps {
 
 }
 
-export interface ParagraphStats extends ABCBlockStates {
+export interface CodeStats extends ABCBlockStates {
 }
 
 
 
-export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLParagraphElement, HTMLParagraphElement> {
+export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreElement> {
+    serialize(): DefaultBlockData {
+        return this.props.data
+    }
+    protected get disableBoundHint(): boolean {
+        return true
+    }
     // static defaultProps = ABCBlock.defaultProps;
     static blockName = 'code';
 

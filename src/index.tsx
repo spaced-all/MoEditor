@@ -80,6 +80,13 @@ const data1: DefaultBlockData[] = [
     }
   },
   {
+    'type': 'code',
+    'order': 'bba',
+    'code': {
+      'code': ['hello world']
+    }
+  },
+  {
     'type': 'list',
     'order': 'c',
     'list': {

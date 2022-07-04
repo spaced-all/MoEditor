@@ -43,6 +43,11 @@ export class SplitEvent {
 export type MergeEventHandler = (event: MergeEvent) => void;
 export type SplitEventHandler = (event: SplitEvent) => void;
 
+export interface DataUpdateEvent {
+  block: DefaultBlockData;
+}
+export type DataUpdateEventHandler = (event: DataUpdateEvent) => void;
+
 export class JumpEvent {
   // focusEvent?: React.FocusEvent;
   type?: "neighbor" | "jump" | "mouse";

@@ -61,10 +61,12 @@ export class BoundHint {
   leftText: HTMLSpanElement;
   rightText: HTMLSpanElement;
   text: Text;
-
+  disable: boolean;
   label: HTMLLabelElement;
   static _instance = null;
+
   constructor() {
+    this.disable = false;
     this.left = createSpan("bound-hint-left", "bound-hint");
     this.right = createSpan("bound-hint-right", "bound-hint");
     this.leftText = createSpan(
@@ -90,6 +92,13 @@ export class BoundHint {
 
   isBoundhint(el: HTMLElement) {
     return op.isTag(el, "span") && el.classList.contains("bound-hint");
+  }
+  bind() {
+    this.disable = false;
+  }
+  unbind() {
+    this.disable = true;
+    this.remove();
   }
 
   /**
@@ -168,7 +177,12 @@ export class BoundHint {
     };
   }
   safeMousePosition() {
+    if (this.disable) {
+      return;
+    }
+
     const sel = document.getSelection();
+
     if (!sel || sel.rangeCount === 0) {
       return false;
     }
@@ -234,6 +248,9 @@ export class BoundHint {
   }
 
   safePosition(pos: Position): Position {
+    if (this.disable) {
+      return;
+    }
     const { container, offset } = pos;
     const { container: newContainer, offset: newOffset } = this._safeOffset(
       container,
@@ -251,6 +268,9 @@ export class BoundHint {
     mouseEvent?: React.MouseEvent;
     keyboardEvent?: React.KeyboardEvent;
   }) {
+    if (this.disable) {
+      return;
+    }
     const { force, root, click, enter } = kwargs || {};
     const sel = document.getSelection();
     if (!sel) {
@@ -320,7 +340,6 @@ export class BoundHint {
     }
     this.ref = el;
   }
-  update(caret: Caret) {}
 
   _removeElementl(...el: HTMLElement[]) {
     el.forEach((item) => {

@@ -80,8 +80,8 @@ export interface LinkCardData {
 }
 
 export interface CodeData {
-  language: string;
-  highlight: number | number[]; // 高亮
+  language?: string;
+  highlight?: number | number[]; // 高亮
   code: string[]; // 用换行符分隔，用于高亮
   caption?: ContentItem[];
 }

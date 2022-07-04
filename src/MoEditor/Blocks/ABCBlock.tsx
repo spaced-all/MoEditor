@@ -3,7 +3,7 @@ import { DefaultBlockData, Caret, ContentItem, OffsetCaret, Position, UserCaret,
 import React from "react";
 import { ContentItemRender } from "./Content";
 
-import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, SplitEvent, SplitEventHandler } from "./events";
+import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, DataUpdateEvent, DataUpdateEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, SplitEvent, SplitEventHandler } from "./events";
 
 import * as op from "../dom"
 import { BoundHint } from "../boundhint";
@@ -25,10 +25,6 @@ export interface JumpRef {
     type: "neighbor" | "jump" | "mouse" | "merge";
 }
 
-export interface Relative {
-
-}
-
 export interface ABCBlockProps {
     data?: DefaultBlockData;
     uid: string;
@@ -42,35 +38,19 @@ export interface ABCBlockProps {
     // initialCaret?: OffsetCaret;
     jumpHistory?: JumpEvent
 
-    // selected?: boolean,
-    // selectionMode?: boolean,
-    // eventManager?: EventManager;
-    // historyOffset?: number;
-    // jumpRef?: JumpRef;
-    // initialPos?: { start: number; end: number };
-    // onShiftEnter?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    // onEnter?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    // onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
-    // onFocus?: (e: React.FocusEvent<HTMLElement>) => void;
-    onUpdate?: BlockUpdateEventHandler;
+    // onUpdate?: BlockUpdateEventHandler;
     onSelect?: (e: React.SyntheticEvent<HTMLElement>) => void;
-    // onDataChange?: (e: React.BlockEvent<HTMLElement>) => void;
-
 
     // triggered by delete/backspace
     onMerge?: MergeEventHandler;
-    // include append before and after
+    // when need to append block before and after this block, or change block type
     onSplit?: SplitEventHandler;
-    // triggered by arrow key
+    // triggered by arrow key, or mouse click
     onActiveShouldChange?: JumpEventHandler;
     // triggered by mouse and keyboard event
     onCaretMove?: CaretChangeEventHandler;
 
-    // onJumpAbove?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    // onJumpToAboveEnd?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    // onJumpBelow?: (e: React.KeyboardEvent<HTMLElement>) => void;
-    // onJumpToBelowStart?: (e: React.KeyboardEvent<HTMLElement>) => void;
-
+    onDataUpdate?: DataUpdateEventHandler
     // onCaretMoveTo?: (e: React.CaretEvent<HTMLElement>) => void;
     // onAppendAbove?: (e: React.BlockAppendEvent<HTMLElement>) => void;
     // onAppendBelow?: (e: React.BlockAppendEvent<HTMLElement>) => void;
@@ -108,7 +88,9 @@ export interface IBlock<
 }
 
 
-export class ABCBlock<
+// export type ABCBlockType
+
+export abstract class ABCBlock<
     P extends ABCBlockProps,
     S extends ABCBlockStates,
     O extends HTMLElement, // outer block element type
@@ -130,21 +112,26 @@ export class ABCBlock<
         return false
     }
 
+    protected get disableBoundHint(): boolean {
+        return false
+    }
+
     static blockName = ''
+
+
 
     static defaultProps: ABCBlockProps = {
         uid: "",
         meta: {},
-        // selected: false,
         active: false,
-        onUpdate: (evt) => { console.log(['onUpdate', evt]) },
+
         onSelect: (evt) => { console.log(['onSelect', evt]) },
         onMerge: (evt) => { console.log(['onMerge', evt]) },
         onSplit: (evt) => { console.log(['onSplit', evt]) },
         onActiveShouldChange: (evt) => { console.log(['onActiveShouldChange', evt]) },
         onCaretMove: (evt) => { console.log(['onCaretMove', evt]) },
-
-
+        onDataUpdate: (evt) => { console.log(['onDataUpdate', evt]) }
+        // selected: false,
         // selectionMode: false,
         // onShiftEnter: (evt) => console.log(["onShiftEnter", evt]),
         // onEnter: (evt) => console.log(["onEnter", evt]),
@@ -152,18 +139,11 @@ export class ABCBlock<
         // onFocus: (evt) => console.log(["onFocus", evt]),
         // onSelect: (evt) => console.log(["onSelect", evt]),
         // onDataChange: (evt) => console.log(["onDataChange", evt]),
-        // onMergeAbove: (evt) => console.log(["onMergeAbove", evt]),
-        // onMergeBelow: (evt) => console.log(["onMergeBelow", evt]),
-        // onJumpAbove: (evt) => console.log(["onJumpAbove", evt]),
-        // onJumpToAboveEnd: (evt) => console.log(["onJumpToAboveEnd", evt]),
-        // onJumpBelow: (evt) => console.log(["onJumpBelow", evt]),
-        // onJumpToBelowStart: (evt) => console.log(["onJumpToBelowStart", evt]),
+
+
         // onCaretMove: (evt) => console.log(["onCaretMove", evt]),
-        // onAppendAbove: (evt) => console.log(["onAppendAbove", evt]),
-        // onAppendBelow: (evt) => console.log(["onAppendBelow", evt]),
-        // onSplitAbove: (evt) => console.log(["onSplitAbove", evt]),
         // onCaretMoveTo: (evt) => console.log(["onCaretMoveTo", evt]),
-        // onComponentUpdate: (evt) => console.log(["onCaretMoveTo", evt]),
+
         // onSelectBlock: (evt) => console.log(['onSelectBlock', evt]),
         // onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
     };
@@ -177,6 +157,7 @@ export class ABCBlock<
         this.ref = React.createRef();
         this.editableRootRef = React.createRef();
         this.boundhint = new BoundHint()
+
         this.caret = null;
         this.state = {
 
@@ -286,9 +267,7 @@ export class ABCBlock<
     serializeData() {
         throw new Error('not implemented.')
     }
-    serialize(): DefaultBlockData {
-        throw new Error('not implemented.')
-    }
+    abstract serialize(): DefaultBlockData;
 
     componentDidMount(): void {
         if (this.props.active) {
@@ -343,6 +322,10 @@ export class ABCBlock<
     handleBlur(e) {
         // console.log(['block blur', e])
         this.boundhint.remove()
+        this.props.onDataUpdate({
+            // need diff or trigger to ignore unchanged block to call serialize()
+            'block': this.serialize()
+        })
     }
 
     handleFocus(e: React.FocusEvent) {
@@ -864,6 +847,8 @@ export class ABCBlock<
 }
 
 
-export interface ABCBlockType<T extends typeof ABCBlock> {
-    block: T
-}
+// export interface ABCBlockType<T extends typeof ABCBlock> {
+//     block: T
+// }
+
+export type ABCBlockType<T extends typeof ABCBlock> = T

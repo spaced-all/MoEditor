@@ -20,7 +20,6 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
         return "Type '/' for commands"
     }
 
-
     serialize(): DefaultBlock {
         const arr = []
         this.editableRoot().childNodes.forEach(item => arr.push(item))
@@ -38,8 +37,6 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
             'children': Paragraph.serializeContentItem(arr)
         }
     }
-
-
 
     handleSpace(e: React.KeyboardEvent<Element>): void {
         const key = op.textContentBefore(this.editableRoot()).trim()

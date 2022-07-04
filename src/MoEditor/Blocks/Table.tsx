@@ -1,5 +1,5 @@
 import React from "react";
-import { ContentItem, DefaultBlockData, TableData, TableDataFrame } from "../types";
+import { ContentItem, DefaultBlock, DefaultBlockData, TableData, TableDataFrame } from "../types";
 import produce from "immer";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
@@ -21,6 +21,10 @@ export interface TableStats extends ABCBlockStates {
 
 
 export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HTMLTableCellElement> {
+
+    serialize(): DefaultBlockData {
+        return this.props.data
+    }
     // static defaultProps = ABCBlock.defaultProps;
     static blockName = 'table';
 
@@ -50,6 +54,8 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
 
         console.log(this.state.df)
     }
+
+
     componentDidUpdate(prevProps: Readonly<TableProps>, prevState: Readonly<TableStats>, snapshot?: any): void {
         if (prevState.pos !== this.state.pos) {
             this.activeTableAt(this.state.pos.rid, this.state.pos.cid)
@@ -209,22 +215,6 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
             })
             return <tr key={rid}>{rowEl}</tr>
         })
-
-        // return block.table.children.map((row, rid) => {
-        //     const rowEl = row.children.map((col, cid) => {
-        //         if (rid === 0) {
-        //             return <PositionEl
-        //                 placement="top"
-        //                 tagName="td"
-        //                 related={this.renderContentItem(col.children)}>
-        //                 {/* {'------'} */}
-        //             </PositionEl>
-        //         } else {
-        //             return <td key={cid}>{this.renderContentItem(col.children)}</td>
-        //         }
-        //     })
-        //     return <tr key={rid}>{rowEl}</tr>
-        // })
     }
     makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
         return <table>

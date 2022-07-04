@@ -36,6 +36,19 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
             'children': Heading.serializeContentItem(arr)
         }
     }
+
+    serialize(): DefaultBlockData {
+        const arr = []
+        this.editableRoot().childNodes.forEach(item => arr.push(item))
+        return {
+            ...this.props.data,
+            'heading': {
+                'level': this.level,
+                'children': Heading.serializeContentItem(arr)
+            }
+        }
+    }
+
     handleSpace(e: React.KeyboardEvent<Element>): void {
         const key = op.textContentBefore(this.editableRoot()).trim()
         if (key.length > 5 || key.length === 0) {
