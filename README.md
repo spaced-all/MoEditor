@@ -2,6 +2,24 @@
 
 一款基于 React 的、块级风格的、Markdown 友好的，富文本编辑器。
 
+## 特性
+
+- 是富文本编辑器：各类 Markdown 编辑器中会出现的编辑时的图片显示
+- 是块级粒度的编辑器：总之就是块级粒度的编辑器。
+- Markdown-style：通过边界提示（BoundHint），即在格式边界添加 Markdown-like 的格式提示，绕过了一般富文本无法解决的边界格式问题（比如在加粗文本旁无法追加普通文本）。
+- 丰富的 Block 类型：
+  - Paragraph、Blockquote、Heading
+  - List、Ordered List、TODO List
+  - Table
+  - Code、Image
+  - [ ] File、...
+- 丰富的 Inline Element 类型：
+  - 各种富文本格式：加粗（b）、下划线（u）、删除线（s）、行内代码（code）、高亮（em）
+  - 各种行内组件：图片、链接、公式
+  - [ ] 艾特 / 双链
+- 开发者友好的扩展模式：React + Typescript 开发，每一种 Block 都是一个继承抽象类 ABCBlock 的实现，每一类特殊的 Inline Element 都是一个继承抽象类 ABCInline 的实现，可以轻松定义新类型、或者覆盖重写某个 Block 类。
+- [ ] 灵活的双链支持
+
 ## Development
 
 ```shell
