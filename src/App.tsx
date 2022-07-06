@@ -1,6 +1,8 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import { render } from "react-dom";
+import Highlight, { defaultProps } from "prism-react-renderer";
 
 function App() {
   const [val, setVal] = React.useState("\\int_0^\\infty x^2 dx")

@@ -50,10 +50,29 @@ function createSpan(...className: string[]) {
   return span;
 }
 
+export class ABCBoundHint {
+  hintStyle(el: HTMLElement) {}
+  hintSpace(el: Text) {}
+  _safeOffset(
+    container: Node,
+    offset: number,
+    type: "left" | "right" | "inner" = "inner"
+  ) {}
+  safeMousePosition() {}
+  safePosition(pos: Position) {}
+  autoUpdate(kwargs) {}
+  _removeElementl(...el: HTMLElement[]) {}
+  removeText() {}
+  remove() {}
+}
+
+export type BoundHintType<T extends ABCBoundHint> = T;
+
+export class CodeBoundHint extends ABCBoundHint {}
 /**
  * to display current user caret element bound
  */
-export class BoundHint {
+export class BoundHint extends ABCBoundHint {
   ref: Node;
   left: HTMLSpanElement;
   right: HTMLSpanElement;
@@ -66,6 +85,7 @@ export class BoundHint {
   static _instance = null;
 
   constructor() {
+    super();
     this.disable = false;
     this.left = createSpan("bound-hint-left", "bound-hint");
     this.right = createSpan("bound-hint-right", "bound-hint");

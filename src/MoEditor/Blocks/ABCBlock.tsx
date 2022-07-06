@@ -6,16 +6,9 @@ import { ContentItemRender } from "./Content";
 import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, DataUpdateEvent, DataUpdateEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, SplitEvent, SplitEventHandler } from "./events";
 
 import * as op from "../dom"
-import { BoundHint } from "../boundhint";
+import { ABCBoundHint, BoundHint, BoundHintType } from "../boundhint";
 
 export interface ABCBlockStates {
-    // html: string;
-    // jumpRef?: JumpRef;
-    // contentEditable: boolean;
-    // data?: Block;
-    // dirty?: boolean;
-    // focused: boolean
-    // jumpHistory?: JumpEvent
 }
 
 export interface JumpRef {
@@ -147,7 +140,7 @@ export abstract class ABCBlock<
         // onSelectBlock: (evt) => console.log(['onSelectBlock', evt]),
         // onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
     };
-    boundhint: BoundHint;
+    boundhint: BoundHintType<BoundHint>;
     jumpHistory?: JumpEvent
     caret: Position;
     ref: React.RefObject<HTMLDivElement>;

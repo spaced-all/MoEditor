@@ -19,6 +19,9 @@
   - [ ] 艾特 / 双链
 - 开发者友好的扩展模式：React + Typescript 开发，每一种 Block 都是一个继承抽象类 ABCBlock 的实现，每一类特殊的 Inline Element 都是一个继承抽象类 ABCInline 的实现，可以轻松定义新类型、或者覆盖重写某个 Block 类。
 - [ ] 灵活的双链支持
+- [ ] 更多...
+
+
 
 ## Development
 
