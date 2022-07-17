@@ -1,5 +1,9 @@
+import {
+  createCaretPosition,
+  lastCaretPosition,
+} from "../../BlockEditor/operation";
 import { isTag } from "./node";
-import { isValidTag } from "./valid";
+import { isValidTag, validChildNodes } from "./valid";
 
 export function textContentBefore(
   el: HTMLElement,
@@ -17,7 +21,30 @@ export function textContentBefore(
   return range.cloneContents().textContent;
 }
 
-export function fullTextElement(el: HTMLElement) {
+export function extractFragmentsAfter(
+  root: HTMLElement,
+  container?: Node,
+  offset?: number
+) {
+  if (!container) {
+    const sel = document.getSelection();
+    container = sel.focusNode;
+    offset = sel.focusOffset;
+  }
+  const left = createCaretPosition(root, container, offset);
+  const right = lastCaretPosition(root);
+  const range = document.createRange();
+  range.setStart(left.container, left.offset);
+  range.setEnd(right.container, right.offset);
+  const frag = range.extractContents();
+  return frag;
+}
+
+export function fullText(el: Node) {
+  const val = validChildNodes(el).map((item) => item.textContent);
+  return val.join("");
+}
+export function isFullTextNode(el: HTMLElement) {
   const val = [];
   el.childNodes.forEach((item) => {
     if (isValidTag(item) && !isTag(item, "#text")) {
@@ -28,7 +55,7 @@ export function fullTextElement(el: HTMLElement) {
 }
 
 export function deleteTextBefore(
-  el: HTMLElement,
+  root: HTMLElement,
   focus?: Node,
   offset?: number
 ) {
@@ -39,6 +66,6 @@ export function deleteTextBefore(
   }
   const range = document.createRange();
   range.setEnd(focus, offset);
-  range.setStart(el, 0);
+  range.setStart(root, 0);
   range.deleteContents();
 }

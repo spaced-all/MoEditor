@@ -1,18 +1,19 @@
 import React from "react";
-import { DefaultBlock, DefaultBlockData, ParagraphData } from "../types";
-import { InlineMath } from "../Inline/InlineMath";
-import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
+import { ContentItem, DefaultBlock, DefaultBlockData, ParagraphData } from "../types";
 import * as op from "../dom"
-export interface ParagraphProps extends ABCBlockProps {
+import { MergeResult } from "./events";
+import { ABCLine, ABCLineProps, ABCLineStats } from "./ABCLine";
+import { parseContent } from "./Common";
+export interface ParagraphProps extends ABCLineProps {
 
 }
 
-export interface ParagraphStats extends ABCBlockStates {
+export interface ParagraphStats extends ABCLineStats {
 }
 
 
 
-export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLParagraphElement, HTMLParagraphElement> {
+export class Paragraph extends ABCLine<ParagraphProps, ParagraphStats, HTMLParagraphElement, HTMLParagraphElement> {
     // static defaultProps = ABCBlock.defaultProps;
     static blockName = 'paragraph';
 
@@ -20,21 +21,9 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
         return "Type '/' for commands"
     }
 
-    serialize(): DefaultBlock {
-        const arr = []
-        this.editableRoot().childNodes.forEach(item => arr.push(item))
+    serializeContentData(): ParagraphData {
         return {
-            ...this.props.data,
-            'paragraph': {
-                'children': Paragraph.serializeContentItem(arr)
-            }
-        }
-    }
-    serializeData(): ParagraphData {
-        const arr = []
-        this.editableRoot().childNodes.forEach(item => arr.push(item))
-        return {
-            'children': Paragraph.serializeContentItem(arr)
+            children: parseContent(op.validChildNodes(this.editableRoot()))
         }
     }
 
@@ -47,7 +36,7 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
             ...this.props.data,
         }
         delete block['paragraph']
-        let children: ParagraphData
+        let data: ParagraphData
         switch (key) {
             case '#':
             case '##':
@@ -55,11 +44,11 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
             case '####':
             case '#####':
                 op.deleteTextBefore(this.currentContainer())
-                children = this.serializeData()
+                data = this.serializeContentData()
                 block.type = 'heading'
                 block.heading = {
                     'level': key.length,
-                    'children': children.children
+                    'children': data.children
                 }
                 this.props.onSplit({
                     'focus': block
@@ -68,10 +57,10 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
                 break
             case '>':
                 op.deleteTextBefore(this.currentContainer())
-                children = this.serializeData()
+                data = this.serializeContentData()
                 block.type = 'blockquote'
                 block.blockquote = {
-                    'children': children.children
+                    'children': data.children
                 }
 
                 this.props.onSplit({
@@ -81,12 +70,12 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
                 break
             case '1.':
                 op.deleteTextBefore(this.currentContainer())
-                children = this.serializeData()
+                data = this.serializeContentData()
                 block.type = 'orderedList'
                 block.orderedlist = {
                     'children': [{
                         'level': 1,
-                        'children': children.children
+                        'children': data.children
                     }]
                 }
                 this.props.onSplit({
@@ -96,12 +85,12 @@ export class Paragraph extends ABCBlock<ParagraphProps, ParagraphStats, HTMLPara
                 break
             case '-':
                 op.deleteTextBefore(this.currentContainer())
-                children = this.serializeData()
+                data = this.serializeContentData()
                 block.type = 'list'
                 block.list = {
                     'children': [{
                         'level': 1,
-                        'children': children.children
+                        'children': data.children
                     }]
                 }
                 this.props.onSplit({

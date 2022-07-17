@@ -17,6 +17,8 @@ interface InlineMathStates extends ABCInlineStates {
 
 export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
     iptref: React.RefObject<HTMLInputElement>
+    rref: React.RefObject<HTMLSpanElement>
+    sref: React.RefObject<HTMLSpanElement>
     lbref: React.RefObject<HTMLLabelElement>
     constructor(props: InlineMathProps) {
         super(props)
@@ -26,17 +28,31 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
             html: null,
             error: null
         }
+        this.rref = React.createRef()
+        this.sref = React.createRef()
         this.lbref = React.createRef()
         this.iptref = React.createRef()
+        this.setSpace = this.setSpace.bind(this)
     }
     shouldComponentUpdate(nextProps: Readonly<InlineMathProps>, nextState: Readonly<InlineMathStates>, nextContext: any): boolean {
         return nextState.math !== this.state.math || nextState.html !== this.state.html
     }
     componentDidMount(): void {
         this.setState(this.generateHTML())
+        this.setSpace()
     }
     componentDidUpdate(prevProps: Readonly<InlineMathProps>, prevState: Readonly<InlineMathStates>, snapshot?: any): void {
         this.setState(this.generateHTML())
+        this.setSpace()
+    }
+
+    setSpace() {
+        const render = this.rref.current
+        const space = this.sref.current
+        if (render) {
+            // console.log(['render ref', getComputedStyle(render).width])
+            render.style.width = getComputedStyle(space).width
+        }
     }
 
     generateHTML() {
@@ -130,13 +146,25 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
         }
     }
     renderDisplay() {
-        return <span dangerouslySetInnerHTML={{ __html: this.state.html }} />
+        return <>
+            <span
+                ref={this.sref}
+                className="space-math">
+                {this.state.math}
+            </span>
+            <span
+                ref={this.rref}
+                className="display-math"
+                dangerouslySetInnerHTML={{ __html: this.state.html }} />
+        </>
     }
 
     render(): React.ReactNode {
         return <label
+            className={styles['unselectable']}
             ref={this.lbref}
             tabIndex={-1}
+
             onMouseDown={(e) => {
 
                 const root = this.lbref.current.querySelector('.katex-html')
@@ -178,6 +206,7 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
                     console.log(e)
                 }}
             ></data>
+
             {this.state.focused ? this.renderEdit() : this.renderDisplay()}
         </label>
     }

@@ -9,3 +9,42 @@
     background-color: unset;
     font-size: 1em;
 }
+
+
+
+.unselectable {
+    margin-left: 0.25em;
+    margin-right: 0.25em;
+}
+
+.unselectable span:global(.display-math) {
+    /* background-image: url('data:image/svg+xml;utf8,<svg ...><g stroke="red" ... /></g></svg>'); */
+    /* fill: red; */
+    /* background-color: red; */
+
+    /* background-color: yellow; */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    display: inline-block;
+}
+
+.unselectable span:global(.space-math) {
+    /* background-image: url('data:image/svg+xml;utf8,<svg ...><g stroke="red" ... /></g></svg>'); */
+    /* fill: red; */
+    /* background-color: red; */
+
+    /* background-color: yellow; */
+    color: transparent;
+    display: inline-block;
+    white-space: nowrap;
+
+    position: absolute;
+    /* margin-left: 0.25em;
+    margin-right: 0.25em; */
+    line-height: 1.5;
+
+}

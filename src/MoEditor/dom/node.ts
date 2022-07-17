@@ -33,6 +33,17 @@ export function findParentMatchTagName(
   }
   return null;
 }
+
+export function findTopNode(el: Node, root: HTMLElement) {
+  while (el && el.parentElement !== root) {
+    el = el.parentElement;
+  }
+  if (el.parentElement !== root) {
+    return null;
+  }
+  return el;
+}
+
 export function indexOfNode(el: Node) {
   let i = 0;
   while ((el = el.previousSibling)) {

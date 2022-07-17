@@ -76,6 +76,7 @@ export class BoundHint extends ABCBoundHint {
   ref: Node;
   left: HTMLSpanElement;
   right: HTMLSpanElement;
+  blockRight: HTMLSpanElement;
 
   leftText: HTMLSpanElement;
   rightText: HTMLSpanElement;
@@ -87,6 +88,7 @@ export class BoundHint extends ABCBoundHint {
   constructor() {
     super();
     this.disable = false;
+    this.blockRight = createSpan("bount-hint-block-right", "bound-hint");
     this.left = createSpan("bound-hint-left", "bound-hint");
     this.right = createSpan("bound-hint-right", "bound-hint");
     this.leftText = createSpan(
@@ -195,6 +197,12 @@ export class BoundHint extends ABCBoundHint {
       container: newContainer,
       offset: newOffset,
     };
+  }
+  safeMouseClick(root: HTMLElement) {
+    const rightEl = op.lastValidChild(root);
+    if (op.isTag(rightEl, "label")) {
+      root.appendChild(this.blockRight);
+    }
   }
   safeMousePosition() {
     if (this.disable) {

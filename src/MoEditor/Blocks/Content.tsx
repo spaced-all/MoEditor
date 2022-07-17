@@ -3,6 +3,7 @@ import React from "react";
 import { InlineMath } from "../Inline/InlineMath";
 import { InlineLink } from "../Inline/InlineLink";
 import { InlineImage } from "../Inline/InlineImage";
+import { unmountComponentAtNode } from 'react-dom';
 
 /**
  * 
@@ -26,7 +27,7 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
         item = [item]
     }
 
-    
+
     return <>
         {(item.length === 0 && depth === 0) && ""}
         {item.map((val, ind, arr) => {
@@ -40,6 +41,7 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
             let elementType: any = val.tagName
             switch (val.tagName) {
                 case '#text':
+                    // console.log(['render', textContent])
                     element = textContent
                     return element;
                 case 'math':
@@ -58,14 +60,14 @@ export function ContentItemRender(item: ContentItem | ContentItem[], depth: numb
             }
 
             if (val.children && val.children.length > 0) {
-                element = React.createElement(elementType, { ...val.attributes, key: ind }, [textContent, ContentItemRender(val.children, depth + 1)])
+                element = React.createElement(elementType, { ...val.attributes, key: Math.random() }, [textContent, ContentItemRender(val.children, depth + 1)])
             } else {
-                element = React.createElement(elementType, { ...val.attributes, key: ind }, textContent)
+                element = React.createElement(elementType, { ...val.attributes, key: Math.random() }, textContent)
             }
             if (!elementType) {
                 debugger
             }
-            // console.log(['render ', element, elementType])
+            
             return element
         })}
     </>

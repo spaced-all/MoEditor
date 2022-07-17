@@ -21,14 +21,12 @@ export interface IndentItem {
   children?: ContentItem[];
 }
 
-export interface OrderedIndentItem {
-  level: number;
+export interface OrderedIndentItem extends IndentItem {
   marker?: number; // 1.2.3. for first level, a.b.c. for second level, etc.
-  children?: ContentItem[];
 }
 
 export interface TodoItem extends IndentItem {
-  progress: boolean;
+  progress?: boolean;
 }
 
 export interface ParagraphData {
@@ -46,7 +44,7 @@ export interface BlockQuoteData {
   children?: ContentItem[];
 }
 
-export interface ABCListData<C> {
+export interface ABCListData<C extends IndentItem> {
   children?: C[];
 }
 

@@ -13,7 +13,7 @@ import { DefaultBlockData } from './MoEditor/types';
 const data1: DefaultBlockData[] = [
   {
     'type': 'paragraph',
-    'order': 'aa',
+    'order': 'an',
     'paragraph': {
       'children': [
         { 'tagName': '#text', 'textContent': ' Plain Text ' },
@@ -41,8 +41,10 @@ const data1: DefaultBlockData[] = [
   },
   {
     'type': 'paragraph',
-    'order': 'aab',
-    'paragraph': {}
+    'order': 'anb',
+    'paragraph': {
+      'children': []
+    }
   },
   {
     'type': 'paragraph',
@@ -95,6 +97,7 @@ const data1: DefaultBlockData[] = [
         { 'level': 1, 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
         { 'level': 1, 'children': [{ 'tagName': 's', 'textContent': ' Delete ' }] },
         { 'level': 1, 'children': [{ 'tagName': 'i', 'textContent': ' Italic ' }] },
+        { 'level': 1, 'children': [{ 'tagName': 'math', 'textContent': 'f_i(x_t)=a_ix^2_t+b_i' }] },
         { 'level': 1, 'children': [{ 'tagName': 'code', 'textContent': ' Inline Code ' }] },
       ]
     }

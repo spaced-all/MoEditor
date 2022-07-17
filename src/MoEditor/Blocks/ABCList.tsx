@@ -1,17 +1,15 @@
 import React from "react";
-import { DefaultBlockData } from "../types";
-
+import { ABCListData, DefaultBlockData, IndentItem } from "../types";
+import produce from "immer"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
-import { JumpEvent } from "./events";
+import { MergeResult } from "./events";
 
 export interface ABCListProps extends ABCBlockProps {
-
 }
 
 export interface ABCListStats extends ABCBlockStates {
 }
-
 
 
 export abstract class ABCList<
@@ -25,6 +23,66 @@ export abstract class ABCList<
 
     protected get contentEditableName(): string {
         return ``
+    }
+
+
+    static merge(self: DefaultBlockData, block: DefaultBlockData): MergeResult {
+        // let blockData: ABCListData<IndentItem> = self[self.type]
+
+        switch (block.type) {
+            case 'blockquote':
+            case 'paragraph':
+            case 'heading':
+                self = produce(self, draft => {
+                    let blockData: ABCListData<IndentItem> = draft[self.type]
+                    blockData.children[blockData.children.length - 1].children = [
+                        ...blockData.children[blockData.children.length - 1].children,
+                        ...block[block.type].children
+                    ]
+                    draft.lastEditTime = new Date().getTime()
+                })
+                return { self }
+
+            case 'list':
+            case 'todo':
+            case 'orderedList':
+                self = produce(self, draft => {
+                    let blockData: ABCListData<IndentItem> = draft[self.type]
+                    blockData.children = [
+                        ...blockData.children,
+                        ...block[block.type].children
+                    ]
+                    if (self.type === 'list') {
+                        draft.list.children = blockData.children.map((item) => {
+                            return {
+                                'children': item.children,
+                                'level': item.level
+                            }
+                        })
+                    } else if (self.type === 'orderedList') {
+                        draft.orderedlist.children = blockData.children.map((item) => {
+                            return {
+                                'children': item.children,
+                                'level': item.level,
+                                'marker': item['marker']
+                            }
+                        })
+                    } else if (self.type === 'todo') {
+                        draft.todo.children = blockData.children.map((item) => {
+                            return {
+                                'children': item.children,
+                                'level': item.level,
+                                'progress': item['progress']
+                            }
+                        })
+                    }
+
+                    draft.lastEditTime = new Date().getTime()
+                })
+                return { self }
+            default:
+                return { notImplement: true }
+        }
     }
 
     currentContainer = (): I => {
@@ -64,34 +122,4 @@ export abstract class ABCList<
     renderBlock(block: DefaultBlockData): React.ReactNode {
         return this.renderContentItem(block.heading.children)
     }
-    // processJumpEvent(e: JumpEvent): boolean {
-    //     const cur = this.currentContainer()
-
-    //     if ((e.from === 'below' && !this.previousContainer(cur)) ||
-    //         (e.from === 'above' && !this.nextContainer(cur))) {
-    //         this.props.onActiveShouldChange(e)
-    //         return
-    //     }
-
-    //     const neighbor = e.from === 'below' ? this.previousContainer(cur) : this.nextContainer(cur)
-    //     if (e.type === 'jump') {
-    //         let offset;
-    //         if (e.from === 'below') {
-    //             offset = op.getCaretReletivePosition(cur)
-    //             op.setCaretReletivePosition(neighbor as HTMLElement, offset)
-    //         } else {
-    //             offset = op.getCaretReletivePositionAtLastLine(cur)
-    //             op.setCaretReletivePositionAtLastLine(neighbor as HTMLElement, offset)
-    //         }
-    //     } else if (e.type === 'neighbor') {
-    //         let pos
-    //         if (e.from === 'above') {
-    //             pos = op.firstValidPosition(neighbor as HTMLElement)
-    //         } else {
-    //             pos = op.lastValidPosition(neighbor as HTMLElement)
-    //         }
-    //         op.setPosition(pos)
-    //     }
-    //     this.boundhint.autoUpdate()
-    // }
 }

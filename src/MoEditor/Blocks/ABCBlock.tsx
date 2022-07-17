@@ -1,14 +1,17 @@
 import { ContentEditable } from "./Common"
-import { DefaultBlockData, Caret, ContentItem, OffsetCaret, Position, UserCaret, MetaInfo } from "../types";
+import { DefaultBlockData, Caret, ContentItem, OffsetCaret, Position, UserCaret, MetaInfo, BlockTypeName } from "../types";
 import React from "react";
+import produce from "immer"
 import { ContentItemRender } from "./Content";
 
-import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, DataUpdateEvent, DataUpdateEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, SplitEvent, SplitEventHandler } from "./events";
+import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, DataUpdateEvent, DataUpdateEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, MergeResult, SplitEvent, SplitEventHandler } from "./events";
 
 import * as op from "../dom"
 import { ABCBoundHint, BoundHint, BoundHintType } from "../boundhint";
+import { unmountComponentAtNode } from "react-dom";
 
 export interface ABCBlockStates {
+    lastEditTime?: number
 }
 
 export interface JumpRef {
@@ -66,22 +69,7 @@ export interface IBlock<
     state: S;
     ref: React.RefObject<HTMLDivElement>;
 
-    // handleJump(e: JumpEvent);
-    // handleSplit(e: SplitEvent);
-    // handleMerge(e: MergeEvent);
-    // handleBlur: (e) => void;
-    // handleFocus: (e) => void;
-    // handleSelect: (e) => void;
-    // handleDataChange: (e, data) => void;
-
-    // handleInput: (e) => void;
-
-    // defaultHandleKeyup: (e: React.KeyboardEvent<I>) => void;
-    // defaultHandleKeyDown: (e: React.KeyboardEvent<I>) => void;
 }
-
-
-// export type ABCBlockType
 
 export abstract class ABCBlock<
     P extends ABCBlockProps,
@@ -111,7 +99,9 @@ export abstract class ABCBlock<
 
     static blockName = ''
 
-
+    static merge(self: DefaultBlockData, block: DefaultBlockData): MergeResult {
+        return { notImplement: true }
+    }
 
     static defaultProps: ABCBlockProps = {
         uid: "",
@@ -124,72 +114,8 @@ export abstract class ABCBlock<
         onActiveShouldChange: (evt) => { console.log(['onActiveShouldChange', evt]) },
         onCaretMove: (evt) => { console.log(['onCaretMove', evt]) },
         onDataUpdate: (evt) => { console.log(['onDataUpdate', evt]) }
-        // selected: false,
-        // selectionMode: false,
-        // onShiftEnter: (evt) => console.log(["onShiftEnter", evt]),
-        // onEnter: (evt) => console.log(["onEnter", evt]),
-        // onBlur: (evt) => console.log(["onBlur", evt]),
-        // onFocus: (evt) => console.log(["onFocus", evt]),
-        // onSelect: (evt) => console.log(["onSelect", evt]),
-        // onDataChange: (evt) => console.log(["onDataChange", evt]),
-
-
-        // onCaretMove: (evt) => console.log(["onCaretMove", evt]),
-        // onCaretMoveTo: (evt) => console.log(["onCaretMoveTo", evt]),
-
-        // onSelectBlock: (evt) => console.log(['onSelectBlock', evt]),
-        // onMouseSelect: (evt) => console.log(['onUnSelectBlock', evt]),
     };
-    boundhint: BoundHintType<BoundHint>;
-    jumpHistory?: JumpEvent
-    caret: Position;
-    ref: React.RefObject<HTMLDivElement>;
-    editableRootRef: React.RefObject<O>; // contentEditable element
-    constructor(props: P) {
-        super(props);
-        this.ref = React.createRef();
-        this.editableRootRef = React.createRef();
-        this.boundhint = new BoundHint()
 
-        this.caret = null;
-        this.state = {
-
-            // html: "",
-            // jumpRef: this.props.jumpRef,
-            // contentEditable: this.props.initialContentEditable,
-            // focused: false,
-            // data: this.props.data,
-            // dirty: false,
-        } as S;
-
-        this.handleBlur = this.handleBlur.bind(this);
-        this.handleFocus = this.handleFocus.bind(this);
-        this.handleSelect = this.handleSelect.bind(this);
-        this.handleDataChange = this.handleDataChange.bind(this);
-        this.handleInput = this.handleInput.bind(this);
-
-        this.handleBackspace = this.handleBackspace.bind(this);
-        this.handleEnter = this.handleEnter.bind(this)
-        this.handleTab = this.handleTab.bind(this)
-        this.handleSpace = this.handleSpace.bind(this)
-
-        this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
-        this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
-
-        this.handleMouseDown = this.handleMouseDown.bind(this);
-        this.defaultHandleMouseDown = this.defaultHandleMouseDown.bind(this);
-
-        this.defaultHandleMouseUp = this.defaultHandleMouseUp.bind(this);
-
-
-        this.clearJumpHistory = this.clearJumpHistory.bind(this)
-        this.serialize = this.serialize.bind(this)
-        this.serializeData = this.serializeData.bind(this)
-    }
-
-    clearJumpHistory() {
-        this.jumpHistory = null
-    }
 
     static serializeContentItem(el: HTMLElement[] | HTMLElement): ContentItem[] {
         if (Array.isArray(el)) {
@@ -229,7 +155,7 @@ export abstract class ABCBlock<
                 break
             default:
                 const children = []
-                if (op.fullTextElement(el)) {
+                if (op.isFullTextNode(el)) {
                     res = {
                         'tagName': elName,
                         'textContent': el.textContent
@@ -257,15 +183,79 @@ export abstract class ABCBlock<
         throw new Error('not implemented.')
     }
 
-    serializeData() {
+    boundhint: BoundHintType<BoundHint>;
+    jumpHistory?: JumpEvent
+    caret: Position;
+    lastEditTime?: number;
+    ref: React.RefObject<HTMLDivElement>;
+    editableRootRef: React.RefObject<O>; // contentEditable element
+    constructor(props: P) {
+        super(props);
+        this.ref = React.createRef();
+        this.editableRootRef = React.createRef();
+        this.boundhint = new BoundHint()
+
+        this.caret = null;
+        this.state = {
+        } as S;
+
+        this.handleBlur = this.handleBlur.bind(this);
+        this.handleFocus = this.handleFocus.bind(this);
+        this.handleSelect = this.handleSelect.bind(this);
+        this.handleDataChange = this.handleDataChange.bind(this);
+        this.handleInput = this.handleInput.bind(this);
+
+        this.defaultHandleBackspace = this.defaultHandleBackspace.bind(this)
+        this.defaultHandleDelete = this.defaultHandleDelete.bind(this)
+
+        this.handleBackspace = this.handleBackspace.bind(this);
+        this.handleEnter = this.handleEnter.bind(this)
+        this.handleTab = this.handleTab.bind(this)
+        this.handleSpace = this.handleSpace.bind(this)
+
+        this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
+        this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
+
+        this.handleMouseDown = this.handleMouseDown.bind(this);
+        this.defaultHandleMouseDown = this.defaultHandleMouseDown.bind(this);
+        this.defaultHandleMouseMove = this.defaultHandleMouseMove.bind(this);
+        this.defaultHandleMouseUp = this.defaultHandleMouseUp.bind(this);
+
+        this.clearJumpHistory = this.clearJumpHistory.bind(this)
+        this.serialize = this.serialize.bind(this)
+        this.serializeContentData = this.serializeContentData.bind(this)
+    }
+
+    clearJumpHistory() {
+        this.jumpHistory = null
+    }
+
+
+    serializeContentData() {
         throw new Error('not implemented.')
     }
-    abstract serialize(): DefaultBlockData;
+
+    serialize(): DefaultBlockData {
+        return produce(this.props.data, draft => {
+            draft[draft.type] = this.serializeContentData()
+            draft.lastEditTime = new Date().getTime()
+        })
+    }
+    shouldComponentUpdate(nextProps: Readonly<P>, nextState: Readonly<S>, nextContext: any): boolean {
+        console.log([this.props.data.order, 'shouldComponentUpdate'])
+        if (nextProps.jumpHistory && nextProps.jumpHistory.type === 'mouse') {
+            // ? hack code to avoid blur after focus triggered when mouse click unactived block
+            return false
+        }
+        const res = nextProps.data.lastEditTime !== this.props.data.lastEditTime || (nextProps.active && !this.props.active)
+
+        return res
+    }
 
     componentDidMount(): void {
+        // console.log([this.props.data.order, 'componentDidMount'])
         if (this.props.active) {
             this.editableRootRef.current.focus();
-            this.jumpHistory = this.props.jumpHistory
         }
     }
     componentDidUpdate(
@@ -273,14 +263,17 @@ export abstract class ABCBlock<
         prevState: Readonly<S>,
         snapshot?: any
     ): void {
+        console.log([this.props.data.order, 'componentDidUpdate'])
         if (this.props.active && !prevProps.active) {
             this.editableRootRef.current.focus();
-            this.jumpHistory = this.props.jumpHistory
         }
     }
 
     currentContainer(): I {
-        return this.editableRoot() as any as I
+        if (this.props.active) {
+            return this.editableRoot() as any as I
+        }
+        return null
     }
     firstContainer(): I {
         return this.editableRoot() as any as I
@@ -313,82 +306,99 @@ export abstract class ABCBlock<
         this.caret = e
     }
     handleBlur(e) {
+        console.log([this.props.data.order, 'blur', e])
         // console.log(['block blur', e])
-        this.boundhint.remove()
-        this.props.onDataUpdate({
-            // need diff or trigger to ignore unchanged block to call serialize()
-            'block': this.serialize()
-        })
+        if (this.lastEditTime) {
+            // debugger
+            this.boundhint.remove()
+            this.props.onDataUpdate({
+                // need diff or trigger to ignore unchanged block to call serialize()
+                'block': this.serialize()
+            })
+            this.lastEditTime = null
+        }
     }
 
     handleFocus(e: React.FocusEvent) {
-        console.log([this, 'focus', e])
+        console.log([this.props.data.order, 'focus', e])
         const jumpHistory = this.props.jumpHistory
+        e.preventDefault()
         if (jumpHistory) {
             if (jumpHistory.type === 'jump') {
-                // debugger
                 let root = jumpHistory.from === 'below' ? this.lastContainer() : this.firstContainer()
                 const res = op.setCaretReletivePosition(root, jumpHistory.offset)
+                let pos = op.currentPosition(this.currentContainer())
+                pos = this.boundhint.safePosition(pos)
+                op.setPosition(pos)
+                this.boundhint.autoUpdate({ root: root })
                 if (!res) {
                     this.jumpHistory = jumpHistory
                 } else {
                     this.clearJumpHistory()
                 }
-                console.log(['focused', jumpHistory.offset, res, this.jumpHistory ? this.jumpHistory.offset : null])
+                // console.log(['focused', jumpHistory.offset, res, this.jumpHistory ? this.jumpHistory.offset : null])
                 return
             } else if (jumpHistory.type === 'neighbor') {
                 let root = jumpHistory.from === 'below' ? this.lastContainer() : this.firstContainer()
-                if (jumpHistory.from === 'below') {
-                    let pos = op.lastValidPosition(root)
-                    pos = this.boundhint.safePosition(pos)
-                    op.setPosition(pos)
-                    this.boundhint.autoUpdate({ root: root })
-                }
+                let pos = jumpHistory.from === 'below' ? op.lastValidPosition(root) : op.firstValidPosition(root)
+                pos = this.boundhint.safePosition(pos)
+                op.setPosition(pos)
+                this.boundhint.autoUpdate({ root: root })
                 this.clearJumpHistory()
+                return
+            } else {
+                // debugger
+                // this.boundhint.autoUpdate({ root: this.currentContainer() })
+                // // op.setPosition(pos)
+                // this.clearJumpHistory()
+                return
             }
         }
 
+        this.boundhint.autoUpdate({ root: this.currentContainer() })
         this.clearJumpHistory()
+
     }
 
     handleInput(e) {
         const sel = document.getSelection()
         const tag = sel.focusNode.parentElement
-
         if (op.isTag(tag, 'span') &&
-            e.nativeEvent.inputType === 'insertText' &&
             tag.classList.contains('bound-hint')) {
-
-            if (tag.classList.contains('bound-hint-right')) {
-                const right = sel.focusNode.textContent.slice(-1)
-                const left = sel.focusNode.textContent.slice(-0, -1)
-                tag.textContent = right
-                var newText = op.makeText(left)
-                if (op.isTag(tag.previousSibling, '#text')) {
-                    tag.previousSibling.textContent = tag.previousSibling.textContent + newText.textContent
-                    newText = tag.previousSibling as Text
+            if (e.nativeEvent.inputType === 'insertText') {
+                if (tag.classList.contains('bound-hint-right')) {
+                    const right = sel.focusNode.textContent.slice(-1)
+                    const left = sel.focusNode.textContent.slice(-0, -1)
+                    tag.textContent = right
+                    var newText = op.makeText(left)
+                    if (op.isTag(tag.previousSibling, '#text')) {
+                        tag.previousSibling.textContent = tag.previousSibling.textContent + newText.textContent
+                        newText = tag.previousSibling as Text
+                    } else {
+                        tag.parentElement.insertBefore(newText, tag)
+                    }
+                    op.setPosition(op.lastValidPosition(newText))
                 } else {
-                    tag.parentElement.insertBefore(newText, tag)
+                    const right = sel.focusNode.textContent.slice(-1)
+                    const left = sel.focusNode.textContent.slice(-0, -1)
+                    const newText = op.makeText(right)
+                    tag.textContent = left
+                    tag.parentElement.insertBefore(newText, tag.nextSibling)
+                    op.setPosition(op.lastValidPosition(newText))
                 }
-                op.setPosition(op.lastValidPosition(newText))
-            } else {
-                const right = sel.focusNode.textContent.slice(-1)
-                const left = sel.focusNode.textContent.slice(-0, -1)
-                const newText = op.makeText(right)
-                tag.textContent = left
-                tag.parentElement.insertBefore(newText, tag.nextSibling)
-                op.setPosition(op.lastValidPosition(newText))
+            } else if (e.nativeEvent.inputType === 'deleteContentBackward' || e.nativeEvent.inputType === 'deleteContentForward') {
+                // debugger
+                console.log(tag.className)
+                let pos = op.nextValidPosition(this.editableRoot())
+                pos = this.boundhint.safePosition(pos)
+                op.setPosition(pos)
             }
-            // console.log()
-            // this.props.eventManager.call("boundhint", {
-            //   name: "expand",
-            //   data: { force: true },
-            // });
         }
+
+        this.lastEditTime = new Date().getTime()
     }
 
     handleContextMenu(e: React.MouseEvent) {
-        console.log(e)
     }
     handleKeyUp(e: React.KeyboardEvent<I>) { }
     defaultHandleKeyup(e) {
@@ -418,6 +428,16 @@ export abstract class ABCBlock<
     defaultHandleMouseMove(e) {
         // if (e.buttons === 1 && !this.state.focused) {
         //   this.props.onSelectBlock(e)
+        // }
+
+        // const range = document.getSelection().getRangeAt(0)
+        // console.log([this.props.active, this.props.uid])
+
+        // const left = op.findTopNode(range.startContainer, this.currentContainer())
+        // const right = op.findTopNode(range.endContainer, this.currentContainer())
+
+        // if (left) {
+        //     console.log([left, right])
         // }
     }
 
@@ -481,7 +501,6 @@ export abstract class ABCBlock<
             this.boundhint.autoUpdate()
         } else if (e.key === "ArrowDown") {
             if (op.isLastLine(root)) {
-
                 let event: JumpEvent = {
                     'from': 'above',
                     'type': 'jump',
@@ -549,9 +568,7 @@ export abstract class ABCBlock<
         }
     }
 
-    shouldComponentUpdate(nextProps: Readonly<P>, nextState: Readonly<S>, nextContext: any): boolean {
-        return nextProps.data.lastEditTime !== this.props.data.lastEditTime || nextProps.active !== this.props.active
-    }
+
 
     defaultHandleDelete(e: React.KeyboardEvent) {
         var tag;
@@ -570,6 +587,7 @@ export abstract class ABCBlock<
                 return
             }
         }
+        this.handleDelete(e)
     }
     defaultHandleBackspace(e: React.KeyboardEvent) {
         var tag;
@@ -588,12 +606,25 @@ export abstract class ABCBlock<
                 return
             }
         }
-
         this.handleBackspace(e);
     }
     handleBackspace(e: React.KeyboardEvent) {
-
+        if (this.isCursorLeft()) {
+            this.processMergeEvent({
+                direction: 'left',
+            })
+            e.preventDefault()
+        }
     }
+    handleDelete(e: React.KeyboardEvent) {
+        if (this.isCursorRight()) {
+            this.processMergeEvent({
+                direction: 'right'
+            })
+            e.preventDefault()
+        }
+    }
+
     handleEnter(e: React.KeyboardEvent) {
 
     }
@@ -602,10 +633,11 @@ export abstract class ABCBlock<
     }
     handleInputKeyDown(e: React.KeyboardEvent) {
         const target = e.target as HTMLElement
-        const parent = op.findParentMatchTagName(target, 'label', this.currentContainer())
+        const editableRoot = this.editableRoot()
+        const parent = op.findParentMatchTagName(target, 'label', editableRoot)
 
         if (parent) {
-            this.currentContainer().focus()
+            editableRoot.focus()
             let pos = op.createPosition(this.currentContainer(), parent, 0)
             pos = op.nextValidPosition(this.currentContainer(), pos.container, pos.offset)
             pos = this.boundhint.safePosition(pos)
@@ -624,7 +656,6 @@ export abstract class ABCBlock<
             this.handleInputKeyDown(e)
         }
         if (e.key === "Enter") {
-            // debugger
             const pos = op.currentPosition(this.currentContainer())
             if (op.isTag(pos.container, 'label')) {
                 this.boundhint.autoUpdate({ root: this.currentContainer(), enter: true, keyboardEvent: e })
@@ -632,22 +663,7 @@ export abstract class ABCBlock<
                 return
             }
 
-
-            // if (op.isTag(e.target as Node, 'input')) {
-            //     var target = e.target as HTMLElement
-            //     this.editableRoot().focus()
-            //     target = op.findParentMatchTagName(target, 'label', this.currentContainer()) as HTMLElement
-            //     const next = op.nextCaretPosition(this.currentContainer(), target, 0)
-            //     op.setCaretPosition(next)
-            //     e.preventDefault()
-            //     return
-            // }
-
-            // if (e.shiftKey) {
-            //     this.handleShiftEnter(e);
-            // } else {
             this.handleEnter(e);
-            // }
         } else if (e.code === "Space") {
             this.handleSpace(e);
         } else if (e.key === "Escape") {
@@ -698,15 +714,12 @@ export abstract class ABCBlock<
         } else {
             if (e.metaKey) {
                 if (op.supportStyleKey(e.key)) {
-
                     op.applyStyle(e.key, this.currentContainer());
                     this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
                     e.preventDefault();
                     return;
                 }
-                // if (e.key === 'v') {
-                //     this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
-                // }
+
             }
         }
 
@@ -718,13 +731,19 @@ export abstract class ABCBlock<
     handleMouseDown(e: React.MouseEvent) { }
     defaultHandleMouseEnter(e) { }
     defaultHandleMouseDown(e) {
+        console.log([this.props.data.order, 'MouseDown', e])
         if (!this.props.active) {
             this.props.onActiveShouldChange({ type: 'mouse' })
         }
+
+        this.boundhint.safeMouseClick(this.editableRoot())
+
         this.handleMouseDown(e)
+        this.clearJumpHistory()
     }
 
     defaultHandleMouseUp(e: React.MouseEvent) {
+        console.log([this.props.data.order, 'MouseUp', e])
         const valid = this.boundhint.safeMousePosition()
         if (!valid) {
             const parent = op.findParentMatchTagName(e.target as Node, 'label', this.currentContainer())
@@ -746,6 +765,10 @@ export abstract class ABCBlock<
 
     makeContentEditable(contentEditable: React.ReactNode) {
         return contentEditable
+    }
+
+    processMergeEvent(e: MergeEvent): boolean {
+        return true
     }
 
     processJumpEvent(e: JumpEvent): boolean {
@@ -787,6 +810,7 @@ export abstract class ABCBlock<
     }
 
     handleSelect(e) {
+        // console.log(e)
 
     }
     handleDataChange(e) {
@@ -798,23 +822,24 @@ export abstract class ABCBlock<
 
     render(): React.ReactNode {
         const initialData = this.props.data
+
         return <div
-            // tabIndex={-1}
             className={[
                 this.props.className,
                 this.className
             ].join(' ')}
             data-block-id={this.props.uid}
             ref={this.ref}
+            onMouseLeave={this.defaultHandleMouseLeave}
             onMouseMove={this.defaultHandleMouseMove}
             onMouseEnter={this.defaultHandleMouseEnter}
-            onMouseLeave={this.defaultHandleMouseLeave}
+            onSelect={this.handleSelect}
+            onContextMenu={this.handleContextMenu}
+
             onMouseDown={this.defaultHandleMouseDown}
             onMouseUp={this.defaultHandleMouseUp}
             onBlur={this.handleBlur}
             onFocus={this.handleFocus}
-            onSelect={this.handleSelect}
-            onContextMenu={this.handleContextMenu}
         >
             {this.makeContentEditable(
                 <ContentEditable
@@ -823,7 +848,9 @@ export abstract class ABCBlock<
                     innerRef={this.editableRootRef}
                     tagName={this.contentEditableName}
                     contentEditable
+
                     onInput={this.handleInput}
+                    onSelect={this.handleSelect}
                     onCopy={this.handleCopy}
                     onChange={this.handleDataChange}
                     onPaste={this.handlePaste}
@@ -844,4 +871,4 @@ export abstract class ABCBlock<
 //     block: T
 // }
 
-export type ABCBlockType<T extends typeof ABCBlock> = T
+export type ABCBlockType<T extends typeof ABCBlock> = T 

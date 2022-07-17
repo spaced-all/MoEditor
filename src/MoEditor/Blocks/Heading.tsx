@@ -1,25 +1,25 @@
 import React from "react";
-import { DefaultBlockData, HeadingData } from "../types";
+import { ContentItem, DefaultBlockData, HeadingData } from "../types";
 import * as op from "../dom"
-import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import Position from "../Components/Position";
+import { ABCLine, ABCLineStats, ABCLineProps } from "./ABCLine";
+import { parseContent } from "./Common";
 
-export interface HeadingProps extends ABCBlockProps {
+export interface HeadingProps extends ABCLineProps {
 
 }
 
-export interface HeadingStats extends ABCBlockStates {
+export interface HeadingStats extends ABCLineStats {
 }
 
 
 
-export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingElement, HTMLHeadingElement> {
+export class Heading extends ABCLine<HeadingProps, HeadingStats, HTMLHeadingElement, HTMLHeadingElement> {
     // static defaultProps = ABCBlock.defaultProps;
     static blockName = 'heading';
 
     protected get contentEditableName(): string {
         return `h${this.level}`
-        // return `span`
     }
 
     public get placeholder(): string {
@@ -28,24 +28,11 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
     public get level(): number {
         return this.props.data.heading.level
     }
-    serializeData(): HeadingData {
-        const arr = []
-        this.editableRoot().childNodes.forEach(item => arr.push(item))
-        return {
-            'level': this.level,
-            'children': Heading.serializeContentItem(arr)
-        }
-    }
 
-    serialize(): DefaultBlockData {
-        const arr = []
-        this.editableRoot().childNodes.forEach(item => arr.push(item))
+    serializeContentData(): HeadingData {
         return {
-            ...this.props.data,
-            'heading': {
-                'level': this.level,
-                'children': Heading.serializeContentItem(arr)
-            }
+            level: this.level,
+            children: parseContent(op.validChildNodes(this.editableRoot()))
         }
     }
 
@@ -58,7 +45,7 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
             ...this.props.data,
         }
         delete block['heading']
-        let children: HeadingData
+        let data: HeadingData
         switch (key) {
             case '#':
             case '##':
@@ -67,17 +54,17 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
             case '#####':
                 op.deleteTextBefore(this.currentContainer())
                 if (this.level === key.length) {
-                    children = this.serializeData()
+                    data = this.serializeContentData()
                     block.type = 'paragraph'
                     block.paragraph = {
-                        'children': children.children
+                        'children': data.children
                     }
                 } else {
-                    children = this.serializeData()
+                    data = this.serializeContentData()
                     block.type = 'heading'
                     block.heading = {
                         'level': key.length,
-                        'children': children.children
+                        'children': data.children
                     }
                 }
                 this.props.onSplit({
@@ -94,7 +81,7 @@ export class Heading extends ABCBlock<HeadingProps, HeadingStats, HTMLHeadingEle
             }
             delete block['blockquote']
             op.deleteTextBefore(this.currentContainer())
-            let children = this.serializeData()
+            let children = this.serializeContentData()
             block.type = 'paragraph'
             block.paragraph = {
                 'children': children.children

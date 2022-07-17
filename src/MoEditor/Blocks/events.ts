@@ -23,7 +23,18 @@ export class BlockUpdateEvent {
 }
 export type BlockUpdateEventHandler = (event: BlockUpdateEvent) => void;
 
-export class MergeEvent {}
+export class MergeEvent {
+  direction: "left" | "right";
+  block?: DefaultBlockData;
+  offset?: number;
+}
+export interface MergeResult {
+  notImplement?: boolean;
+  self?: DefaultBlockData; // block on the top
+  block?: DefaultBlockData; // block on the bottom
+  selfSelection?: boolean; // whether to select 'self' block
+  blockSelection?: boolean; // whether to select 'block' block
+}
 
 /**
  * list

@@ -12,6 +12,7 @@ import {
   previousValidPosition,
   createPosition,
 } from "./valid";
+import { previousCaretPosition } from "../../BlockEditor/operation";
 /**
  * <br> = 1
  * "text" = 4
@@ -178,8 +179,10 @@ export function isCursorLeft(
     offset = sel.focusOffset;
   }
 
-  const firstPos = firstValidPosition(root);
-  return firstPos.container === container && firstPos.offset === offset;
+  if (!previousCaretPosition(root, container, offset)) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -273,6 +276,13 @@ export function isLastLine(el: HTMLElement) {
  * @param offset
  */
 export function setCaretReletivePosition(root: HTMLElement, offset: number) {
+  if (offset < 0) {
+    offset += getContentSize(root) + 1;
+    if (offset < 0) {
+      offset = 0;
+    }
+  }
+
   const sel = document.getSelection();
   const range = sel.getRangeAt(0);
   // debugger;
@@ -442,4 +452,12 @@ export function setPosition(
     range.setEnd(container, offset);
   }
   return range;
+}
+
+export function getContentSize(el: HTMLElement) {
+  let size = 0;
+  el.childNodes.forEach((item) => {
+    size += elementCharSize(item);
+  });
+  return size;
 }

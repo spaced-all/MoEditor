@@ -278,6 +278,7 @@ export class DefaultBlock<
     this.handleInput = this.handleInput.bind(this);
     this.defaultHandleKeyDown = this.defaultHandleKeyDown.bind(this);
     this.defaultHandleKeyup = this.defaultHandleKeyup.bind(this);
+
   }
   latestData() {
     return this.props.data;
@@ -471,19 +472,20 @@ export class DefaultBlock<
   }
 
   handleSelect(e) {
-    const newE = this.wrapBlockEvent<BE.SyntheticEvent<O>>(e);
+    console.log(e)
+    // const newE = this.wrapBlockEvent<BE.SyntheticEvent<O>>(e);
 
-    const caretPos = op.currentCaretPosition(this.currentContainer());
-    const event = new BlockCaretEvent(
-      this.state.html,
-      this.currentContainer(),
-      caretPos,
-      "left"
-    );
-    this.props.onSelect(newE);
-    if (!op.isTag(e.target, 'input')) {
-      this.props.onCaretMove(event);
-    }
+    // const caretPos = op.currentCaretPosition(this.currentContainer());
+    // const event = new BlockCaretEvent(
+    //   this.state.html,
+    //   this.currentContainer(),
+    //   caretPos,
+    //   "left"
+    // );
+    // this.props.onSelect(newE);
+    // if (!op.isTag(e.target, 'input')) {
+    //   this.props.onCaretMove(event);
+    // }
   }
 
   handleDataChange(e, data) {
@@ -942,6 +944,7 @@ export class DefaultBlock<
           // contentEditable={this.state.contentEditable}
           contentEditable
           onInput={this.handleInput}
+          onSelect={this.handleSelect}
           onCopy={this.handleCopy}
           onChange={this.handleDataChange}
           onKeyDown={this.defaultHandleKeyDown}

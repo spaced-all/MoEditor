@@ -1,13 +1,14 @@
 import React from "react";
 import { DefaultBlockData, BlockId } from "../types"
 import produce from "immer"
-import { BlockUpdateEventHandler, JumpEvent, SplitEvent } from "../Blocks/events";
+import { BlockUpdateEventHandler, DataUpdateEvent, JumpEvent, MergeEvent, SplitEvent } from "../Blocks/events";
 
 import { blockRegistor } from "../plugable"
 import { ABCBlock, ABCBlockType } from "../Blocks/ABCBlock";
 import { MonoRequestFn } from "../types/api";
 import "./page.css"
 import { midString } from "../utils";
+import { JumpRef } from "../../BlockEditor/Blocks/Common";
 
 interface PageProps {
     ids?: BlockId[]
@@ -73,7 +74,97 @@ export class Page extends React.Component<PageProps, PageStates> {
     componentDidUpdate(prevProps: Readonly<PageProps>, prevState: Readonly<PageStates>, snapshot?: any): void {
 
     }
+    handleBlur(evt: React.FocusEvent, ind: number) {
 
+    }
+    handleMerge(evt: MergeEvent, ind: number) {
+        const { order, orderedBlock } = this.state
+        let neighbor: DefaultBlockData
+        let newOrderedBlock
+        let newFocused;
+        let newOrder;
+        let jumpHistory: JumpEvent;
+        if (evt.direction === 'left') {
+            neighbor = orderedBlock[order[ind - 1]]
+            if (neighbor) {
+                const blockType = blockRegistor.Create(neighbor.type)
+                const { self, block, notImplement } = blockType.merge(neighbor, evt.block)
+
+                if (!notImplement) {
+                    newOrderedBlock = produce(orderedBlock, draft => {
+                        if (self) {
+                            draft[self.order] = self
+                        }
+
+                        if (block) {
+                            draft[block.order] = block
+                        } else {
+                            delete draft[evt.block.order]
+                        }
+                    })
+                    newFocused = neighbor.order
+                    newOrder = produce(order, draft => {
+                        return draft.filter(item => {
+                            return item !== evt.block.order
+                        })
+                    })
+                    jumpHistory = {
+                        from: 'below',
+                        offset: evt.offset,
+                        type: 'jump',
+                    }
+                }
+            }
+        } else {
+            neighbor = orderedBlock[order[ind + 1]]
+            if (neighbor) {
+                const blockType = blockRegistor.Create(evt.block.type)
+                const { self, block, notImplement } = blockType.merge(evt.block, neighbor)
+
+                if (!notImplement) {
+                    newOrderedBlock = produce(orderedBlock, draft => {
+                        if (self) {
+                            draft[self.order] = self
+                        }
+                        if (block) {
+                            draft[block.order] = block
+                        } else {
+                            delete draft[neighbor.order]
+                        }
+                    })
+                    newFocused = evt.block.order
+                    newOrder = produce(order, draft => {
+                        return draft.filter(item => {
+                            return item !== neighbor.order
+                        })
+                    })
+                    jumpHistory = {
+                        from: 'above',
+                        offset: evt.offset,
+                        type: 'jump',
+                    }
+                }
+            }
+        }
+        console.log(newOrder)
+        this.setState({
+            orderedBlock: newOrderedBlock,
+            focused: newFocused,
+            order: newOrder,
+            jumpHistory: jumpHistory,
+
+        })
+    }
+    handleDataUpdate(evt: DataUpdateEvent, ind: number) {
+        const { order, orderedBlock } = this.state
+        const newOrderedBlock = produce(orderedBlock, draft => {
+            draft[order[ind]] = evt.block
+        })
+        this.setState({
+            orderedBlock: newOrderedBlock
+        })
+
+    }
     handleSplit(evt: SplitEvent, ind: number) {
         const { order } = this.state
         let upOrder = order[ind - 1]
@@ -82,22 +173,28 @@ export class Page extends React.Component<PageProps, PageStates> {
         const newState = produce(this.state, draft => {
             var news = [evt.left, evt.focus, evt.right].filter((item) => (item !== undefined))
             var offset = evt.left ? 1 : 0
-            news = news.map((item, i) => {
-                item.order = midString(upOrder, downOrder)
-                item.lastEditTime = new Date().getTime()
-                // item order should be 'new' or React will not render because we currently use order as the component 'key' property
-                upOrder = item.order
-                return item
+
+            news = news.map((prevItem, i) => {
+                return produce(prevItem, item => {
+                    item.order = midString(upOrder, downOrder)
+                    console.log([upOrder, item.order, downOrder])
+                    item.lastEditTime = new Date().getTime()
+                    // item order should be 'new' or React will not render because we currently use order as the component 'key' property
+                    upOrder = item.order
+                    return item
+                })
             })
-            // draft.order
-            // draft.cursor += offset
+
             const pops = draft.order.splice(ind, 1, ...news.map(item => item.order))
             pops.forEach(item => {
                 delete draft.orderedBlock[item]
             })
             news.forEach(item => draft.orderedBlock[item.order] = item)
             draft.focused = draft.order[ind + offset]
-            draft.jumpHistory = null
+            draft.jumpHistory = {
+                'from': 'above',
+                'type': 'neighbor',
+            }
         })
         this.setState(newState)
 
@@ -105,7 +202,7 @@ export class Page extends React.Component<PageProps, PageStates> {
     handleActiveShouldChange(e: JumpEvent, ind: number) {
         const newState = produce(this.state, draft => {
             if (e.type === 'mouse') {
-                draft.jumpHistory = null
+                draft.jumpHistory = e
                 draft.focused = draft.order[ind]
             } else if (e.from === 'below' && ind > 0) {
                 draft.focused = draft.order[ind - 1]
@@ -124,24 +221,28 @@ export class Page extends React.Component<PageProps, PageStates> {
         return <article className="moe-page">
             {order.map((oid, ind) => {
                 const block = orderedBlock[oid]
-
+                if (!block) {
+                    return <></>
+                }
                 var blockType: ABCBlockType<any>;
 
                 blockType = blockRegistor.Create(block.type)
-                console.log([block.type, block])
+                // console.log([block.type, block])
                 if (!blockType) {
                     return <></>
                 }
                 const active = this.state.focused === block.order
                 const blockEl = React.createElement(blockType, {
-                    key: block.order,
+                    key: block.order + block.lastEditTime,
                     uid: block.order,
                     data: block,
                     meta: {},
                     jumpHistory: active ? this.state.jumpHistory : undefined,
                     active: active,
+                    // onBlur: e => this.handleBlur(e, ind),
+                    onDataUpdate: e => this.handleDataUpdate(e, ind),
                     onSplit: e => this.handleSplit(e, ind),
-
+                    onMerge: e => this.handleMerge(e, ind),
                     onActiveShouldChange: e => this.handleActiveShouldChange(e, ind),
                 })
                 return blockEl

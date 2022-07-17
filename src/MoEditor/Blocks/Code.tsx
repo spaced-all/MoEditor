@@ -78,10 +78,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
             <Highlight
                 {...defaultProps} code={this.state.code} language="jsx">
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
-                    <pre className={[className].join(' ')} style={{ ...style, ...styles.editor, ...styles.highlight, ...contentStyle }}
-
-
-                    >
+                    <pre className={[className].join(' ')} style={{ ...style, ...styles.editor, ...styles.highlight, ...contentStyle }}                    >
                         {tokens.map((line, i) => (
                             <div {...getLineProps({ line, key: i })}>
                                 {line.map((token, key) => (

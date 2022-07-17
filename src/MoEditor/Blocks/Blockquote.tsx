@@ -1,19 +1,19 @@
 import React from "react";
 import { DefaultBlock, DefaultBlockData, BlockQuoteData } from "../types";
-import { InlineMath } from "../Inline/InlineMath";
-import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
-export interface BlockquoteProps extends ABCBlockProps {
+import { ABCLine, ABCLineProps, ABCLineStats } from "./ABCLine";
+import { parseContent } from "./Common";
+export interface BlockquoteProps extends ABCLineProps {
 
 }
 
-export interface BlockquoteStats extends ABCBlockStates {
+export interface BlockquoteStats extends ABCLineStats {
 }
 
 
 
-export class Blockquote extends ABCBlock<BlockquoteProps, BlockquoteStats, HTMLQuoteElement, HTMLParagraphElement> {
-    // static defaultProps = ABCBlock.defaultProps;
+export class Blockquote extends ABCLine<BlockquoteProps, BlockquoteStats, HTMLQuoteElement, HTMLParagraphElement> {
+
     static blockName = 'blockquote';
 
     public get placeholder(): string {
@@ -21,21 +21,10 @@ export class Blockquote extends ABCBlock<BlockquoteProps, BlockquoteStats, HTMLQ
     }
 
 
-    serialize(): DefaultBlock {
-        const arr = []
-        this.editableRoot().childNodes.forEach(item => arr.push(item))
+
+    serializeContentData(): BlockQuoteData {
         return {
-            ...this.props.data,
-            'blockquote': {
-                'children': Blockquote.serializeContentItem(arr)
-            }
-        }
-    }
-    serializeData(): BlockQuoteData {
-        const arr = []
-        this.editableRoot().childNodes.forEach(item => arr.push(item))
-        return {
-            'children': Blockquote.serializeContentItem(arr)
+            children: parseContent(op.validChildNodes(this.editableRoot()))
         }
     }
 
@@ -46,7 +35,7 @@ export class Blockquote extends ABCBlock<BlockquoteProps, BlockquoteStats, HTMLQ
             }
             delete block['blockquote']
             op.deleteTextBefore(this.currentContainer())
-            let children = this.serializeData()
+            let children = this.serializeContentData()
             block.type = 'paragraph'
             block.paragraph = {
                 'children': children.children

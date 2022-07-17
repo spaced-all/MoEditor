@@ -1,7 +1,8 @@
 import React from "react";
-import { DefaultBlock, DefaultBlockData } from "../types";
-
+import { DefaultBlock, DefaultBlockData, IndentItem, OrderedIndentItem, OrderedListData } from "../types";
+import * as op from "../dom"
 import { ABCList, ABCListProps, ABCListStats } from "./ABCList";
+import { parseContent } from "./Common";
 
 export interface OListProps extends ABCListProps {
 
@@ -21,13 +22,30 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
         return 'ol'
     }
 
-    serialize(): DefaultBlock {
-        return this.props.data
-    }
+    serializeContentData(): OrderedListData {
+        let cur = this.firstContainer()
+        const items: OrderedIndentItem[] = []
 
+        while (cur) {
+
+            items.push({
+                level: parseFloat(cur.getAttribute('data-level')),
+                marker: parseFloat(cur.getAttribute('data-marker')),
+                children: parseContent(op.validChildNodes(cur))
+            })
+            cur = this.nextRowContainer(cur)
+        }
+
+        return {
+            children: items
+        }
+    }
     renderBlock(block: DefaultBlockData): React.ReactNode {
         return block.orderedlist.children.map((item, ind) => {
-            return <li key={ind}>{this.renderContentItem(item.children)}</li>
+            return <li
+                data-level={item.level}
+                data-marker={item.marker}
+                key={ind}>{this.renderContentItem(item.children)}</li>
         })
     }
 
