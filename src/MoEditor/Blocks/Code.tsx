@@ -2,7 +2,7 @@ import React from "react";
 import { BoundHint, BoundHintType, CodeBoundHint } from "../boundhint";
 import { DefaultBlock, DefaultBlockData } from "../types";
 // import { highlight, languages } from 'prismjs/components/prism-core';
-
+import * as op from "../dom"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import Highlight, { defaultProps } from "prism-react-renderer";
 // import styles from "./Code.module.css"
@@ -29,12 +29,16 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
         return 'pre'
     }
 
+    textareaRef: React.RefObject<HTMLTextAreaElement>
+    renderRef: React.RefObject<HTMLPreElement>
     constructor(props) {
         super(props)
         this.state = {
             code: this.props.data.code.code.join('\n')
         }
         this.boundhint = new CodeBoundHint() as any
+        this.textareaRef = React.createRef();
+        this.renderRef = React.createRef();
     }
 
     renderBlock(block: DefaultBlockData): React.ReactNode {
@@ -43,6 +47,29 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
 
         return <textarea>block.code.code.join('\n')</textarea>
 
+    }
+
+    get textArea() {
+        return this.textareaRef.current
+    }
+
+    defaultHandleKeyDown(e: React.KeyboardEvent<Element>): void {
+        if (e.key === 'Tab') {
+            console.log(this.textareaRef.current.selectionStart)
+            e.preventDefault()
+            const start = this.textArea.selectionStart
+            const end = this.textArea.selectionEnd
+            const pad = 4 - start % 4
+            this.textArea.setRangeText(' '.repeat(pad))
+            this.textArea.setSelectionRange(start + pad, end + pad)
+            this.setState({ code: this.textArea.value })
+            this.forceUpdate()
+            // 在左侧或者在最右侧的时候，插入四个空格
+            // const range = document.createRange()
+            // op.setCaretReletivePosition(this.renderRef.current, this.textareaRef.current.selectionStart, range)
+            const range = op.findCodeOffset(this.renderRef.current, this.textareaRef.current.selectionStart)
+            console.log(range)
+        }
     }
 
     render(): React.ReactNode {
@@ -64,13 +91,14 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
 
         >
             <textarea
-
+                ref={this.textareaRef}
                 style={{
                     ...styles.editor,
                     ...styles.textarea,
                     ...contentStyle
                 }}
                 value={this.state.code}
+                onKeyDown={this.defaultHandleKeyDown}
                 onChange={(e) => {
                     this.setState({ code: e.target.value })
                     this.forceUpdate()
@@ -78,7 +106,9 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
             <Highlight
                 {...defaultProps} code={this.state.code} language="jsx">
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
-                    <pre className={[className].join(' ')} style={{ ...style, ...styles.editor, ...styles.highlight, ...contentStyle }}                    >
+                    <pre
+                        ref={this.renderRef}
+                        className={[className].join(' ')} style={{ ...style, ...styles.editor, ...styles.highlight, ...contentStyle }}                    >
                         {tokens.map((line, i) => (
                             <div {...getLineProps({ line, key: i })}>
                                 {line.map((token, key) => (

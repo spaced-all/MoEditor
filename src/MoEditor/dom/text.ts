@@ -2,8 +2,9 @@ import {
   createCaretPosition,
   lastCaretPosition,
 } from "../../BlockEditor/operation";
+import { elementCharSize } from "./caret";
 import { isTag } from "./node";
-import { isValidTag, validChildNodes } from "./valid";
+import { firstValidChild, isValidTag, validChildNodes } from "./valid";
 
 export function textContentBefore(
   el: HTMLElement,
@@ -69,3 +70,4 @@ export function deleteTextBefore(
   range.setStart(root, 0);
   range.deleteContents();
 }
+

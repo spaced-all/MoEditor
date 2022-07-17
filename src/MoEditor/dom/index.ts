@@ -4,3 +4,4 @@ export * from "./valid";
 export * from "./style";
 export * from "./make";
 export * from "./text";
+export * from "./code"

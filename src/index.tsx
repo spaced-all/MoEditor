@@ -8,6 +8,7 @@ import { Page } from "./MoEditor"
 import App from './App';
 import { InlineMath } from './MoEditor/Inline/InlineMath';
 import { DefaultBlockData } from './MoEditor/types';
+import ContextMenu from './MoEditor/Components/ContextMenu';
 // import { InlineMath as OldInlineMatch } from './MoEditor/Inline/MathComponent';
 
 const data1: DefaultBlockData[] = [

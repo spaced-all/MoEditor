@@ -26,14 +26,6 @@ export class Code extends DefaultBlock<CodeProps, CodeStats, HTMLPreElement, HTM
             }).join('\n')
         }
     }
-    /**
-     * 
-     * @<SyntaxHighlighter language="javascript" style={dark}>
-            {data.data.dom.map((item) => {
-                return item.textContent
-            }).join('\n')}
-        </SyntaxHighlighter>
-     */
 
     getCodeString() {
         return this.state.code

@@ -11,6 +11,7 @@ import {
   firstValidChild,
   previousValidPosition,
   createPosition,
+  validChildNodes,
 } from "./valid";
 import { previousCaretPosition } from "../../BlockEditor/operation";
 /**
@@ -38,7 +39,7 @@ export function elementCharSize(el: Node, es: boolean = true): number {
     return 2;
   } else {
     var innerSize = 0;
-    el.childNodes.forEach((item) => {
+    validChildNodes(el).forEach((item) => {
       innerSize += elementCharSize(item, es);
     });
     if (es) {
@@ -275,16 +276,21 @@ export function isLastLine(el: HTMLElement) {
  * @param root
  * @param offset
  */
-export function setCaretReletivePosition(root: HTMLElement, offset: number) {
+export function setCaretReletivePosition(
+  root: HTMLElement,
+  offset: number,
+  range?: Range
+) {
   if (offset < 0) {
     offset += getContentSize(root) + 1;
     if (offset < 0) {
       offset = 0;
     }
   }
-
-  const sel = document.getSelection();
-  const range = sel.getRangeAt(0);
+  if (!range) {
+    const sel = document.getSelection();
+    range = sel.getRangeAt(0);
+  }
   // debugger;
   var cur = firstValidChild(root);
   var historyOffset = 0;
@@ -315,7 +321,10 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
         // "text"<br>|<br> -> 5
         // "text"<br>"|text" -> 5
         setPosition(
-          nextValidPosition(root, cur.parentElement, indexOfNode(cur))
+          nextValidPosition(root, cur.parentElement, indexOfNode(cur)),
+          true,
+          true,
+          range
         );
         return true;
       } else if (isTag(cur, "label")) {
@@ -324,7 +333,7 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
           cur = nextValidNode(cur, { emptyText: false });
           historyOffset += curOffset;
         } else {
-          setPosition(createPosition(root, cur, 0));
+          setPosition(createPosition(root, cur, 0), true, true, range);
           return true;
         }
       } else {
@@ -333,14 +342,19 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
           cur = firstValidChild(cur);
         } else {
           const prev = lastValidPosition(cur);
-          setPosition(nextValidPosition(root, prev.container, prev.offset));
+          setPosition(
+            nextValidPosition(root, prev.container, prev.offset),
+            true,
+            true,
+            range
+          );
           return true;
         }
       }
     }
   }
 
-  setPosition(lastValidPosition(root));
+  setPosition(lastValidPosition(root), true, true, range);
   return false;
 }
 
@@ -355,13 +369,16 @@ export function setCaretReletivePosition(root: HTMLElement, offset: number) {
  */
 export function setCaretReletivePositionAtLastLine(
   root: HTMLElement,
-  offset: number
+  offset: number,
+  range?: Range
 ) {
   const { lineNumber, lineHeight } = getLineInfo(root);
   if (lineNumber <= 1) {
     return setCaretReletivePosition(root, offset);
   }
-  const range = document.createRange();
+  if (!range) {
+    range = document.createRange();
+  }
   // 获取最后一行的所有 contents
   var last = lastValidChild(root);
   while (last) {
@@ -370,7 +387,8 @@ export function setCaretReletivePositionAtLastLine(
     if (isTag(last, "br")) {
       return setCaretReletivePosition(
         root,
-        getCaretReletivePosition(root, last, 0) + offset + 1
+        getCaretReletivePosition(root, last, 0) + offset + 1,
+        range
       );
     }
 
@@ -391,7 +409,8 @@ export function setCaretReletivePositionAtLastLine(
 
         return setCaretReletivePosition(
           root,
-          getCaretReletivePosition(root, last, lineOffset) + offset
+          getCaretReletivePosition(root, last, lineOffset) + offset,
+          range
         );
       } else {
         last = lastValidChild(last);

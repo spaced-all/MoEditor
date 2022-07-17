@@ -9,6 +9,7 @@ import { MonoRequestFn } from "../types/api";
 import "./page.css"
 import { midString } from "../utils";
 import { JumpRef } from "../../BlockEditor/Blocks/Common";
+import ContextMenu from "../Components/ContextMenu";
 
 interface PageProps {
     ids?: BlockId[]
@@ -219,6 +220,7 @@ export class Page extends React.Component<PageProps, PageStates> {
         const { order, orderedBlock } = this.state
 
         return <article className="moe-page">
+            <ContextMenu menuId="slash-menu" />
             {order.map((oid, ind) => {
                 const block = orderedBlock[oid]
                 if (!block) {

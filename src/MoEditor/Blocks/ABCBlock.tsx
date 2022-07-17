@@ -1,14 +1,18 @@
 import { ContentEditable } from "./Common"
-import { DefaultBlockData, Caret, ContentItem, OffsetCaret, Position, UserCaret, MetaInfo, BlockTypeName } from "../types";
+import { DefaultBlockData, Caret, ContentItem, Position, UserCaret, MetaInfo } from "../types";
 import React from "react";
 import produce from "immer"
 import { ContentItemRender } from "./Content";
+import { contextMenu } from 'react-contexify';
 
-import { BlockUpdateEvent, BlockUpdateEventHandler, CaretChangeEventHandler, DataUpdateEvent, DataUpdateEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, MergeResult, SplitEvent, SplitEventHandler } from "./events";
+
+import { CaretChangeEventHandler, DataUpdateEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, MergeResult, SplitEvent, SplitEventHandler } from "./events";
 
 import * as op from "../dom"
-import { ABCBoundHint, BoundHint, BoundHintType } from "../boundhint";
-import { unmountComponentAtNode } from "react-dom";
+import { BoundHint, BoundHintType } from "../boundhint";
+import { } from "react-dom";
+
+
 
 export interface ABCBlockStates {
     lastEditTime?: number
@@ -187,15 +191,20 @@ export abstract class ABCBlock<
     jumpHistory?: JumpEvent
     caret: Position;
     lastEditTime?: number;
+    insertHistory: string[];
     ref: React.RefObject<HTMLDivElement>;
     editableRootRef: React.RefObject<O>; // contentEditable element
     constructor(props: P) {
         super(props);
+        this.boundhint = new BoundHint()
+        this.jumpHistory = null
+        this.caret = null;
+        this.lastEditTime = null
+        this.insertHistory = []
+
         this.ref = React.createRef();
         this.editableRootRef = React.createRef();
-        this.boundhint = new BoundHint()
 
-        this.caret = null;
         this.state = {
         } as S;
 
@@ -242,7 +251,7 @@ export abstract class ABCBlock<
         })
     }
     shouldComponentUpdate(nextProps: Readonly<P>, nextState: Readonly<S>, nextContext: any): boolean {
-        console.log([this.props.data.order, 'shouldComponentUpdate'])
+        // console.log([this.props.data.order, 'shouldComponentUpdate'])
         if (nextProps.jumpHistory && nextProps.jumpHistory.type === 'mouse') {
             // ? hack code to avoid blur after focus triggered when mouse click unactived block
             return false
@@ -360,9 +369,16 @@ export abstract class ABCBlock<
 
     }
 
+    /**
+     * insertCompositionText
+     * insertText、deleteContentBackward、insertFromPaste / formatBold
+     * @param e 
+     */
     handleInput(e) {
+
         const sel = document.getSelection()
         const tag = sel.focusNode.parentElement
+
         if (op.isTag(tag, 'span') &&
             tag.classList.contains('bound-hint')) {
             if (e.nativeEvent.inputType === 'insertText') {
@@ -650,9 +666,30 @@ export abstract class ABCBlock<
     handleTab(e: React.KeyboardEvent) {
 
     }
-    defaultHandleKeyDown(e) {
-        console.log(['keydown', e])
-        if (op.isTag(e.target, 'input')) {
+
+
+
+    defaultHandleKeyDown(e: React.KeyboardEvent) {
+        console.log(['keydown', e.key])
+        if (e.key.match(/[a-zA-Z@#/]/)) {
+            this.insertHistory.push(e.key)
+            while (this.insertHistory.length > 5) {
+                this.insertHistory.splice(0, 1)
+            }
+        } else {
+            this.insertHistory.splice(0, this.insertHistory.length)
+        }
+
+        if (this.insertHistory[this.insertHistory.length - 1] === '/') {
+            if (this.insertHistory[this.insertHistory.length - 2] === '/') {
+                contextMenu.show({
+                    id: 'slash-menu',
+                    event: e
+                });
+            }
+        }
+
+        if (op.isTag(((e as any).target), 'input')) {
             this.handleInputKeyDown(e)
         }
         if (e.key === "Enter") {
@@ -807,6 +844,11 @@ export abstract class ABCBlock<
             }
         }
         return true
+    }
+
+    renderContextMenu() {
+        return
+
     }
 
     handleSelect(e) {

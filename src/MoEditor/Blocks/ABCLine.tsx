@@ -110,17 +110,30 @@ export abstract class ABCLine<
 
 
     handleEnter(e: React.KeyboardEvent<Element>): void {
-        const frag = op.extractFragmentsAfter(this.editableRoot())
-        const nodes = []
-        frag.childNodes.forEach(item => nodes.push(item))
-        this.serializeContentData()
-        const cur = this.serialize()
-        const newBlock: DefaultBlockData = {
-            type: 'paragraph',
-            order: '',
-            lastEditTime: new Date().getTime(),
-            paragraph: {
-                'children': parseContent(nodes)
+        let cur: DefaultBlockData, newBlock: DefaultBlockData;
+        if (e.shiftKey) {
+            cur = this.serialize()
+            newBlock = {
+                type: 'paragraph',
+                order: '',
+                lastEditTime: new Date().getTime(),
+                paragraph: {
+                    'children': []
+                }
+            }
+        } else {
+            const frag = op.extractFragmentsAfter(this.editableRoot())
+            const nodes = []
+            frag.childNodes.forEach(item => nodes.push(item))
+            this.serializeContentData()
+            cur = this.serialize()
+            newBlock = {
+                type: 'paragraph',
+                order: '',
+                lastEditTime: new Date().getTime(),
+                paragraph: {
+                    'children': parseContent(nodes)
+                }
             }
         }
         this.props.onSplit({
