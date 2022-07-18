@@ -12,7 +12,8 @@ export interface CodeProps extends ABCBlockProps {
 }
 
 export interface CodeStats extends ABCBlockStates {
-    code: string
+    code: string,
+    hover: boolean,
 }
 
 export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreElement> {
@@ -34,12 +35,16 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
     constructor(props) {
         super(props)
         this.state = {
-            code: this.props.data.code.code.join('\n')
+            code: this.props.data.code.code.join('\n'),
+            hover: false
         }
         this.boundhint = new CodeBoundHint() as any
         this.textareaRef = React.createRef();
         this.renderRef = React.createRef();
     }
+    editableRoot = () => {
+        return this.textareaRef.current
+    };
 
     renderBlock(block: DefaultBlockData): React.ReactNode {
         // const code = highlight(block.code.code.join('\n'), languages.javascript, 'javascript')
@@ -56,33 +61,55 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
     defaultHandleKeyDown(e: React.KeyboardEvent<Element>): void {
         if (e.key === 'Tab') {
             console.log(this.textareaRef.current.selectionStart)
-            e.preventDefault()
             const start = this.textArea.selectionStart
             const end = this.textArea.selectionEnd
             const pad = 4 - start % 4
-            this.textArea.setRangeText(' '.repeat(pad))
-            this.textArea.setSelectionRange(start + pad, end + pad)
-            this.setState({ code: this.textArea.value })
-            this.forceUpdate()
+            if (start === end) {
+                const event = new Event('input', { 'bubbles': true, cancelable: true })
+                this.textArea.setRangeText(' '.repeat(pad))
+                this.textArea.setSelectionRange(start + pad, end + pad)
+                this.textArea.dispatchEvent(event)
+                console.log(this.textArea.value)
+                // ? TODO if use this code, backspace may trigger bugs(only move range but not delete char)
+                // this.setState({ code: this.textArea.value })
+                // this.forceUpdate()
+            }
             // 在左侧或者在最右侧的时候，插入四个空格
             // const range = document.createRange()
             // op.setCaretReletivePosition(this.renderRef.current, this.textareaRef.current.selectionStart, range)
             const range = op.findCodeOffset(this.renderRef.current, this.textareaRef.current.selectionStart)
             console.log(range)
+            e.preventDefault()
+        } else if (e.key === 'Backspace') {
+            // this.forceUpdate()  // not work
         }
     }
+    defaultHandleMouseEnter(e: React.MouseEvent): void {
+        console.log(e)
+        this.setState({
+            hover: true
+        })
+        this.forceUpdate()
+    }
 
+    defaultHandleMouseLeave(e: React.MouseEvent): void {
+        this.setState({
+            hover: false
+        })
+        this.forceUpdate()
+    }
     render(): React.ReactNode {
 
         const contentStyle = {
-            paddingTop: 4,
-            paddingRight: 4,
-            paddingBottom: 4,
-            paddingLeft: 4,
+            paddingTop: 30,
+            paddingRight: 30,
+            paddingBottom: 30,
+            paddingLeft: 30,
         };
 
         return <div
-
+            onMouseEnter={this.defaultHandleMouseEnter}
+            onMouseLeave={this.defaultHandleMouseLeave}
             style={{
                 fontFamily: '"Fira code", "Fira Mono", monospace',
                 fontSize: 16,
@@ -119,6 +146,25 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                     </pre>
                 )}
             </Highlight>
+            {
+                this.state.hover &&
+                <React.Fragment>
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 3,
+                    }}>
+                    </div>
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 3,
+                    }}>
+                        <button>copy</button>
+                    </div>
+                </React.Fragment>
+            }
+
         </div>
     }
 }
@@ -135,6 +181,7 @@ const styles = {
     },
     textarea: {
         position: 'absolute',
+        background: 'aliceblue',
         top: 0,
         left: 0,
         height: '100%',

@@ -230,6 +230,9 @@ export abstract class ABCBlock<
         this.defaultHandleMouseMove = this.defaultHandleMouseMove.bind(this);
         this.defaultHandleMouseUp = this.defaultHandleMouseUp.bind(this);
 
+        this.defaultHandleMouseEnter = this.defaultHandleMouseEnter.bind(this)
+        this.defaultHandleMouseLeave = this.defaultHandleMouseLeave.bind(this)
+
         this.clearJumpHistory = this.clearJumpHistory.bind(this)
         this.serialize = this.serialize.bind(this)
         this.serializeContentData = this.serializeContentData.bind(this)
@@ -264,7 +267,7 @@ export abstract class ABCBlock<
     componentDidMount(): void {
         // console.log([this.props.data.order, 'componentDidMount'])
         if (this.props.active) {
-            this.editableRootRef.current.focus();
+            this.editableRoot().focus();
         }
     }
     componentDidUpdate(
@@ -274,7 +277,7 @@ export abstract class ABCBlock<
     ): void {
         console.log([this.props.data.order, 'componentDidUpdate'])
         if (this.props.active && !prevProps.active) {
-            this.editableRootRef.current.focus();
+            this.editableRoot().focus();
         }
     }
 
