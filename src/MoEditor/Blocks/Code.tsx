@@ -38,7 +38,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
             code: this.props.data.code.code.join('\n'),
             hover: false
         }
-        this.boundhint = new CodeBoundHint() as any
+        // this.boundhint = new CodeBoundHint() as any
         this.textareaRef = React.createRef();
         this.renderRef = React.createRef();
     }
@@ -123,6 +123,10 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                     ...styles.editor,
                     ...styles.textarea,
                     ...contentStyle
+                }}
+                onFocus={(e) => {
+                    console.log(['textarea'])
+                    this.boundhint.remove()
                 }}
                 value={this.state.code}
                 onKeyDown={this.defaultHandleKeyDown}

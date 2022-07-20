@@ -1,5 +1,5 @@
 import React from "react";
-import { DefaultBlock, DefaultBlockData, BlockQuoteData } from "../types";
+import { DefaultBlockData, BlockQuoteData } from "../types";
 import * as op from "../dom"
 import { ABCLine, ABCLineProps, ABCLineStats } from "./ABCLine";
 import { parseContent } from "./Common";

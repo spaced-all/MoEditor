@@ -1,5 +1,5 @@
 import React from "react";
-import { DefaultBlock, DefaultBlockData, IndentItem, OrderedIndentItem, OrderedListData } from "../types";
+import { DefaultBlockData, OrderedIndentItem, OrderedListData } from "../types";
 import * as op from "../dom"
 import { ABCList, ABCListProps, ABCListStats } from "./ABCList";
 import { parseContent } from "./Common";

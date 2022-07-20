@@ -29,34 +29,36 @@ export interface TodoItem extends IndentItem {
   progress?: boolean;
 }
 
-export interface ParagraphData {
+export interface InnerBlockData {}
+
+export interface ParagraphData extends InnerBlockData {
   children?: ContentItem[];
 }
 
-export interface HeadingData {
+export interface HeadingData extends InnerBlockData {
   level: number;
   children?: ContentItem[];
 }
 
-export interface BlockQuoteData {
+export interface BlockQuoteData extends InnerBlockData {
   color?: string;
   icon?: string;
   children?: ContentItem[];
 }
 
-export interface ABCListData<C extends IndentItem> {
+export interface ABCListData<C extends IndentItem> extends InnerBlockData {
   children?: C[];
 }
 
-export interface TableRowItem {
+export interface TableRowItem extends InnerBlockData {
   children: ContentItem[];
 }
 
-export interface TableColItem {
+export interface TableColItem extends InnerBlockData {
   children: TableRowItem[];
 }
 
-export interface TableData {
+export interface TableData extends InnerBlockData {
   children: TableColItem[];
 }
 export type TableDataFrame = ContentItem[][][];
@@ -70,21 +72,21 @@ export interface TodoData {
   children?: TodoItem[];
 }
 
-export interface LinkCardData {
+export interface LinkCardData extends InnerBlockData {
   href: string;
   title: string;
   summary: string;
   caption?: ContentItem[];
 }
 
-export interface CodeData {
+export interface CodeData extends InnerBlockData {
   language?: string;
   highlight?: number | number[]; // 高亮
   code: string[]; // 用换行符分隔，用于高亮
   caption?: ContentItem[];
 }
 
-export interface ImageData {
+export interface ImageData extends InnerBlockData {
   href: string;
   align: "left" | "center" | "right";
   size: number; // 放缩比例，而不是原始大小
@@ -126,8 +128,6 @@ export interface DefaultBlock {
   link?: LinkCardData;
 }
 
-export type BlockData<T> = T;
-
-export type DefaultBlockData = BlockData<DefaultBlock>;
+export type DefaultBlockData = DefaultBlock;
 
 export interface MetaInfo {}

@@ -383,7 +383,7 @@ export class BoundHint extends ABCBoundHint {
 
   remove() {
     this._removeElementl(this.left, this.right, this.leftText, this.rightText);
-
+    this.ref = null;
     if (this.text.textContent.trim() === "" && this.text.parentElement) {
       this.text.parentElement.removeChild(this.text);
     } else {

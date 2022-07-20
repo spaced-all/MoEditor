@@ -247,25 +247,29 @@ export abstract class ABCBlock<
         throw new Error('not implemented.')
     }
 
+    blockData(): DefaultBlockData {
+        return this.props.data
+    }
+
     serialize(): DefaultBlockData {
-        return produce(this.props.data, draft => {
+        return produce(this.blockData(), draft => {
             draft[draft.type] = this.serializeContentData()
             draft.lastEditTime = new Date().getTime()
         })
     }
     shouldComponentUpdate(nextProps: Readonly<P>, nextState: Readonly<S>, nextContext: any): boolean {
-        // console.log([this.props.data.order, 'shouldComponentUpdate'])
+        // console.log([this.blockData().order, 'shouldComponentUpdate'])
         if (nextProps.jumpHistory && nextProps.jumpHistory.type === 'mouse') {
             // ? hack code to avoid blur after focus triggered when mouse click unactived block
             return false
         }
-        const res = nextProps.data.lastEditTime !== this.props.data.lastEditTime || (nextProps.active && !this.props.active)
+        const res = nextProps.data.lastEditTime !== this.blockData().lastEditTime || (nextProps.active && !this.props.active)
 
         return res
     }
 
     componentDidMount(): void {
-        // console.log([this.props.data.order, 'componentDidMount'])
+        // console.log([this.blockData().order, 'componentDidMount'])
         if (this.props.active) {
             this.editableRoot().focus();
         }
@@ -275,7 +279,7 @@ export abstract class ABCBlock<
         prevState: Readonly<S>,
         snapshot?: any
     ): void {
-        console.log([this.props.data.order, 'componentDidUpdate'])
+        console.log([this.blockData().order, 'componentDidUpdate'])
         if (this.props.active && !prevProps.active) {
             this.editableRoot().focus();
         }
@@ -318,7 +322,7 @@ export abstract class ABCBlock<
         this.caret = e
     }
     handleBlur(e) {
-        console.log([this.props.data.order, 'blur', e])
+        console.log([this.blockData().order, 'blur', e])
         // console.log(['block blur', e])
         if (this.lastEditTime) {
             // debugger
@@ -332,7 +336,7 @@ export abstract class ABCBlock<
     }
 
     handleFocus(e: React.FocusEvent) {
-        console.log([this.props.data.order, 'focus', e])
+        console.log([this.blockData().order, 'focus', e])
         const jumpHistory = this.props.jumpHistory
         e.preventDefault()
         if (jumpHistory) {
@@ -771,7 +775,7 @@ export abstract class ABCBlock<
     handleMouseDown(e: React.MouseEvent) { }
     defaultHandleMouseEnter(e) { }
     defaultHandleMouseDown(e) {
-        console.log([this.props.data.order, 'MouseDown', e])
+        console.log([this.blockData().order, 'MouseDown', e])
         if (!this.props.active) {
             this.props.onActiveShouldChange({ type: 'mouse' })
         }
@@ -783,7 +787,7 @@ export abstract class ABCBlock<
     }
 
     defaultHandleMouseUp(e: React.MouseEvent) {
-        console.log([this.props.data.order, 'MouseUp', e])
+        console.log([this.blockData().order, 'MouseUp', e])
         const valid = this.boundhint.safeMousePosition()
         if (!valid) {
             const parent = op.findParentMatchTagName(e.target as Node, 'label', this.currentContainer())
@@ -866,7 +870,7 @@ export abstract class ABCBlock<
     }
 
     render(): React.ReactNode {
-        const initialData = this.props.data
+        const initialData = this.blockData()
 
         return <div
             className={[

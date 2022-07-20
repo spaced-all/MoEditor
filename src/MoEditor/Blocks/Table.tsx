@@ -1,5 +1,5 @@
 import React from "react";
-import { ContentItem, DefaultBlock, DefaultBlockData, TableData, TableDataFrame } from "../types";
+import { ContentItem, DefaultBlockData, TableData, TableDataFrame } from "../types";
 import produce from "immer";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"

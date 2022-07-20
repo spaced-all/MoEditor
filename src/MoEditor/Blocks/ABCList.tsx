@@ -1,5 +1,5 @@
 import React from "react";
-import { ABCListData, DefaultBlockData, IndentItem } from "../types";
+import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem } from "../types";
 import produce from "immer"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
@@ -9,12 +9,13 @@ export interface ABCListProps extends ABCBlockProps {
 }
 
 export interface ABCListStats extends ABCBlockStates {
+    data?: any
 }
 
 
 export abstract class ABCList<
-    P extends ABCBlockProps,
-    S extends ABCBlockStates,
+    P extends ABCListProps,
+    S extends ABCListStats,
     O extends HTMLElement, // outer block element type
     I extends HTMLElement // inner block element type
     > extends ABCBlock<P, S, O, I> {
@@ -24,7 +25,6 @@ export abstract class ABCList<
     protected get contentEditableName(): string {
         return ``
     }
-
 
     static merge(self: DefaultBlockData, block: DefaultBlockData): MergeResult {
         // let blockData: ABCListData<IndentItem> = self[self.type]
@@ -83,6 +83,17 @@ export abstract class ABCList<
             default:
                 return { notImplement: true }
         }
+    }
+
+    constructor(props: P) {
+        super(props)
+        this.state = {
+            data: props.data
+        } as S
+    }
+
+    blockData(): DefaultBlock {
+        return this.state.data
     }
 
     currentContainer = (): I => {

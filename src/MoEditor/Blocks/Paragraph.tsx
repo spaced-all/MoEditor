@@ -1,5 +1,5 @@
 import React from "react";
-import { ContentItem, DefaultBlock, DefaultBlockData, ParagraphData } from "../types";
+import { ContentItem, DefaultBlockData, ParagraphData } from "../types";
 import * as op from "../dom"
 import { MergeResult } from "./events";
 import { ABCLine, ABCLineProps, ABCLineStats } from "./ABCLine";
