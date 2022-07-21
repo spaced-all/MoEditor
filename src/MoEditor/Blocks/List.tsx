@@ -42,45 +42,8 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
         }
     }
 
-    handleTab(e: React.KeyboardEvent<Element>): void {
-        e.preventDefault()
-        if (e.shiftKey) {
-            this.changeIndent(-1)
-        } else {
-            this.changeIndent(1)
-        }
-    }
 
 
-    handleEnter(e: React.KeyboardEvent<Element>): void {
-        const leftFrag = op.cloneFragmentsBefore(this.currentContainer())
-        const rightFrag = op.cloneFragmentsAfter(this.currentContainer())
-        const ind = this.currentContainerIndex()
-        // TODO 这里存在效率问题，需要优化更小的更新粒度
-        const left = parseContent(op.validChildNodes(leftFrag))
-        const right = parseContent(op.validChildNodes(rightFrag))
-        const block = this.blockData()
-        const innerData = produce(this.serializeContentData(), draft => {
-            draft.children.splice(ind, 1, {
-                'children': left,
-                'level': draft.children[ind].level
-            }, {
-                'children': right,
-                'level': draft.children[ind].level
-            })
-        })
-
-
-        const newBlock = produce(block, draft => {
-            draft.list = innerData
-        })
-        this.setState({
-            data: newBlock,
-            isEnter: true,
-        })
-        this.forceUpdate()
-        e.preventDefault()
-    }
 
 
     handleBackspace(e: React.KeyboardEvent<Element>): void {

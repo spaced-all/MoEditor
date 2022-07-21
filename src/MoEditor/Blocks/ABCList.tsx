@@ -11,7 +11,11 @@ export interface ABCListProps extends ABCBlockProps {
 
 export interface ABCListStats extends ABCBlockStates {
     data?: any
-    isEnter?: boolean
+    isEnter?: boolean,
+    historyPosition?: {
+        ind: number,
+        offset: number
+    }
 }
 
 
@@ -97,14 +101,12 @@ export abstract class ABCList<
 
     componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot?: any): void {
         super.componentDidUpdate(prevProps, prevState, snapshot)
-        if (this.state.isEnter) {
+        if (this.state.historyPosition) {
             this.setState({
-                isEnter: false
+                historyPosition: null
             })
-            const next = this.nextRowContainer(this.currentContainer())
-            let pos = op.firstValidPosition(next)
-            pos = this.boundhint.safePosition(pos)
-            op.setPosition(pos)
+            const cur = this.getContainerByIndex(this.state.historyPosition.ind)
+            op.setCaretReletivePosition(cur, this.state.historyPosition.offset)
             this.boundhint.autoUpdate()
         }
     }
@@ -136,6 +138,11 @@ export abstract class ABCList<
         const container = op.findParentMatchTagName(sel.focusNode, 'li', this.editableRoot()) as I
         return container
     };
+    getContainerByIndex = (index: number): I => {
+        const el = this.editableRoot()
+        const container = el.querySelector(`[data-index="${index}"]`) as I
+        return container
+    }
 
     firstContainer = (): I => {
         return op.firstValidChild(this.editableRoot()) as I
@@ -191,7 +198,11 @@ export abstract class ABCList<
             }
         })
         this.setState({
-            data: newBlock
+            data: newBlock,
+            historyPosition: {
+                ind,
+                offset: op.getCaretReletivePosition(el),
+            }
         })
         if (update) {
             this.forceUpdate()
@@ -217,6 +228,49 @@ export abstract class ABCList<
                 'data': newBlock
             })
             this.forceUpdate()
+        }
+    }
+    handleEnter(e: React.KeyboardEvent<Element>): void {
+        const leftFrag = op.cloneFragmentsBefore(this.currentContainer())
+        const rightFrag = op.cloneFragmentsAfter(this.currentContainer())
+        const ind = this.currentContainerIndex()
+        // TODO 这里存在效率问题，需要优化更小的更新粒度
+        const left = parseContent(op.validChildNodes(leftFrag))
+        const right = parseContent(op.validChildNodes(rightFrag))
+        const block = this.blockData()
+        const innerData = produce(this.serializeContentData() as any, draft => {
+            draft.children.splice(ind, 1,
+                {
+                    ...draft.children[ind],
+                    'children': left,
+                },
+                {
+                    ...draft.children[ind],
+                    'children': right,
+                })
+        })
+
+
+        const newBlock = produce(block, draft => {
+            draft[draft.type] = innerData
+        })
+        this.setState({
+            data: newBlock,
+            historyPosition: {
+                ind: ind + 1,
+                offset: 0
+            }
+        })
+        this.forceUpdate()
+        e.preventDefault()
+    }
+
+    handleTab(e: React.KeyboardEvent<Element>): void {
+        e.preventDefault()
+        if (e.shiftKey) {
+            this.changeIndent(-1)
+        } else {
+            this.changeIndent(1)
         }
     }
     renderBlock(block: DefaultBlockData): React.ReactNode {
