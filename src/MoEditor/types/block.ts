@@ -118,7 +118,7 @@ export interface DefaultBlock {
   blockquote?: BlockQuoteData;
 
   list?: UnorderedListData;
-  orderedlist?: OrderedListData;
+  orderedList?: OrderedListData;
   todo?: TodoData;
 
   table?: TableData;

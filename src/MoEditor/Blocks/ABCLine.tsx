@@ -38,53 +38,29 @@ export abstract class ABCLine<
                     draft.lastEditTime = new Date().getTime()
                 })
                 return { self }
-
-            case 'list':
-
-                self = produce(self, draft => {
-                    draft[self.type].children = [
-                        ...self[self.type].children,
-                        ...self.list.children[0].children
-                    ]
-                    draft.lastEditTime = new Date().getTime()
-                })
-                if (block.list.children.length === 1) {
-                    return { self }
-
-                } else {
-                    block.list.children.splice(0, 1)
-                    return { self, block }
-                }
             case 'todo':
-                self = produce(self, draft => {
-                    draft[self.type].children = [
-                        ...self[self.type].children,
-                        ...self.todo.children[0].children
-                    ]
-                    draft.lastEditTime = new Date().getTime()
-                })
-                if (block.todo.children.length === 1) {
-                    return { self }
-
-                } else {
-                    block.todo.children.splice(0, 1)
-                    return { self, block }
-                }
             case 'orderedList':
+            case 'list':
+                const bType = block.type
                 self = produce(self, draft => {
-                    draft[self.type].children = [
+                    draft[draft.type].children = [
                         ...self[self.type].children,
-                        ...self.orderedlist.children[0].children
+                        ...block[bType].children[0].children
                     ]
                     draft.lastEditTime = new Date().getTime()
                 })
-                if (block.orderedlist.children.length === 1) {
+                if (block[bType].children.length === 1) {
                     return { self }
 
                 } else {
-                    block.orderedlist.children.splice(0, 1)
+                    block = produce(block, draft => {
+                        draft[bType].children.splice(0, 1)
+                        draft.lastEditTime = new Date().getTime()
+                    })
                     return { self, block }
                 }
+
+
             default:
                 return { notImplement: true }
         }
@@ -127,12 +103,20 @@ export abstract class ABCLine<
             frag.childNodes.forEach(item => nodes.push(item))
             this.serializeContentData()
             cur = this.serialize()
-            newBlock = {
-                type: 'paragraph',
-                order: '',
-                lastEditTime: new Date().getTime(),
-                paragraph: {
-                    'children': parseContent(nodes)
+            if (cur.type === 'blockquote') {
+                newBlock = produce(cur, draft => {
+                    draft.order = ''
+                    draft.lastEditTime = new Date().getTime()
+                    draft.blockquote.children = parseContent(nodes)
+                })
+            } else {
+                newBlock = {
+                    type: 'paragraph',
+                    order: '',
+                    lastEditTime: new Date().getTime(),
+                    paragraph: {
+                        'children': parseContent(nodes)
+                    }
                 }
             }
         }

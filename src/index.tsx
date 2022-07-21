@@ -106,7 +106,7 @@ const data1: DefaultBlockData[] = [
   {
     'type': 'orderedList',
     'order': 'd',
-    'orderedlist': {
+    'orderedList': {
       'children': [
         { 'level': 1, 'children': [{ 'tagName': '#text', 'textContent': ' Plain Text ' },] },
         { 'level': 1, 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },

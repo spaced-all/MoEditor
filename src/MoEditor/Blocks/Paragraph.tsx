@@ -72,7 +72,7 @@ export class Paragraph extends ABCLine<ParagraphProps, ParagraphStats, HTMLParag
                 op.deleteTextBefore(this.currentContainer())
                 data = this.serializeContentData()
                 block.type = 'orderedList'
-                block.orderedlist = {
+                block.orderedList = {
                     'children': [{
                         'level': 1,
                         'children': data.children

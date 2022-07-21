@@ -1,15 +1,17 @@
 import React from "react";
-import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem } from "../types";
+import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem, OrderedListData } from "../types";
 import produce from "immer"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
-import { MergeResult } from "./events";
+import { MergeEvent, MergeResult } from "./events";
+import { parseContent } from "./Common";
 
 export interface ABCListProps extends ABCBlockProps {
 }
 
 export interface ABCListStats extends ABCBlockStates {
     data?: any
+    isEnter?: boolean
 }
 
 
@@ -47,7 +49,7 @@ export abstract class ABCList<
             case 'todo':
             case 'orderedList':
                 self = produce(self, draft => {
-                    let blockData: ABCListData<IndentItem> = draft[self.type]
+                    let blockData: ABCListData<IndentItem> = draft[draft.type]
                     blockData.children = [
                         ...blockData.children,
                         ...block[block.type].children
@@ -60,7 +62,7 @@ export abstract class ABCList<
                             }
                         })
                     } else if (self.type === 'orderedList') {
-                        draft.orderedlist.children = blockData.children.map((item) => {
+                        draft.orderedList.children = blockData.children.map((item) => {
                             return {
                                 'children': item.children,
                                 'level': item.level,
@@ -88,8 +90,41 @@ export abstract class ABCList<
     constructor(props: P) {
         super(props)
         this.state = {
-            data: props.data
+            data: props.data,
+            isEnter: false,
         } as S
+    }
+
+    componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot?: any): void {
+        super.componentDidUpdate(prevProps, prevState, snapshot)
+        if (this.state.isEnter) {
+            this.setState({
+                isEnter: false
+            })
+            const next = this.nextRowContainer(this.currentContainer())
+            let pos = op.firstValidPosition(next)
+            pos = this.boundhint.safePosition(pos)
+            op.setPosition(pos)
+            this.boundhint.autoUpdate()
+        }
+    }
+
+    /**
+     * TODO first/last container cannot be merged in some situation, 
+     * so index should be passed in block to avoid unnecessary serialization.
+     * 
+     * @param e 
+     * @returns 
+     */
+    processMergeEvent(e: MergeEvent): boolean {
+        e.block = this.serialize()
+        if (e.direction === 'left') {
+            e.offset = -op.getContentSize(this.editableRoot()) - 1
+        } else {
+            e.offset = op.getContentSize(this.editableRoot()) - 1
+        }
+        this.props.onMerge(e)
+        return true
     }
 
     blockData(): DefaultBlock {
@@ -130,6 +165,60 @@ export abstract class ABCList<
         return this.previousContainer(el)
     }
 
+    currentContainerIndex(): number {
+        const el = this.currentContainer()
+        return parseFloat(el.getAttribute('data-index'))
+    }
+    changeIndent(offset) {
+        const block: DefaultBlockData = this.blockData()
+        const el = this.currentContainer()
+        const ind = parseFloat(el.getAttribute('data-index'))
+        let update = true
+        const newBlock = produce(block, draft => {
+            const line = draft[draft.type].children[ind]
+            const level = line.level + offset
+            const newLevel = Math.max(Math.min(level, 8), 1)
+            if (newLevel !== level) {
+                update = false
+            }
+
+            draft[draft.type].children[ind] = {
+                ...line,
+                level: newLevel
+            }
+            if (this.lastEditTime) {
+                draft[draft.type].children[ind].children = parseContent(op.validChildNodes(this.currentContainer()))
+            }
+        })
+        this.setState({
+            data: newBlock
+        })
+        if (update) {
+            this.forceUpdate()
+        }
+        return update
+    }
+    handleDelete(e: React.KeyboardEvent<Element>): void {
+        if (this.isCursorRight()) {
+            e.preventDefault()
+            const data: ABCListData<IndentItem> = this.serializeContentData() as any
+            const ind = this.currentContainerIndex()
+            const newBlock = produce(this.blockData(), draft => {
+                draft[draft.type].children.splice(ind, 2, {
+                    ...data.children[ind].children,
+                    'children': [
+                        ...data.children[ind].children,
+                        ...data.children[ind + 1].children],
+
+                })
+
+            })
+            this.setState({
+                'data': newBlock
+            })
+            this.forceUpdate()
+        }
+    }
     renderBlock(block: DefaultBlockData): React.ReactNode {
         return this.renderContentItem(block.heading.children)
     }

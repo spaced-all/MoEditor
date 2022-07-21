@@ -61,7 +61,7 @@ export type DataUpdateEventHandler = (event: DataUpdateEvent) => void;
 
 export class JumpEvent {
   // focusEvent?: React.FocusEvent;
-  type?: "neighbor" | "jump" | "mouse";
+  type?: "neighbor" | "jump" | "mouse" | "merge";
   from?: "above" | "below";
   offset?: number;
   // is true, will return false if has no neighbor container

@@ -325,7 +325,6 @@ export abstract class ABCBlock<
         console.log([this.blockData().order, 'blur', e])
         // console.log(['block blur', e])
         if (this.lastEditTime) {
-            // debugger
             this.boundhint.remove()
             this.props.onDataUpdate({
                 // need diff or trigger to ignore unchanged block to call serialize()
@@ -362,7 +361,20 @@ export abstract class ABCBlock<
                 this.boundhint.autoUpdate({ root: root })
                 this.clearJumpHistory()
                 return
-            } else {
+            } else if (jumpHistory.type === 'merge') {
+                let root = this.editableRoot()
+                const res = op.setCaretReletivePosition(root, jumpHistory.offset)
+                let pos = op.currentPosition(root)
+                pos = this.boundhint.safePosition(pos)
+                op.setPosition(pos)
+                this.boundhint.autoUpdate({ root: root })
+                if (!res) {
+                    this.jumpHistory = jumpHistory
+                } else {
+                    this.clearJumpHistory()
+                }
+            }
+            else {
                 // debugger
                 // this.boundhint.autoUpdate({ root: this.currentContainer() })
                 // // op.setPosition(pos)
@@ -620,12 +632,14 @@ export abstract class ABCBlock<
                 op.deleteStyle(tag, this.currentContainer());
                 e.preventDefault();
             }
+            this.dispatchInputEvent()
             return;
         } else {
             const sel = document.getSelection()
             if (op.isTag(sel.focusNode, 'label')) {
                 sel.focusNode.parentElement.removeChild(sel.focusNode)
                 e.preventDefault()
+                this.dispatchInputEvent()
                 return
             }
         }
@@ -654,6 +668,12 @@ export abstract class ABCBlock<
     handleSpace(e: React.KeyboardEvent) {
 
     }
+
+    dispatchInputEvent() {
+        const event = new Event('input', { 'bubbles': true, cancelable: true })
+        this.editableRoot().dispatchEvent(event)
+    }
+
     handleInputKeyDown(e: React.KeyboardEvent) {
         const target = e.target as HTMLElement
         const editableRoot = this.editableRoot()
@@ -758,8 +778,12 @@ export abstract class ABCBlock<
         } else {
             if (e.metaKey) {
                 if (op.supportStyleKey(e.key)) {
+                    this.dispatchInputEvent()
                     op.applyStyle(e.key, this.currentContainer());
                     this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
+
+                    this.lastEditTime = new Date().getTime()
+
                     e.preventDefault();
                     return;
                 }
@@ -863,7 +887,7 @@ export abstract class ABCBlock<
 
     }
     handleDataChange(e) {
-
+        debugger
     }
     public get placeholder(): string | undefined {
         return undefined

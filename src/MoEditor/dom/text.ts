@@ -1,5 +1,6 @@
 import {
   createCaretPosition,
+  firstCaretPosition,
   lastCaretPosition,
 } from "../../BlockEditor/operation";
 import { elementCharSize } from "./caret";
@@ -41,6 +42,42 @@ export function extractFragmentsAfter(
   return frag;
 }
 
+export function cloneFragmentsBefore(
+  root: HTMLElement,
+  container?: Node,
+  offset?: number
+) {
+  if (!container) {
+    const sel = document.getSelection();
+    container = sel.focusNode;
+    offset = sel.focusOffset;
+  }
+  const left = firstCaretPosition(root);
+  const right = createCaretPosition(root, container, offset);
+  const range = document.createRange();
+  range.setStart(left.container, left.offset);
+  range.setEnd(right.container, right.offset);
+  const frag = range.cloneContents();
+  return frag;
+}
+export function cloneFragmentsAfter(
+  root: HTMLElement,
+  container?: Node,
+  offset?: number
+) {
+  if (!container) {
+    const sel = document.getSelection();
+    container = sel.focusNode;
+    offset = sel.focusOffset;
+  }
+  const left = createCaretPosition(root, container, offset);
+  const right = lastCaretPosition(root);
+  const range = document.createRange();
+  range.setStart(left.container, left.offset);
+  range.setEnd(right.container, right.offset);
+  const frag = range.cloneContents();
+  return frag;
+}
 export function fullText(el: Node) {
   const val = validChildNodes(el).map((item) => item.textContent);
   return val.join("");
@@ -70,4 +107,3 @@ export function deleteTextBefore(
   range.setStart(root, 0);
   range.deleteContents();
 }
-

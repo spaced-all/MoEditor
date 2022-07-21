@@ -65,9 +65,9 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
             const end = this.textArea.selectionEnd
             const pad = 4 - start % 4
             if (start === end) {
-                const event = new Event('input', { 'bubbles': true, cancelable: true })
                 this.textArea.setRangeText(' '.repeat(pad))
                 this.textArea.setSelectionRange(start + pad, end + pad)
+                const event = new Event('input', { 'bubbles': true, cancelable: true })
                 this.textArea.dispatchEvent(event)
                 console.log(this.textArea.value)
                 // ? TODO if use this code, backspace may trigger bugs(only move range but not delete char)

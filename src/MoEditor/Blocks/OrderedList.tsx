@@ -41,7 +41,7 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
         }
     }
     renderBlock(block: DefaultBlockData): React.ReactNode {
-        return block.orderedlist.children.map((item, ind) => {
+        return block.orderedList.children.map((item, ind) => {
             return <li
                 data-level={item.level}
                 data-marker={item.marker}

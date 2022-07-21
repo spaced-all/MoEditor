@@ -104,11 +104,15 @@ export class Page extends React.Component<PageProps, PageStates> {
                         }
                     })
                     newFocused = neighbor.order
+
                     newOrder = produce(order, draft => {
-                        return draft.filter(item => {
-                            return item !== evt.block.order
-                        })
+                        if (!block) {
+                            return draft.filter(item => {
+                                return item !== evt.block.order
+                            })
+                        }
                     })
+
                     jumpHistory = {
                         from: 'below',
                         offset: evt.offset,
@@ -134,15 +138,19 @@ export class Page extends React.Component<PageProps, PageStates> {
                         }
                     })
                     newFocused = evt.block.order
+                    // if block is none, then delete corresponding block
+
                     newOrder = produce(order, draft => {
-                        return draft.filter(item => {
-                            return item !== neighbor.order
-                        })
+                        if (!block) {
+                            return draft.filter(item => {
+                                return item !== neighbor.order
+                            })
+                        }
                     })
+
                     jumpHistory = {
-                        from: 'above',
                         offset: evt.offset,
-                        type: 'jump',
+                        type: 'merge',
                     }
                 }
             }
