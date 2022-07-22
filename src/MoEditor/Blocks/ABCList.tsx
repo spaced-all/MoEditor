@@ -1,5 +1,5 @@
 import React from "react";
-import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem, OrderedListData } from "../types";
+import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem, OrderedListData, TargetPosition as NextPosition } from "../types";
 import produce from "immer"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
@@ -111,24 +111,6 @@ export abstract class ABCList<
         }
     }
 
-    /**
-     * TODO first/last container cannot be merged in some situation, 
-     * so index should be passed in block to avoid unnecessary serialization.
-     * 
-     * @param e 
-     * @returns 
-     */
-    processMergeEvent(e: MergeEvent): boolean {
-        e.block = this.serialize()
-        if (e.direction === 'left') {
-            e.offset = -op.getContentSize(this.editableRoot()) - 1
-        } else {
-            e.offset = op.getContentSize(this.editableRoot()) - 1
-        }
-        this.props.onMerge(e)
-        return true
-    }
-
     blockData(): DefaultBlock {
         return this.state.data
     }
@@ -138,7 +120,15 @@ export abstract class ABCList<
         const container = op.findParentMatchTagName(sel.focusNode, 'li', this.editableRoot()) as I
         return container
     };
-    getContainerByIndex = (index: number): I => {
+
+    rowNumber = (): number => {
+        const block = this.blockData()
+        return block[block.type].children.length
+    }
+    getContainerByIndex(index: number): I {
+        if (index < 0) {
+            index = this.rowNumber() + index
+        }
         const el = this.editableRoot()
         const container = el.querySelector(`[data-index="${index}"]`) as I
         return container
@@ -209,34 +199,85 @@ export abstract class ABCList<
         }
         return update
     }
-    handleDelete(e: React.KeyboardEvent<Element>): void {
-        if (this.isCursorRight()) {
-            e.preventDefault()
-            const ind = this.currentContainerIndex()
-            const old = this.blockData()
-            if (ind === old[old.type].children.length - 1) {
-                this.processMergeEvent({
-                    direction: 'right'
-                })
-                return
+
+    processMergeEvent(e: MergeEvent): boolean {
+        e.block = this.serialize()
+
+        const ind = this.currentContainerIndex()
+        const old = this.blockData()
+
+        if (ind === old[old.type].children.length - 1) {
+            const relative: NextPosition = {
+                'index': e.direction === 'left' ? -1 : this.currentContainerIndex(),
+                'offset': (
+                    e.direction === 'left' ?
+                        -op.getContentSize(this.currentContainer()) - 1 :
+                        op.getContentSize(this.currentContainer())
+                ),
+                'type': 'merge',
             }
+            e.relative = relative
+            this.props.onMerge(e)
+            return
+        }
+        const data: ABCListData<IndentItem> = this.serializeContentData() as any
 
-            const data: ABCListData<IndentItem> = this.serializeContentData() as any
-
-            const newBlock = produce(this.blockData(), draft => {
-                draft[draft.type].children.splice(ind, 2, {
+        const newBlock = produce(this.blockData(), draft => {
+            draft[draft.type].children.splice(ind, 2, {
+                ...data.children[ind],
+                'children': [
                     ...data.children[ind].children,
-                    'children': [
-                        ...data.children[ind].children,
-                        ...data.children[ind + 1].children],
+                    ...data.children[ind + 1].children],
+            })
 
+        })
+        this.setState({
+            'data': newBlock
+        })
+        this.forceUpdate()
+        return true
+    }
+    handleBackspace(e: React.KeyboardEvent<Element>): void {
+        if (this.isCursorLeft()) {
+            e.preventDefault()
+            const hitLeft = !this.changeIndent(-1)
+            if (hitLeft) {
+                const data = this.serializeContentData() as any
+                const ind = this.currentContainerIndex()
+                const focus: DefaultBlockData = {
+                    'order': '',
+                    'type': 'paragraph',
+                    paragraph: {
+                        'children': data.children[ind].children
+                    }
+                }
+                let left, right: DefaultBlockData;
+                if (ind > 0) {
+
+                    left = produce(this.blockData(), draft => {
+                        draft.order = ''
+                        draft.id = undefined
+                        draft[draft.type] = produce(data, draft => {
+                            draft.children.splice(ind, draft.children.length - ind)
+                        })
+                    })
+                }
+                if (ind < data.children.length - 1) {
+                    right = produce(this.blockData(), draft => {
+                        draft.order = ''
+                        draft.id = undefined
+                        draft[draft.type] = produce(data, draft => {
+                            draft.children.splice(0, ind + 1)
+                        })
+                    })
+                }
+
+                this.props.onSplit({
+                    'left': left,
+                    'focus': focus,
+                    'right': right,
                 })
-
-            })
-            this.setState({
-                'data': newBlock
-            })
-            this.forceUpdate()
+            }
         }
     }
     handleEnter(e: React.KeyboardEvent<Element>): void {

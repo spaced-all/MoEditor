@@ -42,50 +42,6 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
         }
     }
 
-
-
-    handleBackspace(e: React.KeyboardEvent<Element>): void {
-        if (this.isCursorLeft()) {
-            e.preventDefault()
-            const hitLeft = !this.changeIndent(-1)
-            if (hitLeft) {
-                const data = this.serializeContentData()
-                const ind = this.currentContainerIndex()
-                const focus: DefaultBlockData = {
-                    'order': '',
-                    'type': 'paragraph',
-                    paragraph: {
-                        'children': data.children[ind].children
-                    }
-                }
-                let left, right: DefaultBlockData;
-                if (ind > 0) {
-                    left = {
-                        'order': '',
-                        'type': 'list',
-                        list: produce(data, draft => {
-                            draft.children.splice(ind, draft.children.length - ind)
-                        })
-                    }
-                }
-                if (ind < data.children.length - 1) {
-                    right = {
-                        'order': '',
-                        'type': 'list',
-                        list: produce(data, draft => {
-                            draft.children.splice(0, ind + 1)
-                        })
-                    }
-                }
-
-                this.props.onSplit({
-                    'left': left,
-                    'focus': focus,
-                    'right': right,
-                })
-            }
-        }
-    }
     renderBlock(block: DefaultBlockData): React.ReactNode {
         return block.list.children.map((item, ind) => {
             return <li

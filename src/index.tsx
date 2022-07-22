@@ -65,7 +65,7 @@ const data1: DefaultBlockData[] = [
     'type': 'heading',
     'order': 'b',
     'heading': {
-      'level': 1,
+      'level': 0,
       'children': [
         { 'tagName': '#text', 'textContent': ' Plain Text ' },
         { 'tagName': 'b', 'textContent': ' Bold ' },
@@ -79,7 +79,7 @@ const data1: DefaultBlockData[] = [
     'type': 'heading',
     'order': 'bb',
     'heading': {
-      'level': 1,
+      'level': 0,
     }
   },
   {
@@ -94,12 +94,12 @@ const data1: DefaultBlockData[] = [
     'order': 'c',
     'list': {
       'children': [
-        { 'level': 1, 'children': [{ 'tagName': '#text', 'textContent': ' Plain Text ' },] },
-        { 'level': 1, 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
-        { 'level': 1, 'children': [{ 'tagName': 's', 'textContent': ' Delete ' }] },
-        { 'level': 1, 'children': [{ 'tagName': 'i', 'textContent': ' Italic ' }] },
-        { 'level': 1, 'children': [{ 'tagName': 'math', 'textContent': 'f_i(x_t)=a_ix^2_t+b_i' }] },
-        { 'level': 1, 'children': [{ 'tagName': 'code', 'textContent': ' Inline Code ' }] },
+        { 'level': 0, 'children': [{ 'tagName': '#text', 'textContent': ' Plain Text ' },] },
+        { 'level': 0, 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
+        { 'level': 0, 'children': [{ 'tagName': 's', 'textContent': ' Delete ' }] },
+        { 'level': 0, 'children': [{ 'tagName': 'i', 'textContent': ' Italic ' }] },
+        { 'level': 0, 'children': [{ 'tagName': 'math', 'textContent': 'f_i(x_t)=a_ix^2_t+b_i' }] },
+        { 'level': 0, 'children': [{ 'tagName': 'code', 'textContent': ' Inline Code ' }] },
       ]
     }
   },
@@ -108,11 +108,11 @@ const data1: DefaultBlockData[] = [
     'order': 'd',
     'orderedList': {
       'children': [
-        { 'level': 1, 'children': [{ 'tagName': '#text', 'textContent': ' Plain Text ' },] },
-        { 'level': 1, 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
-        { 'level': 1, 'children': [{ 'tagName': 's', 'textContent': ' Delete ' }] },
-        { 'level': 1, 'children': [{ 'tagName': 'i', 'textContent': ' Italic ' }] },
-        { 'level': 1, 'children': [{ 'tagName': 'code', 'textContent': ' Inline Code ' }] },
+        { 'level': 0, 'children': [{ 'tagName': '#text', 'textContent': ' Plain Text ' },] },
+        { 'level': 0, 'children': [{ 'tagName': 'b', 'textContent': ' Bold ' }] },
+        { 'level': 0, 'children': [{ 'tagName': 's', 'textContent': ' Delete ' }] },
+        { 'level': 0, 'children': [{ 'tagName': 'i', 'textContent': ' Italic ' }] },
+        { 'level': 0, 'children': [{ 'tagName': 'code', 'textContent': ' Inline Code ' }] },
       ]
     }
   },

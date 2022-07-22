@@ -43,8 +43,12 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
     renderBlock(block: DefaultBlockData): React.ReactNode {
         return block.orderedList.children.map((item, ind) => {
             return <li
+                style={{
+                    listStyleType: 'decimal',
+                    marginLeft: item.level * 40
+                }}
+                data-index={ind}
                 data-level={item.level}
-                data-marker={item.marker}
                 key={ind}>{this.renderContentItem(item.children)}</li>
         })
     }

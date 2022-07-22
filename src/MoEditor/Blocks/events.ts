@@ -1,5 +1,5 @@
 import React from "react";
-import { DefaultBlockData } from "../types";
+import { DefaultBlockData, TargetPosition } from "../types";
 
 type UpdateType = "archive" | "create" | "update";
 
@@ -27,6 +27,7 @@ export class MergeEvent {
   direction: "left" | "right";
   block?: DefaultBlockData;
   offset?: number;
+  relative?: TargetPosition;
 }
 export interface MergeResult {
   notImplement?: boolean;
@@ -66,6 +67,8 @@ export class JumpEvent {
   offset?: number;
   // is true, will return false if has no neighbor container
   noPropagation?: boolean;
+
+  relative?: TargetPosition;
 }
 export type JumpEventHandler = (event: JumpEvent) => void;
 

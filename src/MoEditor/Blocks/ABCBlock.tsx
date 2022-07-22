@@ -1,5 +1,5 @@
 import { ContentEditable } from "./Common"
-import { DefaultBlockData, Caret, ContentItem, Position, UserCaret, MetaInfo, Relative } from "../types";
+import { DefaultBlockData, Caret, ContentItem, Position, UserCaret, MetaInfo, TargetPosition as AimPosition, hdirection } from "../types";
 import React from "react";
 import produce from "immer"
 import { ContentItemRender } from "./Content";
@@ -36,8 +36,9 @@ export interface ABCBlockProps {
     caret?: UserCaret;
     active?: boolean;
     // initialCaret?: OffsetCaret;
-    jumpHistory?: JumpEvent
-    positionHistory?: Relative
+    // jumpHistory?: JumpEvent
+    posHistory?: AimPosition
+    // positionHistory?: Relative
     // onUpdate?: BlockUpdateEventHandler;
     onSelect?: (e: React.SyntheticEvent<HTMLElement>) => void;
 
@@ -188,7 +189,7 @@ export abstract class ABCBlock<
     }
 
     boundhint: BoundHintType<BoundHint>;
-    jumpHistory?: JumpEvent
+    posHistory?: AimPosition
     caret: Position;
     lastEditTime?: number;
     insertHistory: string[];
@@ -197,7 +198,8 @@ export abstract class ABCBlock<
     constructor(props: P) {
         super(props);
         this.boundhint = new BoundHint()
-        this.jumpHistory = null
+        // this.jumpHistory = null
+        this.posHistory = null
         this.caret = null;
         this.lastEditTime = null
         this.insertHistory = []
@@ -236,10 +238,13 @@ export abstract class ABCBlock<
         this.clearJumpHistory = this.clearJumpHistory.bind(this)
         this.serialize = this.serialize.bind(this)
         this.serializeContentData = this.serializeContentData.bind(this)
+
+        this.getContainerByIndex = this.getContainerByIndex.bind(this)
     }
 
     clearJumpHistory() {
-        this.jumpHistory = null
+        // this.jumpHistory = null
+        this.posHistory = null
     }
 
 
@@ -263,6 +268,9 @@ export abstract class ABCBlock<
         //     // ? hack code to avoid blur after focus triggered when mouse click unactived block
         //     return false
         // }
+        if (nextProps.posHistory && nextProps.posHistory.type === 'mouse') {
+            return false
+        }
         const res = nextProps.data.lastEditTime !== this.blockData().lastEditTime || (nextProps.active && !this.props.active)
 
         return res
@@ -286,7 +294,10 @@ export abstract class ABCBlock<
     }
 
     getContainerByIndex(index: number | number[]): I {
-        return this.editableRoot() as any as I
+        if (index === 0 || index === -1) {
+            return this.editableRoot() as any as I
+        }
+        return null
     }
 
     currentContainer(): I {
@@ -340,14 +351,13 @@ export abstract class ABCBlock<
 
     handleFocus(e: React.FocusEvent) {
         console.log([this.blockData().order, 'focus', e])
-        const jumpHistory = this.props.jumpHistory
-        const posHistory = this.props.positionHistory
+        // const jumpHistory = this.props.jumpHistory
+        const posHistory = this.props.posHistory
         e.preventDefault()
 
-        if (posHistory) {
+        if (posHistory && posHistory.type !== 'mouse') {
             const el = this.getContainerByIndex(posHistory.index)
             let res: boolean;
-
             if (posHistory.softwrap) {
                 res = op.setCaretReletivePositionAtLastLine(el, posHistory.offset)
             } else {
@@ -359,58 +369,15 @@ export abstract class ABCBlock<
             op.setPosition(pos)
             this.boundhint.autoUpdate({ root: this.editableRoot() })
             if (!res) {
-                this.jumpHistory = jumpHistory
+                this.posHistory = posHistory
             } else {
                 this.clearJumpHistory()
             }
         }
-
-        if (jumpHistory) {
-            if (jumpHistory.type === 'jump') {
-                let root = jumpHistory.from === 'below' ? this.lastContainer() : this.firstContainer()
-                const res = op.setCaretReletivePosition(root, jumpHistory.offset)
-                let pos = op.currentPosition(this.currentContainer())
-                pos = this.boundhint.safePosition(pos)
-                op.setPosition(pos)
-                this.boundhint.autoUpdate({ root: root })
-                if (!res) {
-                    this.jumpHistory = jumpHistory
-                } else {
-                    this.clearJumpHistory()
-                }
-                // console.log(['focused', jumpHistory.offset, res, this.jumpHistory ? this.jumpHistory.offset : null])
-                return
-            } else if (jumpHistory.type === 'neighbor') {
-                let root = jumpHistory.from === 'below' ? this.lastContainer() : this.firstContainer()
-                let pos = jumpHistory.from === 'below' ? op.lastValidPosition(root) : op.firstValidPosition(root)
-                pos = this.boundhint.safePosition(pos)
-                op.setPosition(pos)
-                this.boundhint.autoUpdate({ root: root })
-                this.clearJumpHistory()
-                return
-            } else if (jumpHistory.type === 'merge') {
-                let root = this.editableRoot()
-                const res = op.setCaretReletivePosition(root, jumpHistory.offset)
-                let pos = op.currentPosition(root)
-                pos = this.boundhint.safePosition(pos)
-                op.setPosition(pos)
-                this.boundhint.autoUpdate({ root: root })
-                if (!res) {
-                    this.jumpHistory = jumpHistory
-                } else {
-                    this.clearJumpHistory()
-                }
-            }
-            else {
-                // debugger
-                // this.boundhint.autoUpdate({ root: this.currentContainer() })
-                // // op.setPosition(pos)
-                // this.clearJumpHistory()
-                return
-            }
+        const root = this.currentContainer()
+        if (root) {
+            this.boundhint.autoUpdate({ root: root })
         }
-
-        this.boundhint.autoUpdate({ root: this.currentContainer() })
         this.clearJumpHistory()
 
     }
@@ -528,8 +495,17 @@ export abstract class ABCBlock<
     isCursorRight() {
         return op.isCursorRight(this.currentContainer())
     }
-
-    activeContainer(el, direction: 'left' | 'right' | 'offset' = 'left', offset?: number) {
+    currentContainerIndex(): number {
+        return 0
+    }
+    activeContainer2(el, offset, softwrap): boolean {
+        if (softwrap) {
+            return op.setCaretReletivePositionAtLastLine(el, offset)
+        } else {
+            return op.setCaretReletivePosition(el, offset)
+        }
+    }
+    activeContainer(el, direction: hdirection, offset?: number) {
         if (direction === 'left') {
             op.setCaretReletivePosition(el as HTMLElement, 0)
         } else if (direction === 'right') {
@@ -543,37 +519,41 @@ export abstract class ABCBlock<
     handleArrowKeyDown(e: React.KeyboardEvent) {
         console.log('press')
         const root = this.currentContainer();
+
         if (e.key === "ArrowUp") {
             if (op.isFirstLine(root)) {
-
-                let event: JumpEvent = {
-                    'from': 'below',
-                    'type': 'jump',
-                    'offset': op.getCaretReletivePosition(this.currentContainer())
+                let posHistory: AimPosition = {
+                    // 'index': this.currentContainerIndex() - 1,
+                    // 'native': e,
+                    'direction': 'up',
+                    'offset': op.getCaretReletivePosition(this.currentContainer()),
+                    'softwrap': true,
+                    'type': 'keyboard'
                 }
-                if (this.jumpHistory) {
-                    event.offset = this.jumpHistory.offset
+                if (this.posHistory) {
+                    posHistory.offset = this.posHistory.offset
                     this.clearJumpHistory()
                 }
-                console.log(['Arrow Up', event.offset])
-                this.processJumpEvent(event);
+                this.processJumpEvent2(posHistory)
                 e.preventDefault();
                 return
             }
             this.boundhint.autoUpdate()
         } else if (e.key === "ArrowDown") {
             if (op.isLastLine(root)) {
-                let event: JumpEvent = {
-                    'from': 'above',
-                    'type': 'jump',
-                    'offset': op.getCaretReletivePositionAtLastLine(this.currentContainer())
+                let posHistory: AimPosition = {
+                    // 'index': this.currentContainerIndex() + 1,
+                    // 'native': e,
+                    'direction': 'down',
+                    'offset': op.getCaretReletivePositionAtLastLine(this.currentContainer()),
+                    'softwrap': false,
+                    'type': 'keyboard'
                 }
-                if (this.jumpHistory) {
-                    event.offset = this.jumpHistory.offset
-                    this.jumpHistory = null
+                if (this.posHistory) {
+                    posHistory.offset = this.posHistory.offset
+                    this.clearJumpHistory()
                 }
-                console.log(['Arrow Down', event.offset])
-                this.processJumpEvent(event);
+                this.processJumpEvent2(posHistory)
                 e.preventDefault()
                 return
             }
@@ -584,7 +564,17 @@ export abstract class ABCBlock<
             let pos = op.previousValidPosition(root, range.startContainer, range.startOffset);
             if (!pos) {
                 // on left bound
-                this.processJumpEvent({ 'from': 'below', 'type': 'neighbor' });
+                // this.processJumpEvent({ 'from': 'below', 'type': 'neighbor' });
+                let posHistory: AimPosition = {
+                    // 'index': this.currentContainerIndex() - 1,
+                    // 'native': e,
+                    'offset': -1,
+                    'direction': 'left',
+                    // 'softwrap': false,
+                    'type': 'keyboard'
+                }
+                this.processJumpEvent2(posHistory)
+
                 e.preventDefault()
             } else {
                 if (e.altKey) {
@@ -607,7 +597,16 @@ export abstract class ABCBlock<
             let pos = op.nextValidPosition(root, range.endContainer, range.endOffset);
             if (!pos) {
                 // on right bound
-                this.processJumpEvent({ 'from': 'above', 'type': 'neighbor' });
+                // this.processJumpEvent({ 'from': 'above', 'type': 'neighbor' });
+                let posHistory: AimPosition = {
+                    // 'index': this.currentContainerIndex() + 1,
+                    // 'native': e,
+                    'offset': 0,
+                    'direction': 'right',
+                    // 'softwrap': false,
+                    'type': 'keyboard'
+                }
+                this.processJumpEvent2(posHistory)
                 e.preventDefault()
             } else {
                 if (e.altKey) {
@@ -827,14 +826,21 @@ export abstract class ABCBlock<
     defaultHandleMouseEnter(e) { }
     defaultHandleMouseDown(e) {
         console.log([this.blockData().order, 'MouseDown', e])
-        if (!this.props.active) {
-            this.props.onActiveShouldChange({ type: 'mouse' })
-        }
 
+        // ensure the end of block have text element to hold cursor
         this.boundhint.safeMouseClick(this.editableRoot())
 
-        this.handleMouseDown(e)
+        if (!this.props.active) {
+            this.props.onActiveShouldChange({
+                relative: {
+                    'type': 'mouse',
+                }
+            })
+
+        }
+        // mouse click will clear the jump history
         this.clearJumpHistory()
+        this.handleMouseDown(e)
     }
 
     defaultHandleMouseUp(e: React.MouseEvent) {
@@ -865,43 +871,28 @@ export abstract class ABCBlock<
     processMergeEvent(e: MergeEvent): boolean {
         return true
     }
-
-    processJumpEvent(e: JumpEvent): boolean {
+    processJumpEvent2(e: AimPosition): boolean {
         if (e.type === 'mouse') {
             return true
         }
+        // debugger
+        const delta = ((e.direction === 'up' || e.direction === 'left') ? -1 : 1)
+        let neighborIndex = this.currentContainerIndex() + delta
+        let neighbor
+        if (neighborIndex >= 0) {
+            neighbor = this.getContainerByIndex(neighborIndex)
+        }
 
-        let cur = this.currentContainer()
-        let direction, neighbor, offset;
-        if (e.type === 'jump') {
-            if (e.from === 'below') {
-                neighbor = this.previousRowContainer(cur)
-                direction = 'offset'
-            } else {
-                neighbor = this.nextRowContainer(cur)
-                direction = 'offset'
-            }
-            offset = op.getCaretReletivePosition(cur)
-        } else if (e.type === 'neighbor') {
-            if (e.from === 'below') {
-                neighbor = this.previousContainer(cur)
-                direction = 'right'
-            } else {
-                neighbor = this.nextContainer(cur)
-                direction = 'left'
-            }
-        }
         if (neighbor) {
-            this.activeContainer(neighbor, direction, offset)
+            return this.activeContainer2(neighbor, e.offset, e.softwrap)
         } else {
-            if (e.noPropagation) {
-                return false
-            } else {
-                this.props.onActiveShouldChange(e)
-                return true
+            if (neighborIndex > 0) {
+                neighborIndex = 0
             }
+            e.index = neighborIndex
+            this.props.onActiveShouldChange({ 'relative': e })
+            return true
         }
-        return true
     }
 
     renderContextMenu() {

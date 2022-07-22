@@ -74,7 +74,7 @@ export class Paragraph extends ABCLine<ParagraphProps, ParagraphStats, HTMLParag
                 block.type = 'orderedList'
                 block.orderedList = {
                     'children': [{
-                        'level': 1,
+                        'level': 0,
                         'children': data.children
                     }]
                 }
@@ -89,7 +89,7 @@ export class Paragraph extends ABCLine<ParagraphProps, ParagraphStats, HTMLParag
                 block.type = 'list'
                 block.list = {
                     'children': [{
-                        'level': 1,
+                        'level': 0,
                         'children': data.children
                     }]
                 }

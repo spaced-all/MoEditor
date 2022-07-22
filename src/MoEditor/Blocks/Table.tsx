@@ -64,29 +64,29 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         }
     }
 
-    handleFocus(e: React.FocusEvent<Element, Element>): void {
-        const jumpHistory = this.props.jumpHistory
-        if (jumpHistory) {
-            const df = this.state.df
-            if (jumpHistory.type === 'jump') {
-                if (jumpHistory.from === 'above') {
-                    this.activeTableAt(0, 0)
-                } else {
-                    this.activeTableAt(df.index.length - 1, 0)
-                }
-            } else if (jumpHistory.type === 'neighbor') {
-                if (jumpHistory.from === 'above') {
-                    this.activeTableAt(0, 0)
+    // handleFocus(e: React.FocusEvent<Element, Element>): void {
+    //     const jumpHistory = this.props.jumpHistory
+    //     if (jumpHistory) {
+    //         const df = this.state.df
+    //         if (jumpHistory.type === 'jump') {
+    //             if (jumpHistory.from === 'above') {
+    //                 this.activeTableAt(0, 0)
+    //             } else {
+    //                 this.activeTableAt(df.index.length - 1, 0)
+    //             }
+    //         } else if (jumpHistory.type === 'neighbor') {
+    //             if (jumpHistory.from === 'above') {
+    //                 this.activeTableAt(0, 0)
 
-                } else {
-                    this.activeTableAt(df.index.length - 1, df.columns.length - 1)
-                }
-            }
-            this.boundhint.autoUpdate({ root: this.currentContainer() })
-            this.clearJumpHistory()
-            return
-        }
-    }
+    //             } else {
+    //                 this.activeTableAt(df.index.length - 1, df.columns.length - 1)
+    //             }
+    //         }
+    //         this.boundhint.autoUpdate({ root: this.currentContainer() })
+    //         this.clearJumpHistory()
+    //         return
+    //     }
+    // }
 
     parseTableDataToFrame(data: TableData): dfd.DataFrame {
         let arr = this.parseTableDataToArray(data)
@@ -181,11 +181,19 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
 
     handleTab(e: React.KeyboardEvent<Element>): void {
         e.preventDefault()
-        let hasNeighbor = this.processJumpEvent({
-            'from': e.shiftKey ? 'below' : 'above',
-            'type': 'neighbor',
-            'noPropagation': true
+        // let hasNeighbor = this.processJumpEvent({
+        //     'from': e.shiftKey ? 'below' : 'above',
+        //     'type': 'neighbor',
+        //     'noPropagation': true
+        // })
+
+        let hasNeighbor = this.processJumpEvent2({
+            'index': this.currentContainerIndex() + (e.shiftKey ? -1 : 1),
+            // 'native': e,
+            'offset': e.shiftKey ? -1 : 0,
+            'type': 'keyboard'
         })
+
         if (!hasNeighbor && !e.shiftKey) {
             const df = this.state.df
             const empty: ContentItem[] = [{ 'tagName': '#text', 'textContent': '' }]

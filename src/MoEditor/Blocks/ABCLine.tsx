@@ -1,6 +1,6 @@
 import React from "react";
 import produce from "immer"
-import { DefaultBlock, DefaultBlockData, ParagraphData } from "../types";
+import { DefaultBlock, DefaultBlockData, ParagraphData, TargetPosition } from "../types";
 import { InlineMath } from "../Inline/InlineMath";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
@@ -75,11 +75,16 @@ export abstract class ABCLine<
      */
     processMergeEvent(e: MergeEvent): boolean {
         e.block = this.serialize()
-        if (e.direction === 'left') {
-            e.offset = -op.getContentSize(this.editableRoot()) - 1
-        } else {
-            e.offset = op.getContentSize(this.editableRoot())
+        const relative: TargetPosition = {
+            'index': e.direction === 'left' ? -1 : this.currentContainerIndex(),
+            'offset': (
+                e.direction === 'left' ?
+                    -op.getContentSize(this.currentContainer()) - 1 :
+                    op.getContentSize(this.currentContainer())
+            ),
+            'type': 'merge',
         }
+        e.relative = relative
         this.props.onMerge(e)
         return true
     }

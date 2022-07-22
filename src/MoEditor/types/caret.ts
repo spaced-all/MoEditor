@@ -1,3 +1,5 @@
+import React from "react";
+
 export interface Caret {
   block_id: number;
   startContainer?: Node;
@@ -18,34 +20,30 @@ export interface OffsetCaret {
 }
 
 export type hdirection = "left" | "right";
+export type vdirection = "up" | "down";
 
-export interface Relative {
-  offset: number;
-  direction?: "left" | "right";
+export interface TargetPosition {
+  offset?: number;
+  type?: "mouse" | "keyboard" | "touch" | "merge" | "split";
+  // native?: React.KeyboardEvent | React.MouseEvent | KeyboardEvent | MouseEvent;
+  direction?: vdirection | hdirection;
   softwrap?: boolean;
   index?: number;
 }
 
-export class RelativePosition implements Relative {
+export class RelativePosition implements TargetPosition {
   offset: number;
-  direction?: "left" | "right";
   softwrap?: boolean;
   index?: number;
-  constructor(
-    offset: number,
-    direction?: hdirection,
-    softwrap?: boolean,
-    index?: number
-  ) {
+  constructor(offset: number, softwrap?: boolean, index?: number) {
     this.offset = offset;
-    this.direction = direction;
     this.softwrap = softwrap;
     this.index = index;
   }
 
-  static create(props: Relative) {
-    const { offset, direction, softwrap, index } = props;
-    return new RelativePosition(offset, direction, softwrap, index);
+  static create(props: TargetPosition) {
+    const { offset, softwrap, index } = props;
+    return new RelativePosition(offset, softwrap, index);
   }
 }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { DefaultBlockData, BlockId } from "../types"
+import { DefaultBlockData, BlockId, TargetPosition } from "../types"
 import produce from "immer"
 import { BlockUpdateEventHandler, DataUpdateEvent, JumpEvent, MergeEvent, SplitEvent } from "../Blocks/events";
 
@@ -23,7 +23,7 @@ interface PageStates {
     orderedBlock?: { [key: string]: DefaultBlockData }
     order?: string[]
     focused: string
-    jumpHistory?: JumpEvent
+    posHistory?: TargetPosition
 }
 
 export class Page extends React.Component<PageProps, PageStates> {
@@ -84,75 +84,40 @@ export class Page extends React.Component<PageProps, PageStates> {
         let newOrderedBlock
         let newFocused;
         let newOrder;
-        let jumpHistory: JumpEvent;
-        if (evt.direction === 'left') {
-            neighbor = orderedBlock[order[ind - 1]]
-            if (neighbor) {
-                const blockType = blockRegistor.Create(neighbor.type)
-                const { self, block, notImplement } = blockType.merge(neighbor, evt.block)
+        // let jumpHistory: JumpEvent;
 
-                if (!notImplement) {
-                    newOrderedBlock = produce(orderedBlock, draft => {
-                        if (self) {
-                            draft[self.order] = self
-                        }
+        const neighborIndex = evt.direction === 'left' ? ind - 1 : ind + 1
+        neighbor = orderedBlock[order[neighborIndex]]
+        const mergeOrder: DefaultBlockData[] = evt.direction === 'left' ? [neighbor, evt.block] : [evt.block, neighbor]
 
-                        if (block) {
-                            draft[block.order] = block
-                        } else {
-                            delete draft[evt.block.order]
-                        }
-                    })
-                    newFocused = neighbor.order
-
-                    newOrder = produce(order, draft => {
-                        if (!block) {
-                            return draft.filter(item => {
-                                return item !== evt.block.order
-                            })
-                        }
-                    })
-
-                    jumpHistory = {
-                        from: 'below',
-                        offset: evt.offset,
-                        type: 'jump',
+        if (neighbor) {
+            const blockType = blockRegistor.createType(neighbor.type)
+            const { self, block, notImplement } = blockType.merge(mergeOrder[0], mergeOrder[1])
+            // debugger
+            if (!notImplement) {
+                newOrderedBlock = produce(orderedBlock, draft => {
+                    if (self) {
+                        draft[self.order] = self
                     }
-                }
-            }
-        } else {
-            neighbor = orderedBlock[order[ind + 1]]
-            if (neighbor) {
-                const blockType = blockRegistor.Create(evt.block.type)
-                const { self, block, notImplement } = blockType.merge(evt.block, neighbor)
-
-                if (!notImplement) {
-                    newOrderedBlock = produce(orderedBlock, draft => {
-                        if (self) {
-                            draft[self.order] = self
-                        }
-                        if (block) {
-                            draft[block.order] = block
-                        } else {
-                            delete draft[neighbor.order]
-                        }
-                    })
-                    newFocused = evt.block.order
-                    // if block is none, then delete corresponding block
-
-                    newOrder = produce(order, draft => {
-                        if (!block) {
-                            return draft.filter(item => {
-                                return item !== neighbor.order
-                            })
-                        }
-                    })
-
-                    jumpHistory = {
-                        offset: evt.offset,
-                        type: 'merge',
+                    if (block) {
+                        draft[block.order] = block
+                    } else {
+                        // draft[mergeOrder[1].order] = undefined
+                        delete draft[mergeOrder[1].order]
                     }
-                }
+                    return draft
+                })
+                newFocused = self.order
+
+                newOrder = produce(order, draft => {
+                    if (!block) {
+                        return draft.filter(item => {
+                            return item !== mergeOrder[1].order
+                        })
+                    }
+                })
+
+
             }
         }
         console.log(newOrder)
@@ -160,7 +125,7 @@ export class Page extends React.Component<PageProps, PageStates> {
             orderedBlock: newOrderedBlock,
             focused: newFocused,
             order: newOrder,
-            jumpHistory: jumpHistory,
+            posHistory: evt.relative,
 
         })
     }
@@ -200,28 +165,34 @@ export class Page extends React.Component<PageProps, PageStates> {
             })
             news.forEach(item => draft.orderedBlock[item.order] = item)
             draft.focused = draft.order[ind + offset]
-            draft.jumpHistory = {
-                'from': 'above',
-                'type': 'neighbor',
+            // draft.posHistory = {
+            //     'from': 'above',
+            //     'type': 'neighbor',
+            // }
+            draft.posHistory = {
+                'offset': 0,
+                'type': 'merge',
+                'index': 0
             }
         })
         this.setState(newState)
 
     }
     handleActiveShouldChange(e: JumpEvent, ind: number) {
+        const { type, direction } = e.relative
+        // debugger
         const newState = produce(this.state, draft => {
-            if (e.type === 'mouse') {
-                draft.jumpHistory = e
+            if (type === 'mouse') {
                 draft.focused = draft.order[ind]
-            } else if (e.from === 'below' && ind > 0) {
-                draft.focused = draft.order[ind - 1]
-                draft.jumpHistory = e
-            } else if (e.from === 'above' && ind < draft.order.length - 1) {
-                draft.focused = draft.order[ind + 1]
-                draft.jumpHistory = e
+            } else if (type === 'keyboard') {
+                if ((direction === 'up' || direction === 'left') && ind > 0) {
+                    draft.focused = draft.order[ind - 1]
+                } else if ((direction === 'down' || direction === 'right') && ind < draft.order.length - 1) {
+                    draft.focused = draft.order[ind + 1]
+                }
             }
+            draft.posHistory = e.relative
         })
-        // console.log([this.state.focused, newState.focused])
         this.setState(newState)
     }
     render(): React.ReactNode {
@@ -236,18 +207,24 @@ export class Page extends React.Component<PageProps, PageStates> {
                 }
                 var blockType: ABCBlockType<any>;
 
-                blockType = blockRegistor.Create(block.type)
+                blockType = blockRegistor.createType(block.type)
                 // console.log([block.type, block])
                 if (!blockType) {
                     return <></>
                 }
+                // debugger
+                // if (this.state.posHistory) {
+                //     debugger
+                // }
                 const active = this.state.focused === block.order
                 const blockEl = React.createElement(blockType, {
                     key: block.order + block.lastEditTime,
                     uid: block.order,
                     data: block,
                     meta: {},
-                    jumpHistory: active ? this.state.jumpHistory : undefined,
+                    // jumpHistory: active ? this.state.posHistory : undefined,
+                    posHistory: active ? this.state.posHistory : undefined,
+                    // posHistory: this.state.posHistory,
                     active: active,
                     // onBlur: e => this.handleBlur(e, ind),
                     onDataUpdate: e => this.handleDataUpdate(e, ind),
