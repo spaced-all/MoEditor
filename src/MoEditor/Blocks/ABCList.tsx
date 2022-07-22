@@ -184,7 +184,7 @@ export abstract class ABCList<
         const newBlock = produce(block, draft => {
             const line = draft[draft.type].children[ind]
             const level = line.level + offset
-            const newLevel = Math.max(Math.min(level, 8), 1)
+            const newLevel = Math.max(Math.min(level, 8), 0)
             if (newLevel !== level) {
                 update = false
             }
@@ -212,8 +212,17 @@ export abstract class ABCList<
     handleDelete(e: React.KeyboardEvent<Element>): void {
         if (this.isCursorRight()) {
             e.preventDefault()
-            const data: ABCListData<IndentItem> = this.serializeContentData() as any
             const ind = this.currentContainerIndex()
+            const old = this.blockData()
+            if (ind === old[old.type].children.length - 1) {
+                this.processMergeEvent({
+                    direction: 'right'
+                })
+                return
+            }
+
+            const data: ABCListData<IndentItem> = this.serializeContentData() as any
+
             const newBlock = produce(this.blockData(), draft => {
                 draft[draft.type].children.splice(ind, 2, {
                     ...data.children[ind].children,

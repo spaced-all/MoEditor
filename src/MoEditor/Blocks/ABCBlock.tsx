@@ -1,5 +1,5 @@
 import { ContentEditable } from "./Common"
-import { DefaultBlockData, Caret, ContentItem, Position, UserCaret, MetaInfo } from "../types";
+import { DefaultBlockData, Caret, ContentItem, Position, UserCaret, MetaInfo, Relative } from "../types";
 import React from "react";
 import produce from "immer"
 import { ContentItemRender } from "./Content";
@@ -37,7 +37,7 @@ export interface ABCBlockProps {
     active?: boolean;
     // initialCaret?: OffsetCaret;
     jumpHistory?: JumpEvent
-
+    positionHistory?: Relative
     // onUpdate?: BlockUpdateEventHandler;
     onSelect?: (e: React.SyntheticEvent<HTMLElement>) => void;
 
@@ -259,10 +259,10 @@ export abstract class ABCBlock<
     }
     shouldComponentUpdate(nextProps: Readonly<P>, nextState: Readonly<S>, nextContext: any): boolean {
         // console.log([this.blockData().order, 'shouldComponentUpdate'])
-        if (nextProps.jumpHistory && nextProps.jumpHistory.type === 'mouse') {
-            // ? hack code to avoid blur after focus triggered when mouse click unactived block
-            return false
-        }
+        // if (nextProps.jumpHistory && nextProps.jumpHistory.type === 'mouse') {
+        //     // ? hack code to avoid blur after focus triggered when mouse click unactived block
+        //     return false
+        // }
         const res = nextProps.data.lastEditTime !== this.blockData().lastEditTime || (nextProps.active && !this.props.active)
 
         return res
@@ -283,6 +283,10 @@ export abstract class ABCBlock<
         if (this.props.active && !prevProps.active) {
             this.editableRoot().focus();
         }
+    }
+
+    getContainerByIndex(index: number | number[]): I {
+        return this.editableRoot() as any as I
     }
 
     currentContainer(): I {
@@ -337,7 +341,30 @@ export abstract class ABCBlock<
     handleFocus(e: React.FocusEvent) {
         console.log([this.blockData().order, 'focus', e])
         const jumpHistory = this.props.jumpHistory
+        const posHistory = this.props.positionHistory
         e.preventDefault()
+
+        if (posHistory) {
+            const el = this.getContainerByIndex(posHistory.index)
+            let res: boolean;
+
+            if (posHistory.softwrap) {
+                res = op.setCaretReletivePositionAtLastLine(el, posHistory.offset)
+            } else {
+                res = op.setCaretReletivePosition(el, posHistory.offset)
+            }
+
+            let pos = op.currentPosition(this.currentContainer())
+            pos = this.boundhint.safePosition(pos)
+            op.setPosition(pos)
+            this.boundhint.autoUpdate({ root: this.editableRoot() })
+            if (!res) {
+                this.jumpHistory = jumpHistory
+            } else {
+                this.clearJumpHistory()
+            }
+        }
+
         if (jumpHistory) {
             if (jumpHistory.type === 'jump') {
                 let root = jumpHistory.from === 'below' ? this.lastContainer() : this.firstContainer()

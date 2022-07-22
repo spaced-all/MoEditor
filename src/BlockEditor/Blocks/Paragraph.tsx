@@ -34,18 +34,6 @@ export class Paragraph extends DefaultBlock<ParagraphProps, ParagraphStats, HTML
         }
     }
 
-    handleDelete(e: React.KeyboardEvent<HTMLParagraphElement>) {
-        if (op.isCursorRight(this.editableRoot())) {
-            const caretPos = op.lastCaretPosition(this.editableRoot())
-            const offset = op.getCaretReletivePosition(this.editableRoot(), caretPos.container, caretPos.offset)
-            this.props.onMerge({
-                'block': this.serialize(),
-                'direction': 'right',
-                'offset': offset
-            })
-            e.preventDefault()
-        }
-    }
 
     handleSpace = (e: React.KeyboardEvent<HTMLParagraphElement>) => {
         const key = op.textContentBefore(this.editableRoot()).trim()

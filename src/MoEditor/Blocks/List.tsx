@@ -44,13 +44,10 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
 
 
 
-
-
     handleBackspace(e: React.KeyboardEvent<Element>): void {
         if (this.isCursorLeft()) {
             e.preventDefault()
             const hitLeft = !this.changeIndent(-1)
-            console.log(['hitLeft', hitLeft])
             if (hitLeft) {
                 const data = this.serializeContentData()
                 const ind = this.currentContainerIndex()
@@ -93,8 +90,8 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
         return block.list.children.map((item, ind) => {
             return <li
                 style={{
-                    listStyleType: ['circle', 'disc', 'square'][item.level % 3],
-                    marginLeft: (item.level - 1) * 40
+                    listStyleType: ['disc', 'circle', 'square'][item.level % 3],
+                    marginLeft: item.level * 40
                 }}
                 data-index={ind}
                 data-level={item.level}
