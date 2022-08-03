@@ -89,6 +89,7 @@ export class BoundHint extends ABCBoundHint {
     super();
     this.disable = false;
     this.blockRight = createSpan("bount-hint-block-right", "bound-hint");
+    // this.blockRight.textContent = "\u00a0";
     this.left = createSpan("bound-hint-left", "bound-hint");
     this.right = createSpan("bound-hint-right", "bound-hint");
     this.leftText = createSpan(
@@ -142,11 +143,6 @@ export class BoundHint extends ABCBoundHint {
     }
   }
   hintSpace(el: Text) {
-    // debugger;
-    // if (el.textContent === "") {
-    //   el.textContent = "\u00a0";
-    // }
-
     const left = op.firstNeighborTextNode(el);
     const right = op.lastNeighborTextNode(el);
     // console.log([left.textContent, right.textContent]);
@@ -162,15 +158,17 @@ export class BoundHint extends ABCBoundHint {
       this._removeElementl(this.rightText);
     }
   }
+
   _safeOffset(
     container: Node,
     offset: number,
     type: "left" | "right" | "inner" = "inner"
   ) {
     let newContainer, newOffset;
-    if (op.isTag(container, "#text")) {
+    if (op.isTag(container, "#text") || op.isTag(container, "label")) {
       return { container, offset };
     }
+
     newOffset = 0;
     if (!container.childNodes[offset]) {
       if (op.isTag(op.lastValidChild(container), "#text")) {
@@ -199,7 +197,10 @@ export class BoundHint extends ABCBoundHint {
     };
   }
   safeMouseClick(root: HTMLElement) {
-    const rightEl = op.lastValidChild(root);
+    const rightEl = op.lastValidChild(root, {
+      emptyText: false,
+      whiteText: false,
+    });
     if (op.isTag(rightEl, "label")) {
       root.appendChild(this.blockRight);
     }
@@ -222,6 +223,7 @@ export class BoundHint extends ABCBoundHint {
     ) {
       const container = range.startContainer;
       const offset = range.startOffset;
+
       if (op.isTag(container, "#text")) {
         if (!this.isBoundhint(container.parentElement)) {
           return true;
@@ -257,11 +259,27 @@ export class BoundHint extends ABCBoundHint {
             newContainer = op.nextValidNode(newContainer);
             newPos = new Position(newContainer, 0);
           }
+        } else if (newContainer === this.blockRight) {
+          newPos = op.nextValidPosition(
+            newContainer.parentElement.parentElement,
+            newContainer.parentElement,
+            0
+          );
         }
 
         newPos = this.safePosition(newPos);
+        console.log(newPos);
         range.setStart(newPos.container, newPos.offset);
         range.setEnd(newPos.container, newPos.offset);
+      } else if (this.isBoundhint(container as HTMLElement)) {
+        const pos = op.previousValidPosition(
+          container.parentElement,
+          container,
+          0
+        );
+        console.log(pos);
+        range.setStart(pos.container, pos.offset);
+        range.setEnd(pos.container, pos.offset);
       } else {
         const { container: newContainer, offset: newOffset } = this._safeOffset(
           container,
@@ -288,6 +306,8 @@ export class BoundHint extends ABCBoundHint {
     return new Position(newContainer, newOffset, pos.root);
   }
 
+  create;
+
   autoUpdate(kwargs?: {
     force?: boolean;
     root: HTMLElement;
@@ -301,13 +321,14 @@ export class BoundHint extends ABCBoundHint {
     }
     const { force, root, click, enter } = kwargs || {};
     const sel = document.getSelection();
-    if (!sel) {
+    if (!sel || sel.rangeCount === 0) {
       this.remove();
       return;
     }
     var el: Node;
     var multiSelect = false;
     var offset = 0;
+
     const range = sel.getRangeAt(0);
     if (
       range.startContainer === range.endContainer &&
@@ -319,16 +340,24 @@ export class BoundHint extends ABCBoundHint {
       el = container;
       offset = newOffset;
     } else {
-      // debugger;
       el = range.commonAncestorContainer;
+      // const { container: startContainer, offset: startOffset } =
+      //   this._safeOffset(range.startContainer, range.startOffset);
+
       const { container: startContainer, offset: startOffset } =
-        this._safeOffset(range.startContainer, range.startOffset);
+        this._safeOffset(sel.anchorNode, sel.anchorOffset);
       const { container: endContainer, offset: endOffset } = this._safeOffset(
-        range.endContainer,
-        range.endOffset
+        sel.focusNode,
+        sel.focusOffset
       );
-      range.setStart(startContainer, startOffset);
-      range.setEnd(endContainer, endOffset);
+      sel.setBaseAndExtent(
+        startContainer,
+        startOffset,
+        endContainer,
+        endOffset
+      );
+      // range.setStart(startContainer, startOffset);
+      // range.setEnd(endContainer, endOffset);
       multiSelect = true;
     }
 
@@ -339,13 +368,7 @@ export class BoundHint extends ABCBoundHint {
     let pl = op.findParentMatchTagName(el, "label", root) as HTMLLabelElement;
     if (pl) {
       // focusNode is label
-      const trigger = pl.querySelector("data");
-      pl.classList.add("inline-hovered");
 
-      if (enter) {
-        trigger.focus();
-      }
-      pl.classList.add("inline-key-hovered");
       const pos = op.createPosition(root as HTMLElement, pl, 0);
       op.setPosition(pos);
       console.log(pos);
@@ -365,6 +388,8 @@ export class BoundHint extends ABCBoundHint {
     this.hintStyle(el.parentElement);
     if (!multiSelect) {
       this.hintSpace(el as Text);
+    } else {
+      this.removeText();
     }
     this.ref = el;
   }

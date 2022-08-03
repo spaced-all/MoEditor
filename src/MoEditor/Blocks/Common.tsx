@@ -1,4 +1,4 @@
-import React from "react";
+import React, { CSSProperties } from "react";
 import * as op from "../dom"
 import { ContentItem } from "../types";
 
@@ -107,6 +107,7 @@ export function ContentEditable<T>(props: {
     innerRef?: React.RefObject<T>;
     contentEditable?: boolean;
     placeholder?: string;
+    style?: CSSProperties | undefined;
     onInput?: (...any) => any;
     onChange?: (...any) => any;
     onBlur?: (...any) => any;
@@ -137,7 +138,6 @@ export function ContentEditable<T>(props: {
             onSelect: props.onSelect,
             onKeyDown: props.onKeyDown,
             onKeyUp: props.onKeyUp,
-            tabIndex: -1,
             onCopy: props.onCopy,
             onPaste: props.onPaste,
             onMouseMove: props.onMouseMove,
@@ -146,6 +146,8 @@ export function ContentEditable<T>(props: {
             onMouseDown: props.onMouseDown,
             onMouseUp: props.onMouseUp,
             onContextMenu: props.onContextMenu,
+            style: props.style,
+            tabIndex: -1,
             suppressContentEditableWarning: true,
         },
         props.children

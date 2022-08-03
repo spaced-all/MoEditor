@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
 
-import { Page as PageV1, Document } from './BlockEditor';
 import { Page } from "./MoEditor"
 import App from './App';
 import { InlineMath } from './MoEditor/Inline/InlineMath';
@@ -65,7 +64,7 @@ const data1: DefaultBlockData[] = [
     'type': 'heading',
     'order': 'b',
     'heading': {
-      'level': 0,
+      'level': 1,
       'children': [
         { 'tagName': '#text', 'textContent': ' Plain Text ' },
         { 'tagName': 'b', 'textContent': ' Bold ' },

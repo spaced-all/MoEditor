@@ -2,7 +2,7 @@ import React from "react";
 import { DefaultBlockData, OrderedIndentItem, OrderedListData } from "../types";
 import * as op from "../dom"
 import { ABCList, ABCListProps, ABCListStats } from "./ABCList";
-import { parseContent } from "./Common";
+import { ContentEditable, parseContent } from "./Common";
 
 export interface OListProps extends ABCListProps {
 
@@ -40,13 +40,52 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
             children: items
         }
     }
+    renderContentEditable(blockData: any): JSX.Element {
+        return <ContentEditable
+            placeholder={this.placeholder}
+            className="moe-block-editable"
+            innerRef={this.editableRootRef}
+            tagName={this.contentEditableName}
+            contentEditable
+
+            onInput={this.handleInput}
+            onSelect={this.handleSelect}
+            onCopy={this.handleCopy}
+            onChange={this.handleDataChange}
+            onPaste={this.handlePaste}
+            onKeyDown={this.defaultHandleKeyDown}
+            onKeyUp={this.defaultHandleKeyup}
+            style={{
+                // listStyleType: 'none'
+            }}
+        >
+            {blockData}
+        </ContentEditable>
+    }
+
     renderBlock(block: DefaultBlockData): React.ReactNode {
+        const lvstack = []
         return block.orderedList.children.map((item, ind) => {
+            // debugger
+            while (lvstack[item.level] === undefined) {
+                lvstack.push(0)
+            }
+            while (item.level < lvstack.length - 1) {
+                lvstack.pop()
+            }
+            lvstack[item.level]++
+            console.log([[...lvstack], ind, item.level, lvstack[item.level]])
+
+            const liStyle = {
+
+            }
+            
             return <li
                 style={{
-                    listStyleType: 'decimal',
+                    listStyleType: ['decimal', 'lower-alpha', 'lower-roman'][item.level % 3],
                     marginLeft: item.level * 40
                 }}
+                value={lvstack[item.level]}
                 data-index={ind}
                 data-level={item.level}
                 key={ind}>{this.renderContentItem(item.children)}</li>

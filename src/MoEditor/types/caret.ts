@@ -22,30 +22,37 @@ export interface OffsetCaret {
 export type hdirection = "left" | "right";
 export type vdirection = "up" | "down";
 
+export interface TargetRange {
+  start?: TargetPosition;
+  end?: TargetPosition;
+}
+
 export interface TargetPosition {
   offset?: number;
+  range?: TargetRange;
   type?: "mouse" | "keyboard" | "touch" | "merge" | "split";
+  isRange?: boolean;
   // native?: React.KeyboardEvent | React.MouseEvent | KeyboardEvent | MouseEvent;
   direction?: vdirection | hdirection;
   softwrap?: boolean;
   index?: number;
 }
 
-export class RelativePosition implements TargetPosition {
-  offset: number;
-  softwrap?: boolean;
-  index?: number;
-  constructor(offset: number, softwrap?: boolean, index?: number) {
-    this.offset = offset;
-    this.softwrap = softwrap;
-    this.index = index;
-  }
+// export class RelativePosition implements TargetPosition {
+//   offset: number;
+//   softwrap?: boolean;
+//   index?: number;
+//   constructor(offset: number, softwrap?: boolean, index?: number) {
+//     this.offset = offset;
+//     this.softwrap = softwrap;
+//     this.index = index;
+//   }
 
-  static create(props: TargetPosition) {
-    const { offset, softwrap, index } = props;
-    return new RelativePosition(offset, softwrap, index);
-  }
-}
+//   static create(props: TargetPosition) {
+//     const { offset, softwrap, index } = props;
+//     return new RelativePosition(offset, softwrap, index);
+//   }
+// }
 
 export class Position {
   container: Node;

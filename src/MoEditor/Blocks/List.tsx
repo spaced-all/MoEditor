@@ -51,7 +51,7 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
                 }}
                 data-index={ind}
                 data-level={item.level}
-                key={ind}>{this.renderContentItem(item.children)}</li>
+                key={ind + this.lastEditTime}>{this.renderContentItem(item.children)}</li>
         })
     }
 

@@ -8,7 +8,6 @@ import { ABCBlock, ABCBlockType } from "../Blocks/ABCBlock";
 import { MonoRequestFn } from "../types/api";
 import "./page.css"
 import { midString } from "../utils";
-import { JumpRef } from "../../BlockEditor/Blocks/Common";
 import ContextMenu from "../Components/ContextMenu";
 
 interface PageProps {
@@ -84,14 +83,14 @@ export class Page extends React.Component<PageProps, PageStates> {
         let newOrderedBlock
         let newFocused;
         let newOrder;
-        // let jumpHistory: JumpEvent;
+        // let jumpHistory: JumpEvent;  
 
         const neighborIndex = evt.direction === 'left' ? ind - 1 : ind + 1
         neighbor = orderedBlock[order[neighborIndex]]
         const mergeOrder: DefaultBlockData[] = evt.direction === 'left' ? [neighbor, evt.block] : [evt.block, neighbor]
 
         if (neighbor) {
-            const blockType = blockRegistor.createType(neighbor.type)
+            const blockType = blockRegistor.createType(mergeOrder[0].type)
             const { self, block, notImplement } = blockType.merge(mergeOrder[0], mergeOrder[1])
             // debugger
             if (!notImplement) {
@@ -200,6 +199,7 @@ export class Page extends React.Component<PageProps, PageStates> {
 
         return <article className="moe-page">
             <ContextMenu menuId="slash-menu" />
+            
             {order.map((oid, ind) => {
                 const block = orderedBlock[oid]
                 if (!block) {

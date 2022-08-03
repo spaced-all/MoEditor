@@ -6,7 +6,21 @@
 
 }
 
+.moe-page .bound-hint {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+    pointer-events: none;
+}
 
+.moe-page .bound-hint::selection {
+    color: transparent;
+    /* : transparent; */
+}
 
 .moe-page>.selected {
     background-color: #f5f5f5;

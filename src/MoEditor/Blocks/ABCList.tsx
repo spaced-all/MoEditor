@@ -1,5 +1,5 @@
 import React from "react";
-import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem, OrderedListData, TargetPosition as NextPosition } from "../types";
+import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem, OrderedListData, TargetPosition as NextPosition, TargetPosition } from "../types";
 import produce from "immer"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
@@ -16,6 +16,7 @@ export interface ABCListStats extends ABCBlockStates {
         ind: number,
         offset: number
     }
+    posHistory?: TargetPosition
 }
 
 
@@ -101,13 +102,12 @@ export abstract class ABCList<
 
     componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot?: any): void {
         super.componentDidUpdate(prevProps, prevState, snapshot)
-        if (this.state.historyPosition) {
-            this.setState({
-                historyPosition: null
-            })
-            const cur = this.getContainerByIndex(this.state.historyPosition.ind)
-            op.setCaretReletivePosition(cur, this.state.historyPosition.offset)
+        if (this.state.posHistory) {
+            this.setTargetPosition(this.state.posHistory)
             this.boundhint.autoUpdate()
+            this.setState({
+                posHistory: null
+            })
         }
     }
 
@@ -122,15 +122,18 @@ export abstract class ABCList<
     };
 
     rowNumber = (): number => {
-        const block = this.blockData()
-        return block[block.type].children.length
+        const el = this.editableRoot()
+        return el.querySelectorAll('li').length
     }
+
     getContainerByIndex(index: number): I {
         if (index < 0) {
             index = this.rowNumber() + index
         }
         const el = this.editableRoot()
-        const container = el.querySelector(`[data-index="${index}"]`) as I
+
+        // const container = el.querySelector(`[data-index="${index}"]`) as I
+        const container = el.querySelector(`li:nth-child(${index + 1})`) as I
         return container
     }
 
@@ -166,37 +169,82 @@ export abstract class ABCList<
         const el = this.currentContainer()
         return parseFloat(el.getAttribute('data-index'))
     }
+
+    isSelectedMultiContainer(): boolean {
+        if (document.getSelection().isCollapsed) {
+            return false
+        }
+        const range = document.getSelection().getRangeAt(0)
+        const start = op.findParentMatchTagName(range.startContainer, 'li', this.editableRoot()) as I
+        const end = op.findParentMatchTagName(range.endContainer, 'li', this.editableRoot()) as I
+        return start !== end
+    }
+
+    selectedContainer(): I[] {
+        if (!this.isSelectedMultiContainer()) {
+            return [this.currentContainer()]
+        }
+        const range = document.getSelection().getRangeAt(0)
+        const start = op.findParentMatchTagName(range.startContainer, 'li', this.editableRoot()) as I
+        const end = op.findParentMatchTagName(range.endContainer, 'li', this.editableRoot()) as I
+        const res = []
+        let cur = start
+        while (cur !== end) {
+            res.push(cur)
+            cur = this.nextRowContainer(cur)
+        }
+        res.push(cur)
+        return res
+    }
     changeIndent(offset) {
         const block: DefaultBlockData = this.blockData()
-        const el = this.currentContainer()
-        const ind = parseFloat(el.getAttribute('data-index'))
+        const els = this.selectedContainer()
+
         let update = true
         const newBlock = produce(block, draft => {
-            const line = draft[draft.type].children[ind]
-            const level = line.level + offset
-            const newLevel = Math.max(Math.min(level, 8), 0)
-            if (newLevel !== level) {
-                update = false
+            for (const el of els) {
+                const ind = parseFloat(el.getAttribute('data-index'))
+                const line = draft[draft.type].children[ind]
+                const level = line.level + offset
+                const newLevel = Math.max(Math.min(level, 8), 0)
+                if (newLevel !== level) {
+                    update = false
+                    return
+                }
+
+                draft[draft.type].children[ind] = {
+                    ...line,
+                    level: newLevel
+                }
+
+                if (this.lastEditTime) {
+                    draft[draft.type].children[ind].children = parseContent(op.validChildNodes(this.currentContainer()))
+                }
             }
 
-            draft[draft.type].children[ind] = {
-                ...line,
-                level: newLevel
-            }
-            if (this.lastEditTime) {
-                draft[draft.type].children[ind].children = parseContent(op.validChildNodes(this.currentContainer()))
-            }
         })
+        if (!update) {
+            return false
+        }
+
+        const range = document.getSelection().getRangeAt(0)
         this.setState({
             data: newBlock,
-            historyPosition: {
-                ind,
-                offset: op.getCaretReletivePosition(el),
+            posHistory: {
+                isRange: true,
+                range: {
+                    start: {
+                        'index': parseFloat(els[0].getAttribute('data-index')),
+                        'offset': op.getCaretReletivePosition(els[0], range.startContainer, range.startOffset),
+                    },
+                    end: {
+                        'index': parseFloat(els[els.length - 1].getAttribute('data-index')),
+                        'offset': op.getCaretReletivePosition(els[els.length - 1], range.endContainer, range.endOffset),
+                    }
+                }
             }
         })
-        if (update) {
-            this.forceUpdate()
-        }
+        this.forceUpdate()
         return update
     }
 
@@ -232,12 +280,26 @@ export abstract class ABCList<
 
         })
         this.setState({
-            'data': newBlock
+            'data': newBlock,
+            'posHistory': {
+                'index': ind,
+                'offset': op.getContentSize(this.currentContainer()),
+                'type': 'merge'
+            }
         })
         this.forceUpdate()
         return true
     }
     handleBackspace(e: React.KeyboardEvent<Element>): void {
+        if (this.isSelectedMultiContainer()) {
+            e.preventDefault()
+            const res = this.selectedContainer()
+            if (res.length > 3) {
+
+            }
+
+        }
+
         if (this.isCursorLeft()) {
             e.preventDefault()
             const hitLeft = !this.changeIndent(-1)
@@ -281,6 +343,25 @@ export abstract class ABCList<
         }
     }
     handleEnter(e: React.KeyboardEvent<Element>): void {
+        e.preventDefault()
+
+        if (e.shiftKey) {
+            const cur = this.serialize()
+            const newBlock: DefaultBlockData = {
+                type: 'paragraph',
+                order: '',
+                lastEditTime: new Date().getTime(),
+                paragraph: {
+                    'children': []
+                }
+            }
+            this.props.onSplit({
+                'left': cur,
+                'focus': newBlock
+            })
+            return
+        }
+        this.deleteSelecte()
         const leftFrag = op.cloneFragmentsBefore(this.currentContainer())
         const rightFrag = op.cloneFragmentsAfter(this.currentContainer())
         const ind = this.currentContainerIndex()
@@ -306,13 +387,14 @@ export abstract class ABCList<
         })
         this.setState({
             data: newBlock,
-            historyPosition: {
-                ind: ind + 1,
-                offset: 0
+            posHistory: {
+                'index': ind + 1,
+                offset: 0,
+                'type': 'keyboard',
             }
         })
         this.forceUpdate()
-        e.preventDefault()
+
     }
 
     handleTab(e: React.KeyboardEvent<Element>): void {

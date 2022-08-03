@@ -16,10 +16,10 @@ interface InlineMathStates extends ABCInlineStates {
 }
 
 export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
-    iptref: React.RefObject<HTMLInputElement>
-    rref: React.RefObject<HTMLSpanElement>
-    sref: React.RefObject<HTMLSpanElement>
-    lbref: React.RefObject<HTMLLabelElement>
+    iptRef: React.RefObject<HTMLInputElement>
+    rRef: React.RefObject<HTMLSpanElement>
+    sRef: React.RefObject<HTMLSpanElement>
+    lbRef: React.RefObject<HTMLLabelElement>
     constructor(props: InlineMathProps) {
         super(props)
         this.state = {
@@ -28,31 +28,41 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
             html: null,
             error: null
         }
-        this.rref = React.createRef()
-        this.sref = React.createRef()
-        this.lbref = React.createRef()
-        this.iptref = React.createRef()
+        this.rRef = React.createRef()
+        this.sRef = React.createRef()
+        this.lbRef = React.createRef()
+        this.iptRef = React.createRef()
         this.setSpace = this.setSpace.bind(this)
     }
     shouldComponentUpdate(nextProps: Readonly<InlineMathProps>, nextState: Readonly<InlineMathStates>, nextContext: any): boolean {
         return nextState.math !== this.state.math || nextState.html !== this.state.html
     }
     componentDidMount(): void {
-        this.setState(this.generateHTML())
+        const { html, error } = this.generateHTML()
+        this.rRef.current.innerHTML = error ? error : html
+        // this.setState(this.generateHTML())
         this.setSpace()
     }
     componentDidUpdate(prevProps: Readonly<InlineMathProps>, prevState: Readonly<InlineMathStates>, snapshot?: any): void {
-        this.setState(this.generateHTML())
+        const { html, error } = this.generateHTML()
+        this.rRef.current.innerHTML = error ? error : html
         this.setSpace()
     }
 
     setSpace() {
-        const render = this.rref.current
-        const space = this.sref.current
-        if (render) {
-            // console.log(['render ref', getComputedStyle(render).width])
-            render.style.width = getComputedStyle(space).width
-        }
+        // debugger
+        const render = this.rRef.current
+        const space = this.sRef.current
+        space.textContent = '\u00a0'
+        const sw = space.getBoundingClientRect().width
+        const count = Math.round(parseFloat(getComputedStyle(render).width) / sw)
+        space.textContent = '\u00a0'.repeat(count)
+        // render.style.width = getComputedStyle(space).width
+        // if (render) {
+        //     // console.log(['render ref', getComputedStyle(render).width])
+        // }
+        // const canvas = document.createElement('canvas')
+        // canvas.
     }
 
     generateHTML() {
@@ -76,7 +86,7 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
 
     renderEdit(): React.ReactNode {
         return <>
-            <span style={{ backgroundColor: 'white' }}>
+            <span style={{ backgroundColor: 'white', color: 'gray' }}>
                 {'$'}
                 <input
                     type={'text'}
@@ -84,21 +94,28 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
                         styles['input'],
                         styles['input-math'],
                     ].join(' ')}
-                    ref={this.iptref}
+                    ref={this.iptRef}
                     autoFocus
                     value={this.state.math}
                     onFocus={e => {
+                        console.log(['input focused', e])
                         const tgt = e.target as HTMLInputElement
                         if (this.state.offset) {
                             tgt.setSelectionRange(this.state.offset, this.state.offset)
                         }
-                        tgt.style.width = `${(tgt.value.length + 1) / 2}em`
+
+                        tgt.style.width = `${Math.round((tgt.value.length + 1) / 2) - 2}.5em`
+                        e.stopPropagation()
+                    }}
+                    onInput={(e) => {
+                        e.stopPropagation()
                     }}
                     onChange={(e) => {
                         this.setState({ math: e.target.value })
                         const tgt = e.target as HTMLInputElement
                         tgt.style.width = `${(tgt.value.length + 1) / 2}em`
                         this.forceUpdate()
+                        e.stopPropagation()
                     }}
                     onKeyDown={(e) => {
                         switch (e.key) {
@@ -130,9 +147,14 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
             </span>
             <Position
                 style={{
-                    backgroundColor: 'white'
+                    backgroundColor: 'white',
+
                 }}
-                block={false} related={this.iptref} >
+                offset={{
+                    left: this.iptRef.current && this.iptRef.current.offsetLeft,
+                    top: this.iptRef.current && this.iptRef.current.offsetTop
+                }}
+                block={false} related={this.iptRef} >
                 {this.renderDisplay()}
             </Position>
         </>
@@ -148,67 +170,65 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
     renderDisplay() {
         return <>
             <span
-                ref={this.sref}
+                ref={this.sRef}
                 className="space-math">
-                {this.state.math}
+                {"-"}
             </span>
             <span
-                ref={this.rref}
-                className="display-math"
+                ref={this.rRef}
+                className={[
+                    "display-math",
+                    this.state.focused && styles['display-math-edit']
+                ].join(' ')}
                 dangerouslySetInnerHTML={{ __html: this.state.html }} />
         </>
     }
 
     render(): React.ReactNode {
-        return <label
-            className={styles['unselectable']}
-            ref={this.lbref}
-            tabIndex={-1}
-
-            onMouseDown={(e) => {
-
-                const root = this.lbref.current.querySelector('.katex-html')
-                const range = document.createRange()
-                range.setStart(root, 0)
-                range.setEnd(e.target as Node, 0)
-                const left = range.cloneContents().textContent
-                // not precise (Invisible elements like '_' and '^' are not in textContent)
-                console.log(left)
-                this.setState({
-                    focused: true,
-                    offset: left.length
-                })
-                this.forceUpdate()
-                e.preventDefault()
-                e.stopPropagation()
-            }}
-            onKeyDown={(e) => {
-                console.log(['label keydown', e])
-                // if (e.key === 'Enter') {
-                //     this.setState({
-                //         focused: true,
-                //     })
-                //     this.forceUpdate()
-                //     console.log(['label keydown', e])
-                //     e.preventDefault()
-                // }
-            }}
-            style={{ display: 'inline-block' }}
-            contentEditable='false'
-            suppressContentEditableWarning
-        >
-            <data
-                ref={this.dataRef}
+        return <React.Fragment>
+            <label
+                className={styles['unselectable']}
+                ref={this.lbRef}
                 tabIndex={-1}
-                {...this.dataAttribute()}
-                onFocus={this.handleFocus}
-                onKeyDown={e => {
-                    console.log(e)
+                onClick={(e) => {
+                    const root = this.lbRef.current.querySelector('.katex-html')
+                    const range = document.createRange()
+                    range.setStart(root, 0)
+                    range.setEnd(e.target as Node, 0)
+                    const left = range.cloneContents().textContent
+                    // not precise (Invisible elements like '_' and '^' are not in textContent)
+                    console.log(left)
+                    this.setState({
+                        focused: true,
+                        offset: left.length
+                    })
+                    this.forceUpdate()
+                    e.preventDefault()
+                    e.stopPropagation()
                 }}
-            ></data>
+                onKeyDown={(e) => {
+                    console.log(['label keydown', e])
+                }}
+                style={{
+                    display: 'inline-block',
+                }}
+                contentEditable='false'
+                suppressContentEditableWarning
+            >
+                <data
+                    ref={this.dataRef}
+                    tabIndex={-1}
+                    {...this.dataAttribute()}
+                    onFocus={this.handleFocus}
+                    onKeyDown={e => {
+                        console.log(e)
+                    }}
+                ></data>
 
-            {this.state.focused ? this.renderEdit() : this.renderDisplay()}
-        </label>
+                {this.state.focused ? this.renderEdit() : this.renderDisplay()}
+            </label>
+            {/* {'\u00a0'} */}
+        </React.Fragment>
     }
 
 }

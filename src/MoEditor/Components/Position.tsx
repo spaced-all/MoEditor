@@ -9,13 +9,18 @@ interface PositionProps {
     placement?: string
     xOffset?: number
     yOffset?: number
+    offset?: any
 }
 
 export default function Position(props: PositionProps) {
-    const { block, children, placement, xOffset, yOffset } = props
+    const { block, children, placement, xOffset, yOffset, offset } = props
     const { x, y, reference, floating, strategy, update } = useFloating({
         'placement': placement as any
     });
+
+    React.useEffect(() => {
+        update()
+    }, [offset])
 
     const style = {
         position: strategy,
@@ -25,7 +30,7 @@ export default function Position(props: PositionProps) {
         paddingBottom: '0.2em',
         paddingRight: '0.2em',
         paddingLeft: '0.2em',
-        
+
         ...props.style
     }
 

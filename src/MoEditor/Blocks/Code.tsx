@@ -136,6 +136,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                 }}></textarea>
             <Highlight
                 {...defaultProps} code={this.state.code} language="jsx">
+
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                     <pre
                         ref={this.renderRef}
@@ -149,6 +150,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                         ))}
                     </pre>
                 )}
+                
             </Highlight>
             {
                 this.state.hover &&

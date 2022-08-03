@@ -99,11 +99,6 @@ export class Heading extends ABCLine<HeadingProps, HeadingStats, HTMLHeadingElem
     makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
         return <div
             className="heading">
-            {/* {React.createElement(`h${this.level}`, {},
-                [
-                    this.props.active ? '#'.repeat(this.level) + ' ' : null,
-                ]
-            )} */}
             {
                 this.props.active &&
                 <Position
@@ -119,12 +114,7 @@ export class Heading extends ABCLine<HeadingProps, HeadingStats, HTMLHeadingElem
             }
             {
                 contentEditable
-
             }
-
-
-            {/* <div style={{}}>
-            </div> */}
         </div>
     }
 

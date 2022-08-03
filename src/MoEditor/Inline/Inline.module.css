@@ -32,6 +32,12 @@
     display: inline-block;
 }
 
+.display-math-edit {
+    padding: 0 6px 2px 6px;
+    background: lavender;
+    border-radius: 0 0 8px 8px;
+}
+
 .unselectable span:global(.space-math) {
     /* background-image: url('data:image/svg+xml;utf8,<svg ...><g stroke="red" ... /></g></svg>'); */
     /* fill: red; */

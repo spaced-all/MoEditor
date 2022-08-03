@@ -41,6 +41,7 @@ export abstract class ABCLine<
             case 'todo':
             case 'orderedList':
             case 'list':
+                debugger
                 const bType = block.type
                 self = produce(self, draft => {
                     draft[draft.type].children = [
@@ -102,12 +103,15 @@ export abstract class ABCLine<
                     'children': []
                 }
             }
+
         } else {
+
+            this.deleteSelecte()
             const frag = op.extractFragmentsAfter(this.editableRoot())
             const nodes = []
             frag.childNodes.forEach(item => nodes.push(item))
-            this.serializeContentData()
-            cur = this.serialize()
+
+            cur = this.serialize(true)
             if (cur.type === 'blockquote') {
                 newBlock = produce(cur, draft => {
                     draft.order = ''

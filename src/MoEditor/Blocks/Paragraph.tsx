@@ -56,6 +56,7 @@ export class Paragraph extends ABCLine<ParagraphProps, ParagraphStats, HTMLParag
                 e.preventDefault()
                 break
             case '>':
+            case '》':
                 op.deleteTextBefore(this.currentContainer())
                 data = this.serializeContentData()
                 block.type = 'blockquote'

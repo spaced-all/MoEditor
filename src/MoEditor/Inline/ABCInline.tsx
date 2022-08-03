@@ -10,7 +10,8 @@ export interface DataAttribute {
 }
 
 export interface ABCInlineProps {
-    data: ContentItem
+    data: ContentItem,
+    factoryName?: string
 
 }
 export interface ABCInlineStates {
@@ -23,6 +24,7 @@ export class ABCInline<P extends ABCInlineProps, S extends ABCInlineStates> exte
     static inlineName = 'abc'
 
     dataRef: React.RefObject<HTMLDataElement>
+    iptRef: React.RefObject<HTMLInputElement>
     constructor(props) {
         super(props)
         this.state = {
@@ -43,6 +45,7 @@ export class ABCInline<P extends ABCInlineProps, S extends ABCInlineStates> exte
         // this.dataRef.current['onhover'] = (e) => {
         //     console.log(['testhit', e])
         // }
+
     }
     handleFocus(e: React.FocusEvent) {
         console.log(['unhandled label focus', e])
@@ -54,11 +57,12 @@ export class ABCInline<P extends ABCInlineProps, S extends ABCInlineStates> exte
         e.stopPropagation()
     }
     handleBlur(e: React.FocusEvent) {
-        this.setState({ focused: false })
-        this.forceUpdate()
+        // this.setState({ focused: false })
+        // this.forceUpdate()
     }
     renderEdit(): React.ReactNode {
         return <input
+            ref={this.iptRef}
             autoFocus
             onBlur={this.handleBlur}></input>
     }

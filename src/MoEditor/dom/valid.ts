@@ -111,10 +111,26 @@ function neighborValidPosition(
 
   if (!isTag(container, "#text")) {
     if (isTag(container, "label")) {
+      if (direction === "left") {
+        // <b>some</b>"/"<label>|</label>
+        neighbor = previousValidNode(container);
+        if (isTag(neighbor, "#text")) {
+          return new Position(neighbor, neighbor.textContent.length, root);
+        }
+      } else if (direction === "right") {
+        // <label>|</label>"/"<b>some</b>
+        neighbor = nextValidNode(container);
+        if (isTag(neighbor, "#text")) {
+          return new Position(neighbor, 0, root);
+        }
+      }
+
       offset = indexOfNode(container);
       if (direction === "right") {
         offset++;
       }
+      // <label>|</label>\<b>some</b>
+      // <b>some</b>\<label>|</label>
       return new Position(container.parentElement, offset, root);
     }
     if (container.childNodes[offset]) {
@@ -180,6 +196,9 @@ function neighborValidPosition(
         // <p>"text|"<br>"\text"</p>
         offset = elementBoundOffset(nneighbor, direction);
         return new Position(nneighbor, offset, root);
+      }
+      if (!nneighbor) {
+        return null;
       }
       // <p>"|"<br>"\"</p>
       // <p>"|"<br>\<b></b></p>

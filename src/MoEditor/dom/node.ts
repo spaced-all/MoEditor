@@ -1,3 +1,5 @@
+import { nextValidNode, previousValidNode } from "./valid";
+
 export function getTagName(el: Node) {
   if (!el) {
     return null;
@@ -17,6 +19,42 @@ export function isParent(cur: Node, parent: Node): boolean {
     cur = cur.parentNode as Node;
   }
   return false;
+}
+
+export function isInLabelBound(
+  root: HTMLElement,
+  direction: "left" | "right",
+  container?: Node,
+  offset?: number
+): HTMLLabelElement {
+  if (!container) {
+    const sel = document.getSelection()!;
+    container = sel.focusNode!;
+    offset = sel.focusOffset;
+  }
+  if (isTag(container, "label")) {
+    return container as HTMLLabelElement;
+  }
+
+  if (isTag(container, "#text")) {
+    if (
+      (offset !== 0 && direction === "left") ||
+      (offset !== container.textContent.length && direction === "right")
+    ) {
+      // <p><b>"te|xt"</b></p>
+      return null;
+    }
+    const neighbor =
+      direction === "left"
+        ? previousValidNode(container)
+        : nextValidNode(container);
+
+    if (neighbor && isTag(neighbor, "label")) {
+      // <p><b>"text"|"text"</b></p>
+      return neighbor as HTMLLabelElement;
+    }
+  }
+  return null;
 }
 
 export function findParentMatchTagName(
