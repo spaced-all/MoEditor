@@ -3,7 +3,7 @@ import produce from "immer"
 import { DefaultBlock, DefaultBlockData, ParagraphData, TargetPosition } from "../types";
 import { InlineMath } from "../Inline/InlineMath";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
-import * as op from "../dom"
+import * as op from "../utils"
 import { MergeEvent, MergeResult } from "./events";
 import { parseBaseContent, parseContent } from "./Common";
 
@@ -20,10 +20,6 @@ export abstract class ABCLine<
     O extends HTMLElement, // outer block element type
     I extends HTMLElement // inner block element type
     > extends ABCBlock<P, S, O, I>{
-
-
-
-
 
     static merge(self: DefaultBlock, block: DefaultBlock): MergeResult {
         switch (block.type) {
@@ -66,6 +62,10 @@ export abstract class ABCLine<
                 return { notImplement: true }
         }
     }
+
+
+
+
 
     /**
      * TODO first/last container cannot be merged in some situation, 
@@ -135,8 +135,14 @@ export abstract class ABCLine<
         })
         e.preventDefault()
     }
+    lazyRender(container: HTMLElement, prevProps: DefaultBlock, nextProps: DefaultBlock): void {
+        if (prevProps && prevProps.lastEditTime === nextProps.lastEditTime) {
+            return
+        }
 
-    lazyRender(container: HTMLElement): void {
+        if (this.currentContainer()) {
+            this.storePosition()
+        }
         const data = this.props.data
 
         container.innerHTML = ''
@@ -146,6 +152,9 @@ export abstract class ABCLine<
                 container.appendChild(c)
             })
             noticable.forEach(c => c.componentDidMount())
+        }
+        if (this.currentContainer()) {
+            this.releasePosition()
         }
     }
 

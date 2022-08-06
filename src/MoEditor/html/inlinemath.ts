@@ -1,6 +1,7 @@
 import KaTeX from "katex";
 import styles from "./Inline.module.css";
 import { Noticable } from "./components";
+import * as op from "../utils";
 
 export function generateHTML(math: string, el) {
   const { errorColor, renderError } = {} as any;
@@ -37,6 +38,7 @@ export class InlineMath implements Noticable {
   space: HTMLSpanElement;
   input: HTMLInputElement;
   math: string;
+  from: HTMLElement;
   constructor(math) {
     this.math = math;
     const { root, ipt, space, span } = this.create();
@@ -67,74 +69,89 @@ export class InlineMath implements Noticable {
       span.style.backgroundColor = "";
     });
     root.addEventListener("click", (e) => {
-      if (ipt.parentElement) {
+      if (ipt.style.display !== "none") {
         return;
       }
-      expandWidth(span, space);
-      root.insertBefore(ipt, space);
-      const oldMath = this.math;
+      ipt.style.display = "inline";
+      // root.insertBefore(ipt, space);
+
       const range = document.createRange();
       const mathRoot = root.querySelector(".katex-html");
       range.setStart(mathRoot, 0);
       range.setEnd((e as any).path[0] as Node, 0);
       const left = range.cloneContents().textContent;
-      console.log(left);
       ipt.setSelectionRange(left.length, left.length);
+    });
 
-      ipt.addEventListener("input", (e) => {
-        const val = (e.target as any).value;
-        const { html, error } = generateHTML(val, span);
+    generateHTML(this.math, span);
+    ipt.value = this.math;
+    ipt.className = [styles["input"], styles["input-math"]].join(" ");
+    root.appendChild(ipt);
+    ipt.style.display = "none";
+
+    ipt.addEventListener("input", (e) => {
+      const val = (e.target as any).value;
+      const { html, error } = generateHTML(val, span);
+      if (error) {
+        span.innerHTML = error;
+      } else {
+        span.innerHTML = html;
+      }
+      expandWidth(span, space);
+      e.stopPropagation();
+    });
+    ipt.addEventListener("focus", (e) => {
+      console.log(["label focus", e]);
+      this.from = e.relatedTarget as HTMLElement;
+    });
+    ipt.addEventListener("blur", (e) => {
+      if (ipt.value.trim() === "") {
+        root.remove();
+      } else {
+        this.math = ipt.value;
+        const { html, error } = generateHTML(this.math, span);
         if (error) {
           span.innerHTML = error;
         } else {
           span.innerHTML = html;
         }
         expandWidth(span, space);
-        e.stopPropagation();
-      });
-      // ipt.addEventListener("focus", (e) => {
-      //   console.log(e);
-      // });
-      ipt.addEventListener("blur", (e) => {
-        if (ipt.parentElement) {
-          ipt.parentElement.removeChild(ipt);
-        }
-      });
-      ipt.addEventListener("mousedown", (e) => {
-        e.stopPropagation();
-      });
-      ipt.addEventListener("mouseup", (e) => {
-        e.stopPropagation();
-      });
-      ipt.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          e.preventDefault();
-          this.math = oldMath;
-          generateHTML(this.math, span);
-          expandWidth(span, space);
-          ipt.blur();
-        }
-        e.stopPropagation();
-      });
-      ipt.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          ipt.blur();
-        }
-        console.log(e.key);
-        e.stopPropagation();
-      });
-      ipt.addEventListener("keyup", (e) => {
-        e.stopPropagation();
-      });
+        root.setAttribute("data-value", this.math);
+        const pos = op.createPosition(this.from, this.root, 0);
+        op.setPosition(pos);
+      }
+      ipt.style.display = "none";
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
     });
-
-    generateHTML(this.math, span);
-    ipt.value = this.math;
-
-    ipt.className = [styles["input"], styles["input-math"]].join(" ");
-
-    // root.appendChild(ipt);
+    ipt.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+    });
+    ipt.addEventListener("mouseup", (e) => {
+      e.stopPropagation();
+    });
+    ipt.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        generateHTML(this.math, span);
+        expandWidth(span, space);
+        this.from.focus();
+        return;
+      }
+      e.stopPropagation();
+    });
+    ipt.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        this.from.focus();
+        return;
+      }
+      e.stopPropagation();
+    });
+    ipt.addEventListener("keyup", (e) => {
+      e.stopPropagation();
+    });
     root.appendChild(space);
     root.appendChild(span);
 

@@ -1,5 +1,5 @@
 import React, { CSSProperties } from "react";
-import * as op from "../dom"
+import * as op from "../utils"
 import { ContentItem } from "../types";
 
 export function serialize() {

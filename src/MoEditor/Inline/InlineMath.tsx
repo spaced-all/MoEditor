@@ -3,7 +3,7 @@ import KaTeX from "katex"
 import 'katex/dist/katex.min.css';
 import { ABCInline, ABCInlineProps, ABCInlineStates, DataAttribute } from "./ABCInline"
 import Position from "../Components/Position";
-import * as op from "../dom"
+import * as op from "../utils"
 import styles from "./Inline.module.css"
 interface InlineMathProps extends ABCInlineProps {
     // math: string;

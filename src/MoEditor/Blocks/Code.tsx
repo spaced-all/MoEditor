@@ -2,7 +2,7 @@ import React from "react";
 import { BoundHint, BoundHintType, CodeBoundHint } from "../boundhint";
 import { DefaultBlock, DefaultBlockData } from "../types";
 // import { highlight, languages } from 'prismjs/components/prism-core';
-import * as op from "../dom"
+import * as op from "../utils"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import Highlight, { defaultProps } from "prism-react-renderer";
 // import styles from "./Code.module.css"
@@ -70,9 +70,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                 const event = new Event('input', { 'bubbles': true, cancelable: true })
                 this.textArea.dispatchEvent(event)
                 console.log(this.textArea.value)
-                // ? TODO if use this code, backspace may trigger bugs(only move range but not delete char)
-                // this.setState({ code: this.textArea.value })
-                // this.forceUpdate()
+
             }
             // 在左侧或者在最右侧的时候，插入四个空格
             // const range = document.createRange()

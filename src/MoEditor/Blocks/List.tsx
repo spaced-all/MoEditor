@@ -1,7 +1,7 @@
 import React from "react";
 import produce from "immer"
 import { DefaultBlockData, IndentItem, UnorderedListData } from "../types";
-import * as op from "../dom"
+import * as op from "../utils"
 import { ABCList, ABCListProps, ABCListStats } from "./ABCList";
 import { MergeResult } from "./events";
 import { parseContent } from "./Common";
@@ -42,20 +42,20 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
         }
     }
 
-    
 
-    renderInnerContainer(): React.ReactNode {
-        const block = this.blockData()
-        return block.list.children.map((item, ind) => {
-            return <li
-                style={{
-                    listStyleType: ['disc', 'circle', 'square'][item.level % 3],
-                    marginLeft: item.level * 40
-                }}
-                data-index={ind}
-                data-level={item.level}
-                key={ind + this.lastEditTime}></li>
-        })
-    }
+
+    // renderInnerContainer(): React.ReactNode {
+    //     const block = this.blockData()
+    //     return block.list.children.map((item, ind) => {
+    //         return <li
+    //             style={{
+    //                 listStyleType: ['disc', 'circle', 'square'][item.level % 3],
+    //                 marginLeft: item.level * 40
+    //             }}
+    //             data-index={ind}
+    //             data-level={item.level}
+    //             key={ind}></li>
+    //     })
+    // }
 
 }

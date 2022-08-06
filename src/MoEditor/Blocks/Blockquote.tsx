@@ -1,6 +1,6 @@
 import React from "react";
 import { DefaultBlockData, BlockQuoteData } from "../types";
-import * as op from "../dom"
+import * as op from "../utils"
 import { ABCLine, ABCLineProps, ABCLineStats } from "./ABCLine";
 import { parseContent } from "./Common";
 export interface BlockquoteProps extends ABCLineProps {

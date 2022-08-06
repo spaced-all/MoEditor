@@ -82,10 +82,16 @@ export function findTopNode(el: Node, root: HTMLElement) {
   return el;
 }
 
-export function indexOfNode(el: Node) {
+export function indexOfNode(el: Node, name?: string) {
   let i = 0;
   while ((el = el.previousSibling)) {
-    i++;
+    if (name) {
+      if (isTag(el, name)) {
+        i++;
+      }
+    } else {
+      i++;
+    }
   }
   return i;
 }

@@ -1,8 +1,8 @@
 import React from "react";
-import { ABCListData, DefaultBlock, DefaultBlockData, IndentItem, OrderedListData, TargetPosition as NextPosition, TargetPosition } from "../types";
+import { ABCListData, ContentItem, DefaultBlock, DefaultBlockData, IndentItem, OrderedListData, TargetPosition as NextPosition, TargetPosition } from "../types";
 import produce from "immer"
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
-import * as op from "../dom"
+import * as op from "../utils"
 import { MergeEvent, MergeResult } from "./events";
 import { parseContent } from "./Common";
 
@@ -34,8 +34,6 @@ export abstract class ABCList<
     }
 
     static merge(self: DefaultBlockData, block: DefaultBlockData): MergeResult {
-        // let blockData: ABCListData<IndentItem> = self[self.type]
-
         switch (block.type) {
             case 'blockquote':
             case 'paragraph':
@@ -46,7 +44,8 @@ export abstract class ABCList<
                         ...blockData.children[blockData.children.length - 1].children,
                         ...block[block.type].children
                     ]
-                    draft.lastEditTime = new Date().getTime()
+                    blockData.children[blockData.children.length - 1].lastEditTime = op.getTime()
+                    draft.lastEditTime = op.getTime()
                 })
                 return { self }
 
@@ -84,7 +83,7 @@ export abstract class ABCList<
                         })
                     }
 
-                    draft.lastEditTime = new Date().getTime()
+                    draft.lastEditTime = op.getTime()
                 })
                 return { self }
             default:
@@ -98,21 +97,6 @@ export abstract class ABCList<
             data: props.data,
             isEnter: false,
         } as S
-    }
-
-    componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot?: any): void {
-        super.componentDidUpdate(prevProps, prevState, snapshot)
-        if (this.state.posHistory) {
-            this.setTargetPosition(this.state.posHistory)
-            this.boundhint.autoUpdate()
-            this.setState({
-                posHistory: null
-            })
-        }
-    }
-
-    blockData(): DefaultBlock {
-        return this.state.data
     }
 
     currentContainer = (): I => {
@@ -167,7 +151,7 @@ export abstract class ABCList<
 
     currentContainerIndex(): number {
         const el = this.currentContainer()
-        return parseFloat(el.getAttribute('data-index'))
+        return op.indexOfNode(el, 'li')
     }
 
     isSelectedMultiContainer(): boolean {
@@ -197,55 +181,13 @@ export abstract class ABCList<
         return res
     }
     changeIndent(offset) {
-        const block: DefaultBlockData = this.blockData()
         const els = this.selectedContainer()
 
-        let update = true
-        const newBlock = produce(block, draft => {
-            for (const el of els) {
-                const ind = parseFloat(el.getAttribute('data-index'))
-                const line = draft[draft.type].children[ind]
-                const level = line.level + offset
-                const newLevel = Math.max(Math.min(level, 8), 0)
-                if (newLevel !== level) {
-                    update = false
-                    return
-                }
-
-                draft[draft.type].children[ind] = {
-                    ...line,
-                    level: newLevel
-                }
-
-                if (this.lastEditTime) {
-                    draft[draft.type].children[ind].children = parseContent(op.validChildNodes(this.currentContainer()))
-                }
-            }
-
-        })
-        if (!update) {
-            return false
+        for (const el of els) {
+            let level = parseFloat(el.getAttribute('data-level')) + offset
+            level = Math.max(Math.min(level, 8), 0)
+            this.updateLi(el as any as HTMLLIElement, level)
         }
-
-        const range = document.getSelection().getRangeAt(0)
-        this.setState({
-            data: newBlock,
-            posHistory: {
-                isRange: true,
-                range: {
-                    start: {
-                        'index': parseFloat(els[0].getAttribute('data-index')),
-                        'offset': op.getCaretReletivePosition(els[0], range.startContainer, range.startOffset),
-                    },
-                    end: {
-                        'index': parseFloat(els[els.length - 1].getAttribute('data-index')),
-                        'offset': op.getCaretReletivePosition(els[els.length - 1], range.endContainer, range.endOffset),
-                    }
-                }
-            }
-        })
-        this.forceUpdate()
-        return update
     }
 
     processMergeEvent(e: MergeEvent): boolean {
@@ -277,33 +219,75 @@ export abstract class ABCList<
                     ...data.children[ind].children,
                     ...data.children[ind + 1].children],
             })
+        })
 
+        this.props.onDataUpdate({
+            'block': newBlock
         })
-        this.setState({
-            'data': newBlock,
-            'posHistory': {
-                'index': ind,
-                'offset': op.getContentSize(this.currentContainer()),
-                'type': 'merge'
-            }
-        })
-        this.forceUpdate()
         return true
     }
     handleBackspace(e: React.KeyboardEvent<Element>): void {
         if (this.isSelectedMultiContainer()) {
             e.preventDefault()
-            const res = this.selectedContainer()
-            if (res.length > 3) {
+            const els = this.selectedContainer()
+            const startEl = els[0]
+            const level = parseFloat(startEl.getAttribute('data-level'))
+            const index = parseFloat(startEl.getAttribute('data-index'))
+            const newLi = this.createLi(level, index)
+            els[0].parentElement.insertBefore(newLi, els[0])
 
-            }
+            this.deleteSelecte()
+            const remains: ContentItem[] = []
+            const indexs: number[] = []
+            let offset: number = 0
+            els.forEach((el, ind) => {
+                if (el.parentElement) {
+                    if (ind === 0) {
+                        offset = op.getContentSize(el)
+                    }
+                    remains.push(...parseContent(op.validChildNodes(el)))
+                    el.remove()
+                }
+                indexs.push(parseFloat(el.getAttribute('data-index')))
+            })
 
+            const newBlock = produce(this.blockData(), draft => {
+                const start = indexs[0]
+                const startLevel = draft[draft.type].children[start].level
+
+                indexs.sort().reverse().forEach(c => {
+                    draft[draft.type].children.splice(c, 1)
+                })
+
+                draft[draft.type].children.splice(start, 0, {
+                    'children': remains,
+                    'level': startLevel,
+                    'lastEditTime': op.getTime(),
+                })
+                draft.lastEditTime = op.getTime()
+            })
+
+            this.lazyPutContentItem(newLi, remains)
+
+            this.setTargetPosition({
+                'index': index,
+                offset: offset,
+                'type': 'keyboard',
+            })
+
+            this.props.onDataUpdate({
+                // need diff or trigger to ignore unchanged block to call serialize()
+                'block': newBlock
+            })
+
+            return
         }
 
         if (this.isCursorLeft()) {
             e.preventDefault()
-            const hitLeft = !this.changeIndent(-1)
-            if (hitLeft) {
+            const el = this.currentContainer()
+            const level = parseFloat(el.getAttribute('data-level'))
+            if (level === 0) {
                 const data = this.serializeContentData() as any
                 const ind = this.currentContainerIndex()
                 const focus: DefaultBlockData = {
@@ -315,13 +299,13 @@ export abstract class ABCList<
                 }
                 let left, right: DefaultBlockData;
                 if (ind > 0) {
-
                     left = produce(this.blockData(), draft => {
                         draft.order = ''
                         draft.id = undefined
                         draft[draft.type] = produce(data, draft => {
                             draft.children.splice(ind, draft.children.length - ind)
                         })
+                        draft.lastEditTime = op.getTime()
                     })
                 }
                 if (ind < data.children.length - 1) {
@@ -331,6 +315,7 @@ export abstract class ABCList<
                         draft[draft.type] = produce(data, draft => {
                             draft.children.splice(0, ind + 1)
                         })
+                        draft.lastEditTime = op.getTime()
                     })
                 }
 
@@ -339,6 +324,8 @@ export abstract class ABCList<
                     'focus': focus,
                     'right': right,
                 })
+            } else {
+                this.changeIndent(-1)
             }
         }
     }
@@ -361,7 +348,38 @@ export abstract class ABCList<
             })
             return
         }
-        this.deleteSelecte()
+        if (this.isSelectedMultiContainer()) {
+            const els = this.selectedContainer()
+            const startEl = els[0]
+            const level = parseFloat(startEl.getAttribute('data-level'))
+            const index = parseFloat(startEl.getAttribute('data-index'))
+            const newLi = this.createLi(level, index)
+            els[0].parentElement.insertBefore(newLi, els[0])
+
+            this.deleteSelecte()
+            const remains: ContentItem[] = []
+            const indexs: number[] = []
+            let offset: number = 0
+            els.forEach((el, ind) => {
+                if (el.parentElement) {
+                    if (ind === 0) {
+                        offset = op.getContentSize(el)
+                    }
+                    remains.push(...parseContent(op.validChildNodes(el)))
+                    el.remove()
+                }
+                indexs.push(parseFloat(el.getAttribute('data-index')))
+            })
+            this.lazyPutContentItem(newLi, remains)
+            this.setTargetPosition({
+                'index': index,
+                offset: offset,
+                'type': 'keyboard',
+            })
+
+        } else {
+            this.deleteSelecte()
+        }
         const leftFrag = op.cloneFragmentsBefore(this.currentContainer())
         const rightFrag = op.cloneFragmentsAfter(this.currentContainer())
         const ind = this.currentContainerIndex()
@@ -369,32 +387,38 @@ export abstract class ABCList<
         const left = parseContent(op.validChildNodes(leftFrag))
         const right = parseContent(op.validChildNodes(rightFrag))
         const block = this.blockData()
-        const innerData = produce(this.serializeContentData() as any, draft => {
+        const lastEditTime = this.createLatestTime()
+        const innerData = produce(this.serializeContentData() as any as ABCListData<IndentItem>, draft => {
             draft.children.splice(ind, 1,
                 {
                     ...draft.children[ind],
                     'children': left,
+                    lastEditTime,
                 },
                 {
                     ...draft.children[ind],
                     'children': right,
+                    lastEditTime,
                 })
         })
 
-
         const newBlock = produce(block, draft => {
             draft[draft.type] = innerData
+            draft.lastEditTime = lastEditTime
         })
-        this.setState({
-            data: newBlock,
-            posHistory: {
-                'index': ind + 1,
-                offset: 0,
-                'type': 'keyboard',
-            }
+
+        const newLi = this.createLi()
+        const cur = this.currentContainer()
+        cur.parentElement.insertBefore(newLi, cur.nextElementSibling)
+        this.setTargetPosition({
+            'index': ind + 1,
+            offset: 0,
+            'type': 'keyboard',
+        })
+        this.props.onDataUpdate({
+            'block': newBlock
         })
         this.forceUpdate()
-
     }
 
     handleTab(e: React.KeyboardEvent<Element>): void {
@@ -406,24 +430,68 @@ export abstract class ABCList<
         }
     }
 
-    lazyGetContainers(): HTMLElement | HTMLElement[] {
-        const map = []
-        this.editableRoot().querySelectorAll('li').forEach(c => map.push(c))
-        return map
+    createLi(level?, ind?) {
+        const li = document.createElement('li')
+        this.updateLi(li, level, ind)
+        return li
     }
-    lazyRender(containers: HTMLElement | HTMLElement[]): void {
-        if (Array.isArray(containers)) {
-            const data = this.blockData()
-            containers.forEach((container, ind) => {
-                container.innerHTML = ''
-                const [nodes, noticable] = this.lazyCreateElement(data[data.type].children[ind].children)
-                if (nodes) {
-                    nodes.forEach(c => {
-                        container.appendChild(c)
-                    })
-                    noticable.forEach(c => c.componentDidMount())
+
+    updateLi(li: HTMLLIElement, level?, ind?) {
+        if (Number.isInteger(ind)) {
+            li.setAttribute('data-index', `${ind}`)
+        }
+        if (Number.isInteger(level)) {
+            li.setAttribute('data-level', `${level}`)
+            li.style.listStyleType = ['disc', 'circle', 'square'][level % 3]
+            li.style.marginLeft = `${level * 40}px`
+        }
+    }
+
+
+    lazyRender(container: HTMLElement, prevProps: DefaultBlock, nextProps: DefaultBlock): void {
+        console.log(prevProps)
+        if (prevProps && prevProps.lastEditTime === nextProps.lastEditTime) {
+            return
+        }
+        if (this.currentContainer()) {
+            this.storePosition()
+        }
+
+        const children: IndentItem[] = nextProps[nextProps.type].children
+        let containers = container.querySelectorAll('li')
+
+        let sizeDelta = children.length - containers.length
+        while (sizeDelta > 0) {
+            const newLi = this.createLi(0, 0)
+            container.appendChild(newLi)
+            sizeDelta--
+        }
+        containers = container.querySelectorAll('li')
+
+
+        containers.forEach((container, ind, arr) => {
+            const nextItem: IndentItem = nextProps[nextProps.type].children[ind]
+
+            if (prevProps) {
+                const prevItem: IndentItem = prevProps[prevProps.type].children[ind]
+                if (prevItem && prevItem.lastEditTime === nextItem.lastEditTime) {
+                    return
                 }
-            })
+            }
+            console.log(prevProps)
+
+            this.updateLi(container, nextItem.level, ind)
+            container.innerHTML = ''
+            const [nodes, noticable] = this.lazyCreateElement(nextItem.children)
+            if (nodes) {
+                nodes.forEach(c => {
+                    container.appendChild(c)
+                })
+                noticable.forEach(c => c.componentDidMount())
+            }
+        })
+        if (this.currentContainer()) {
+            this.releasePosition()
         }
     }
 

@@ -1,8 +1,8 @@
 import React from "react";
-import { ContentItem, DefaultBlockData, TableData, TableDataFrame, TableRowItem } from "../types";
+import { ContentItem, DefaultBlock, DefaultBlockData, TableData, TableDataFrame, TableRowItem } from "../types";
 import produce from "immer";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
-import * as op from "../dom"
+import * as op from "../utils"
 import * as dfd from "danfojs"
 import { JumpEvent } from "./events";
 
@@ -171,6 +171,18 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         }
     }
 
+    getContainerByIndex(index: number | number[]): HTMLTableCellElement {
+        const el = this.editableRoot()
+        if (index === 0) {
+            return el.querySelector(`td:nth-child(${1})`)
+        }
+        else if (index === -1) {
+            return el.querySelector(`td:nth-child(${1})`)
+        }
+        return el.querySelector(`td:nth-child(${1})`)
+
+    }
+
     handleTab(e: React.KeyboardEvent<Element>): void {
         e.preventDefault()
 
@@ -212,24 +224,29 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         return map
     }
 
-    lazyRender(containers: HTMLElement | HTMLElement[] | { [key: string]: HTMLElement | HTMLElement[] }): void {
-        const df = this.state.df
-        if (Array.isArray(containers)) {
-            containers.forEach(container => {
-                const rid = parseFloat(container.getAttribute('data-row'))
-                const cid = parseFloat(container.getAttribute('data-col'))
-                const tdItem = (df.iat(rid, cid) as any as TableRowItem)
-                const [nodes, noticable] = this.lazyCreateElement(tdItem.children)
-                container.innerHTML = ''
-                if (nodes) {
-                    nodes.forEach(c => {
-                        container.appendChild(c)
-                    })
-                    noticable.forEach(c => c.componentDidMount())
-                }
-            })
+
+    lazyRender(containers: HTMLElement[], prevProps: DefaultBlock, nextProps: DefaultBlock): void {
+        if (prevProps && prevProps.lastEditTime === nextProps.lastEditTime) {
+            return
         }
+
+        const df = this.state.df
+        containers.forEach(container => {
+            const rid = parseFloat(container.getAttribute('data-row'))
+            const cid = parseFloat(container.getAttribute('data-col'))
+            const tdItem = (df.iat(rid, cid) as any as TableRowItem)
+            const [nodes, noticable] = this.lazyCreateElement(tdItem.children)
+            container.innerHTML = ''
+            if (nodes) {
+                nodes.forEach(c => {
+                    container.appendChild(c)
+                })
+                noticable.forEach(c => c.componentDidMount())
+            }
+        })
+
     }
+
     renderInnerContainer(): React.ReactNode {
         const df = this.state.df
         return df.index.map((item, rid) => {

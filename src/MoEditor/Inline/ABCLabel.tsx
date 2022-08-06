@@ -1,7 +1,7 @@
 import React from "react";
 import KaTeX from "katex"
 import 'katex/dist/katex.min.css';
-import * as op from "../dom"
+import * as op from "../utils"
 import { ContentItem } from "../types";
 
 export interface DataAttribute {

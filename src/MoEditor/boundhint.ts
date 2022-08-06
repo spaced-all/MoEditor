@@ -1,5 +1,5 @@
 import { Caret, Position } from "./types";
-import * as op from "./dom";
+import * as op from "./utils";
 import React, { useDebugValue } from "react";
 
 const whiteSpace = "";

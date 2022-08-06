@@ -3,7 +3,7 @@
     padding: 10px;
     margin: 10px;
     transition: 200ms;
-
+    white-space: break-spaces;
 }
 
 .moe-page .bound-hint {

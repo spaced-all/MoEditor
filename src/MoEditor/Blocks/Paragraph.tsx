@@ -1,6 +1,6 @@
 import React from "react";
 import { ContentItem, DefaultBlockData, ParagraphData } from "../types";
-import * as op from "../dom"
+import * as op from "../utils"
 import { MergeResult } from "./events";
 import { ABCLine, ABCLineProps, ABCLineStats } from "./ABCLine";
 import { parseContent } from "./Common";

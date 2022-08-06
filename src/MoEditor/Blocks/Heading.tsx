@@ -1,6 +1,6 @@
 import React from "react";
 import { ContentItem, DefaultBlockData, HeadingData } from "../types";
-import * as op from "../dom"
+import * as op from "../utils"
 import Position from "../Components/Position";
 import { ABCLine, ABCLineStats, ABCLineProps } from "./ABCLine";
 import { parseContent } from "./Common";

@@ -7,7 +7,7 @@ import { blockRegistor } from "../plugable"
 import { ABCBlock, ABCBlockType } from "../Blocks/ABCBlock";
 import { MonoRequestFn } from "../types/api";
 import "./page.css"
-import { midString } from "../utils";
+import { midString } from "../utils/order";
 import ContextMenu from "../Components/ContextMenu";
 
 interface PageProps {
@@ -199,7 +199,7 @@ export class Page extends React.Component<PageProps, PageStates> {
 
         return <article className="moe-page">
             <ContextMenu menuId="slash-menu" />
-            
+
             {order.map((oid, ind) => {
                 const block = orderedBlock[oid]
                 if (!block) {
@@ -218,7 +218,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                 // }
                 const active = this.state.focused === block.order
                 const blockEl = React.createElement(blockType, {
-                    key: block.order + block.lastEditTime,
+                    key: block.order,
                     uid: block.order,
                     data: block,
                     meta: {},
