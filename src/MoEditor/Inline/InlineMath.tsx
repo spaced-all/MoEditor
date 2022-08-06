@@ -148,7 +148,6 @@ export class InlineMath extends ABCInline<InlineMathProps, InlineMathStates> {
             <Position
                 style={{
                     backgroundColor: 'white',
-
                 }}
                 offset={{
                     left: this.iptRef.current && this.iptRef.current.offsetLeft,

@@ -138,6 +138,7 @@ export class BoundHint extends ABCBoundHint {
       this.right.textContent = rightTag[styleName];
       el.insertBefore(this.left, el.firstChild);
       el.appendChild(this.right);
+      console.log([this.left.textContent, el]);
     } else {
       this._removeElementl(this.left, this.right);
     }
@@ -306,7 +307,9 @@ export class BoundHint extends ABCBoundHint {
     return new Position(newContainer, newOffset, pos.root);
   }
 
-  create;
+  hintElement(el: HTMLElement) {
+    this.hintStyle(el);
+  }
 
   autoUpdate(kwargs?: {
     force?: boolean;

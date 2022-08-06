@@ -74,6 +74,7 @@ export class Heading extends ABCLine<HeadingProps, HeadingStats, HTMLHeadingElem
                 break
         }
     }
+
     handleBackspace(e: React.KeyboardEvent<Element>): void {
         if (this.isCursorLeft()) {
             const block: DefaultBlockData = {
@@ -93,9 +94,8 @@ export class Heading extends ABCLine<HeadingProps, HeadingStats, HTMLHeadingElem
             e.preventDefault()
         }
     }
-    renderBlock(block: DefaultBlockData): React.ReactNode {
-        return this.renderContentItem(block.heading.children)
-    }
+
+
     makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
         return <div
             className="heading">

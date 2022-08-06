@@ -46,7 +46,7 @@ export function parseContent(el: Node[] | Node | HTMLElement[] | HTMLElement): C
         // case 'span':
         //     return []
         case "label":
-            const data = (el as HTMLElement).querySelector('data')
+            const data = (el as HTMLElement)
             const tagName = data.getAttribute('data-type')
             const value = data.getAttribute('data-value')
             let dataKeys = data.getAttribute('data-key')

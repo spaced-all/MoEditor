@@ -136,4 +136,17 @@ export abstract class ABCLine<
         e.preventDefault()
     }
 
+    lazyRender(container: HTMLElement): void {
+        const data = this.props.data
+
+        container.innerHTML = ''
+        const [nodes, noticable] = this.lazyCreateElement(data[data.type].children)
+        if (nodes) {
+            nodes.forEach(c => {
+                container.appendChild(c)
+            })
+            noticable.forEach(c => c.componentDidMount())
+        }
+    }
+
 }

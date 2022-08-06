@@ -27,15 +27,25 @@ export interface TargetRange {
   end?: TargetPosition;
 }
 
+/**
+ * 当前光标情况下，做出某些操作后下一个时刻的光标位置
+ * 包括 Block 之间的光标转移和 Block 内部的光标转移
+ * 一般由键盘事件触发
+ * 在一些情况下会包含 range（选中范围），如 List 的 indent 改变
+ */
 export interface TargetPosition {
   offset?: number;
-  range?: TargetRange;
   type?: "mouse" | "keyboard" | "touch" | "merge" | "split";
-  isRange?: boolean;
+
   // native?: React.KeyboardEvent | React.MouseEvent | KeyboardEvent | MouseEvent;
   direction?: vdirection | hdirection;
   softwrap?: boolean;
   index?: number;
+  indexDelta?: number;
+
+  range?: TargetRange;
+  isRange?: boolean;
+  stopPropagation?: boolean;
 }
 
 // export class RelativePosition implements TargetPosition {

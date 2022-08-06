@@ -40,31 +40,32 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
             children: items
         }
     }
-    renderContentEditable(blockData: any): JSX.Element {
-        return <ContentEditable
-            placeholder={this.placeholder}
-            className="moe-block-editable"
-            innerRef={this.editableRootRef}
-            tagName={this.contentEditableName}
-            contentEditable
+    // renderContentEditable(blockData: any) {
+    //     return <ContentEditable
+    //         placeholder={this.placeholder}
+    //         className="moe-block-editable"
+    //         innerRef={this.editableRootRef}
+    //         tagName={this.contentEditableName}
+    //         contentEditable
 
-            onInput={this.handleInput}
-            onSelect={this.handleSelect}
-            onCopy={this.handleCopy}
-            onChange={this.handleDataChange}
-            onPaste={this.handlePaste}
-            onKeyDown={this.defaultHandleKeyDown}
-            onKeyUp={this.defaultHandleKeyup}
-            style={{
-                // listStyleType: 'none'
-            }}
-        >
-            {blockData}
-        </ContentEditable>
-    }
+    //         onInput={this.handleInput}
+    //         onSelect={this.handleSelect}
+    //         onCopy={this.handleCopy}
+    //         onChange={this.handleDataChange}
+    //         onPaste={this.handlePaste}
+    //         onKeyDown={this.defaultHandleKeyDown}
+    //         onKeyUp={this.defaultHandleKeyup}
+    //         style={{
+    //             // listStyleType: 'none'
+    //         }}
+    //     >
+    //         {blockData}
+    //     </ContentEditable>
+    // }
 
-    renderBlock(block: DefaultBlockData): React.ReactNode {
+    renderInnerContainer() {
         const lvstack = []
+        const block = this.blockData()
         return block.orderedList.children.map((item, ind) => {
             // debugger
             while (lvstack[item.level] === undefined) {
@@ -76,10 +77,6 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
             lvstack[item.level]++
             console.log([[...lvstack], ind, item.level, lvstack[item.level]])
 
-            const liStyle = {
-
-            }
-            
             return <li
                 style={{
                     listStyleType: ['decimal', 'lower-alpha', 'lower-roman'][item.level % 3],
@@ -88,7 +85,7 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
                 value={lvstack[item.level]}
                 data-index={ind}
                 data-level={item.level}
-                key={ind}>{this.renderContentItem(item.children)}</li>
+                key={ind}></li>
         })
     }
 

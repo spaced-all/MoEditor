@@ -1,4 +1,11 @@
 export type BlockId = number | string;
+
+export interface attributes {
+  className?: string;
+  href?: string;
+  src?: string;
+}
+
 export interface ContentItem {
   tagName:
     | "b"
@@ -11,7 +18,7 @@ export interface ContentItem {
     | "math"
     | "relation"
     | string;
-  attributes?: { [key: string]: string };
+  attributes?: attributes;
   textContent?: string;
   children?: ContentItem[];
 }
@@ -19,6 +26,7 @@ export interface ContentItem {
 export interface IndentItem {
   level: number;
   children?: ContentItem[];
+  lastEditTime?: number;
 }
 
 export interface OrderedIndentItem extends IndentItem {
@@ -52,19 +60,24 @@ export interface ABCListData<C extends IndentItem> extends InnerBlockData {
 
 export interface TableRowItem extends InnerBlockData {
   children: ContentItem[];
+  lastEditTime?: number;
 }
 
 export interface TableColItem extends InnerBlockData {
   children: TableRowItem[];
+  lastEditTime?: number;
 }
 
 export interface TableData extends InnerBlockData {
   children: TableColItem[];
 }
-export type TableDataFrame = ContentItem[][][];
+
+export type TableDataFrame = TableRowItem[][];
 
 export interface OrderedListData extends ABCListData<OrderedIndentItem> {}
+
 export interface UnorderedListData extends ABCListData<IndentItem> {}
+
 export interface TodoData {
   // 可以和待办事项结合，直接从另一个表取数据
   // 也就是，更新这一个表的时候，要同时考虑更新 todo tabel

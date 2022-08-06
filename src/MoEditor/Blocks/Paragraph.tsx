@@ -27,6 +27,7 @@ export class Paragraph extends ABCLine<ParagraphProps, ParagraphStats, HTMLParag
         }
     }
 
+
     handleSpace(e: React.KeyboardEvent<Element>): void {
         const key = op.textContentBefore(this.editableRoot()).trim()
         if (key.length > 5 || key.length === 0) {
@@ -114,8 +115,8 @@ export class Paragraph extends ABCLine<ParagraphProps, ParagraphStats, HTMLParag
                 }
         }
     }
-    renderBlock(block: DefaultBlockData): React.ReactNode {
-        return this.renderContentItem(block.paragraph.children)
-    }
+    // renderBlock(block: DefaultBlockData): React.ReactNode {
+    //     return this.renderContentItem(block.paragraph.children)
+    // }
 
 }

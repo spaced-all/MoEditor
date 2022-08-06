@@ -1,17 +1,37 @@
 import { ContentEditable } from "./Common"
-import { DefaultBlockData, Caret, ContentItem, Position, UserCaret, MetaInfo, TargetPosition as AimPosition, hdirection, TargetPosition } from "../types";
+import 'katex/dist/katex.min.css';
+import {
+    DefaultBlockData,
+    Caret,
+    ContentItem,
+    Position,
+    UserCaret,
+    MetaInfo,
+    TargetPosition as AimPosition,
+    hdirection,
+    TargetPosition
+} from "../types";
 import React from "react";
 import produce from "immer"
 import { ContentItemRender } from "./Content";
 import { contextMenu } from 'react-contexify';
+import * as html from "../html"
 
-
-import { CaretChangeEventHandler, DataUpdateEventHandler, JumpEvent, JumpEventHandler, MergeEvent, MergeEventHandler, MergeResult, SplitEvent, SplitEventHandler } from "./events";
+import {
+    CaretChangeEventHandler,
+    DataUpdateEventHandler,
+    JumpEvent,
+    JumpEventHandler,
+    MergeEvent,
+    MergeEventHandler,
+    MergeResult,
+    SplitEvent,
+    SplitEventHandler
+} from "./events";
 
 import * as op from "../dom"
 import { BoundHint, BoundHintType } from "../boundhint";
 import { } from "react-dom";
-
 
 
 export interface ABCBlockStates {
@@ -64,27 +84,23 @@ export interface ABCBlockProps {
 }
 
 
-export interface IBlock<
-    P extends ABCBlockProps,
+export interface IBlock<P extends ABCBlockProps,
     S extends ABCBlockStates,
     O extends HTMLElement,
-    I extends HTMLElement
-    > {
+    I extends HTMLElement> {
     props: P;
     state: S;
     ref: React.RefObject<HTMLDivElement>;
 
 }
 
-export abstract class ABCBlock<
-    P extends ABCBlockProps,
+export abstract class ABCBlock<P extends ABCBlockProps,
     S extends ABCBlockStates,
     O extends HTMLElement, // outer block element type
     I extends HTMLElement // inner block element type
     >
     extends React.Component<P, S>
-    implements IBlock<P, S, O, I>
-{
+    implements IBlock<P, S, O, I> {
 
     protected get contentEditableName(): string {
         return "p"
@@ -113,12 +129,24 @@ export abstract class ABCBlock<
         meta: {},
         active: false,
 
-        onSelect: (evt) => { console.log(['onSelect', evt]) },
-        onMerge: (evt) => { console.log(['onMerge', evt]) },
-        onSplit: (evt) => { console.log(['onSplit', evt]) },
-        onActiveShouldChange: (evt) => { console.log(['onActiveShouldChange', evt]) },
-        onCaretMove: (evt) => { console.log(['onCaretMove', evt]) },
-        onDataUpdate: (evt) => { console.log(['onDataUpdate', evt]) }
+        onSelect: (evt) => {
+            console.log(['onSelect', evt])
+        },
+        onMerge: (evt) => {
+            console.log(['onMerge', evt])
+        },
+        onSplit: (evt) => {
+            console.log(['onSplit', evt])
+        },
+        onActiveShouldChange: (evt) => {
+            console.log(['onActiveShouldChange', evt])
+        },
+        onCaretMove: (evt) => {
+            console.log(['onCaretMove', evt])
+        },
+        onDataUpdate: (evt) => {
+            console.log(['onDataUpdate', evt])
+        }
     };
 
 
@@ -208,9 +236,7 @@ export abstract class ABCBlock<
         this.editableRootRef = React.createRef();
 
 
-
-        this.state = {
-        } as S;
+        this.state = {} as S;
 
         this.handleBlur = this.handleBlur.bind(this);
         this.handleFocus = this.handleFocus.bind(this);
@@ -268,6 +294,7 @@ export abstract class ABCBlock<
             draft.lastEditTime = new Date().getTime()
         })
     }
+
     shouldComponentUpdate(nextProps: Readonly<P>, nextState: Readonly<S>, nextContext: any): boolean {
         // console.log([this.blockData().order, 'shouldComponentUpdate'])
         // if (nextProps.jumpHistory && nextProps.jumpHistory.type === 'mouse') {
@@ -284,21 +311,46 @@ export abstract class ABCBlock<
 
     componentDidMount(): void {
         // console.log([this.blockData().order, 'componentDidMount'])
+        this.lazyRender(this.lazyGetContainers())
+
         if (this.props.active) {
             this.editableRoot().focus();
         }
+
+
     }
+
+    shouldRenderContent(prevProps: DefaultBlockData, nextProps: DefaultBlockData) {
+        return prevProps.lastEditTime !== nextProps.lastEditTime
+    }
+
     componentDidUpdate(
         prevProps: Readonly<P>,
         prevState: Readonly<S>,
         snapshot?: any
     ): void {
         console.log([this.blockData().order, 'componentDidUpdate'])
+
+        if (this.shouldRenderContent(prevProps.data, this.blockData())) {
+            this.lazyRender(this.lazyGetContainers())
+        }
+
         if (this.props.active && !prevProps.active) {
             this.editableRoot().focus();
         }
+
+
+    }
+    lazyCreateElement(item: ContentItem | ContentItem[]) {
+        return html.createElement(item)
     }
 
+    lazyGetContainers(): HTMLElement | HTMLElement[] {
+        return this.editableRoot()
+    }
+
+    lazyRender(container: HTMLElement | HTMLElement[]) {
+    }
     getContainerByIndex(index: number | number[]): I {
         if (index === 0 || index === -1) {
             return this.editableRoot() as any as I
@@ -312,24 +364,31 @@ export abstract class ABCBlock<
         }
         return null
     }
+
     firstContainer(): I {
         return this.editableRoot() as any as I
     }
+
     lastContainer(): I {
         return this.editableRoot() as any as I
     }
+
     previousContainer(el?: I): I {
         return null
     }
+
     nextContainer(el?: I): I {
         return null
     }
+
     previousRowContainer(el?: I): I {
         return null
     }
+
     nextRowContainer(el?: I): I {
         return null
     }
+
 
     editableRoot = (): O => {
         return this.editableRootRef.current
@@ -342,9 +401,13 @@ export abstract class ABCBlock<
     handleCaretMove(e: Position) {
         this.caret = e
     }
+
     handleBlur(e) {
         console.log([this.blockData().order, 'blur', e])
         // console.log(['block blur', e])
+        if (op.isTag(e.target, 'input')) {
+            e.preventDefault()
+        }
         if (this.lastEditTime) {
             this.boundhint.remove()
             this.props.onDataUpdate({
@@ -397,12 +460,19 @@ export abstract class ABCBlock<
 
     handleFocus(e: React.FocusEvent) {
         console.log([this.blockData().order, 'focus', e])
+
+
+        if (op.isTag(e.target, 'input')) {
+            e.stopPropagation()
+            return
+        }
+        // debugger
         // const jumpHistory = this.props.jumpHistory
         const posHistory = this.props.posHistory
         e.preventDefault()
         this.setTargetPosition(posHistory)
         const root = this.currentContainer()
-        if (root) {
+        if (root && !e.relatedTarget) {
             this.boundhint.autoUpdate({ root: root })
         }
         this.clearJumpHistory()
@@ -412,7 +482,7 @@ export abstract class ABCBlock<
     /**
      * insertCompositionText
      * insertText、deleteContentBackward、insertFromPaste / formatBold
-     * @param e 
+     * @param e
      */
     handleInput(e) {
 
@@ -458,7 +528,10 @@ export abstract class ABCBlock<
 
     handleContextMenu(e: React.MouseEvent) {
     }
-    handleKeyUp(e: React.KeyboardEvent<I>) { }
+
+    handleKeyUp(e: React.KeyboardEvent<I>) {
+    }
+
     defaultHandleKeyup(e) {
         // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
         // console.log(["KeyUp", e.key]);
@@ -499,13 +572,15 @@ export abstract class ABCBlock<
         // }
     }
 
-    defaultHandleMouseLeave(e) { }
+    defaultHandleMouseLeave(e) {
+    }
 
     handleCopy(e) {
 
         // console.log(e)
         // debugger
     }
+
     handlePaste(e) {
         // console.log(e)
         // this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
@@ -515,18 +590,23 @@ export abstract class ABCBlock<
     isLastLine() {
         return op.isFirstLine(this.currentContainer())
     }
+
     isFirstLine() {
         return op.isLastLine(this.currentContainer())
     }
+
     isCursorLeft() {
         return op.isCursorLeft(this.currentContainer())
     }
+
     isCursorRight() {
         return op.isCursorRight(this.currentContainer())
     }
+
     currentContainerIndex(): number {
         return 0
     }
+
     activeContainer2(el, offset, softwrap): boolean {
         if (softwrap) {
             return op.setCaretReletivePositionAtLastLine(el, offset)
@@ -534,19 +614,9 @@ export abstract class ABCBlock<
             return op.setCaretReletivePosition(el, offset)
         }
     }
-    activeContainer(el, direction: hdirection, offset?: number) {
-        if (direction === 'left') {
-            op.setCaretReletivePosition(el as HTMLElement, 0)
-        } else if (direction === 'right') {
-            const pos = op.lastValidPosition(el)
-            op.setPosition(pos)
-        } else {
-            op.setCaretReletivePosition(el, offset)
-        }
-    }
+
 
     handleArrowKeyDown(e: React.KeyboardEvent) {
-        console.log('press')
         const root = this.currentContainer();
 
         if (e.key === "ArrowUp") {
@@ -563,7 +633,7 @@ export abstract class ABCBlock<
                     posHistory.offset = this.posHistory.offset
                     this.clearJumpHistory()
                 }
-                this.processJumpEvent2(posHistory)
+                this.processJumpEvent(posHistory)
                 e.preventDefault();
                 return
             }
@@ -582,7 +652,7 @@ export abstract class ABCBlock<
                     posHistory.offset = this.posHistory.offset
                     this.clearJumpHistory()
                 }
-                this.processJumpEvent2(posHistory)
+                this.processJumpEvent(posHistory)
                 e.preventDefault()
                 return
             }
@@ -597,7 +667,6 @@ export abstract class ABCBlock<
             let pos = op.previousValidPosition(root, sel.focusNode, sel.focusOffset);
             if (!pos) {
                 // on left bound
-                // this.processJumpEvent({ 'from': 'below', 'type': 'neighbor' });
                 let posHistory: AimPosition = {
                     // 'index': this.currentContainerIndex() - 1,
                     // 'native': e,
@@ -606,12 +675,13 @@ export abstract class ABCBlock<
                     // 'softwrap': false,
                     'type': 'keyboard'
                 }
-                this.processJumpEvent2(posHistory)
+                this.processJumpEvent(posHistory)
 
                 e.preventDefault()
             } else {
                 if (e.altKey) {
-                } else { }
+                } else {
+                }
                 console.log([sel.focusNode, sel.focusOffset, pos.container, pos.offset])
                 // console.log(pos)
                 pos = this.boundhint.safePosition(pos)
@@ -632,8 +702,7 @@ export abstract class ABCBlock<
                         pos.offset
                     )
                     console.log([sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset])
-                }
-                else {
+                } else {
                     op.setPosition(pos);
                 }
                 this.boundhint.autoUpdate()
@@ -650,7 +719,6 @@ export abstract class ABCBlock<
             pos = op.nextValidPosition(root, sel.focusNode, sel.focusOffset);
             if (!pos) {
                 // on right bound
-                // this.processJumpEvent({ 'from': 'above', 'type': 'neighbor' });
                 let posHistory: AimPosition = {
                     // 'index': this.currentContainerIndex() + 1,
                     // 'native': e,
@@ -659,7 +727,7 @@ export abstract class ABCBlock<
                     // 'softwrap': false,
                     'type': 'keyboard'
                 }
-                this.processJumpEvent2(posHistory)
+                this.processJumpEvent(posHistory)
                 e.preventDefault()
             } else {
                 if (e.altKey) {
@@ -692,7 +760,6 @@ export abstract class ABCBlock<
             }
         }
     }
-
 
 
     defaultHandleDelete(e: React.KeyboardEvent) {
@@ -734,9 +801,11 @@ export abstract class ABCBlock<
         }
         this.handleDelete(e)
     }
+
     isSelectedMultiContainer() {
         return false
     }
+
     defaultHandleBackspace(e: React.KeyboardEvent) {
         let tag;
 
@@ -779,6 +848,7 @@ export abstract class ABCBlock<
         }
         this.handleBackspace(e);
     }
+
     handleBackspace(e: React.KeyboardEvent) {
         if (this.isCursorLeft()) {
             this.processMergeEvent({
@@ -787,6 +857,7 @@ export abstract class ABCBlock<
             e.preventDefault()
         }
     }
+
     handleDelete(e: React.KeyboardEvent) {
         if (this.isCursorRight()) {
             this.processMergeEvent({
@@ -799,6 +870,7 @@ export abstract class ABCBlock<
     handleEnter(e: React.KeyboardEvent) {
 
     }
+
     handleSpace(e: React.KeyboardEvent) {
 
     }
@@ -824,6 +896,7 @@ export abstract class ABCBlock<
             e.preventDefault()
         }
     }
+
     handleTab(e: React.KeyboardEvent) {
 
     }
@@ -839,6 +912,7 @@ export abstract class ABCBlock<
         op.setPosition(pos)
         this.dispatchInputEvent()
     }
+
     defaultHandleKeyDown(e: React.KeyboardEvent) {
         console.log(['keydown', e.key])
         if (e.key.match(/[a-zA-Z@#/]/)) {
@@ -868,9 +942,8 @@ export abstract class ABCBlock<
             const pos = op.currentPosition(this.currentContainer())
             if (op.isTag(pos.container, 'label')) {
                 const lb: HTMLLabelElement = pos.container as HTMLLabelElement
-                const trigger = lb.querySelector("data");
-                trigger.focus();
-                lb.classList.add("inline-key-hovered");
+                lb.click()
+                // lb.classList.add("inline-key-hovered");
                 this.boundhint.autoUpdate({ root: this.currentContainer(), enter: true, keyboardEvent: e })
                 e.preventDefault()
                 return
@@ -945,13 +1018,23 @@ export abstract class ABCBlock<
         }
     }
 
-    handleMouseDown(e: React.MouseEvent) { }
-    defaultHandleMouseEnter(e) { }
-    defaultHandleMouseDown(e) {
-        console.log([this.blockData().order, 'MouseDown', e])
+    handleMouseDown(e: React.MouseEvent) {
+    }
 
-        // ensure the end of block have text element to hold cursor
+    defaultHandleMouseEnter(e) {
+    }
+
+    defaultHandleMouseDown(e) {
+        console.log([this.blockData().order, 'MouseDown', e.target])
+
+        this.clearJumpHistory()
+
         this.boundhint.safeMouseClick(this.editableRoot())
+        if (op.findParentMatchTagName(e.target as any, 'label', this.editableRoot())) {
+            this.boundhint.remove()
+            return
+        }
+        this.boundhint.hintElement(e.target)
 
         if (!this.props.active) {
             this.props.onActiveShouldChange({
@@ -960,16 +1043,18 @@ export abstract class ABCBlock<
                 }
             })
         }
-        
-        // mouse click will clear the jump history
-        this.clearJumpHistory()
+
         this.handleMouseDown(e)
     }
 
     defaultHandleMouseUp(e: React.MouseEvent) {
         console.log([this.blockData().order, 'MouseUp', e])
+        if (op.findParentMatchTagName(e.target as any, 'label', this.editableRoot())) {
+            this.boundhint.remove()
+            return
+        }
+
         const valid = this.boundhint.safeMousePosition()
-        // console.log()
         if (!valid) { // 非合法的位置
             const parent = op.findParentMatchTagName(e.target as Node, 'label', this.currentContainer())
             if (parent) {
@@ -978,13 +1063,7 @@ export abstract class ABCBlock<
             }
         }
         this.boundhint.autoUpdate({ root: this.currentContainer(), click: true, mouseEvent: e })
-    }
-    renderContentItem(item: ContentItem | ContentItem[]): React.ReactNode {
-        return ContentItemRender(item)
-    }
-
-    renderBlock(block: DefaultBlockData): React.ReactNode {
-        return <></>
+        console.log()
     }
 
     makeContentEditable(contentEditable: React.ReactNode) {
@@ -994,24 +1073,35 @@ export abstract class ABCBlock<
     processMergeEvent(e: MergeEvent): boolean {
         return true
     }
-    processJumpEvent2(e: AimPosition): boolean {
+
+    processJumpEvent(e: AimPosition): boolean {
         if (e.type === 'mouse') {
             return true
         }
-        const delta = ((e.direction === 'up' || e.direction === 'left') ? -1 : 1)
-        let neighborIndex = this.currentContainerIndex() + delta
+        console.log(['jump', e])
+        const colDelta = ((e.direction === 'up' || e.direction === 'left') ? -1 : 1)
+        // const rowDelta = ((e.direction === 'left' || e.direction === 'right') ? -1 : 1)
         let neighbor
-        if (neighborIndex >= 0) {
-            neighbor = this.getContainerByIndex(neighborIndex)
+        const cur = this.currentContainer()
+        if (e.direction === 'up') {
+            neighbor = this.previousRowContainer(cur)
+        } else if (e.direction === 'down') {
+            neighbor = this.nextRowContainer(cur)
+        } else if (e.direction === 'left') {
+            neighbor = this.previousContainer(cur)
+        } else if (e.direction === 'right') {
+            neighbor = this.nextContainer(cur)
         }
 
+
         if (neighbor) {
-            return this.activeContainer2(neighbor, e.offset, e.softwrap)
+            this.activeContainer2(neighbor, e.offset, e.softwrap)
+            return true
         } else {
-            if (neighborIndex > 0) {
-                neighborIndex = 0
+            if (e.stopPropagation) {
+                return false
             }
-            e.index = neighborIndex
+            e.index = colDelta
             this.props.onActiveShouldChange({ 'relative': e })
             return true
         }
@@ -1026,14 +1116,17 @@ export abstract class ABCBlock<
         // console.log(e)
 
     }
+
     handleDataChange(e) {
         debugger
     }
+
     public get placeholder(): string | undefined {
         return undefined
     }
 
-    renderContentEditable(blockData) {
+    renderContentEditable() {
+        const inner = this.renderInnerContainer()
         return <ContentEditable
             placeholder={this.placeholder}
             className="moe-block-editable"
@@ -1049,13 +1142,15 @@ export abstract class ABCBlock<
             onKeyDown={this.defaultHandleKeyDown}
             onKeyUp={this.defaultHandleKeyup}
         >
-            {blockData}
+            {inner}
         </ContentEditable>
     }
 
-    render(): React.ReactNode {
-        const initialData = this.blockData()
+    renderInnerContainer() {
+        return undefined
+    }
 
+    render(): React.ReactNode {
         return <div
             className={[
                 this.props.className,
@@ -1075,11 +1170,9 @@ export abstract class ABCBlock<
             onFocus={this.handleFocus}
         >
             {this.makeContentEditable(
-                this.renderContentEditable(this.renderBlock(initialData))
+                this.renderContentEditable()
             )}
-
         </div>
-
     }
 }
 

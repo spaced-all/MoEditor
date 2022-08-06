@@ -1,5 +1,5 @@
 import React from "react";
-import { ContentItem, DefaultBlockData, TableData, TableDataFrame } from "../types";
+import { ContentItem, DefaultBlockData, TableData, TableDataFrame, TableRowItem } from "../types";
 import produce from "immer";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../dom"
@@ -40,8 +40,6 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
 
         this.parseTableDataToArray = this.parseTableDataToArray.bind(this)
         this.parseTableDataToFrame = this.parseTableDataToFrame.bind(this)
-        this.activeTableAt = this.activeTableAt.bind(this)
-        this.activeContainer = this.activeContainer.bind(this)
         this.state = {
             df: this.parseTableDataToFrame(props.data.table),
             pos: { rid: 0, cid: 0 }
@@ -56,13 +54,13 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
     }
 
 
-    componentDidUpdate(prevProps: Readonly<TableProps>, prevState: Readonly<TableStats>, snapshot?: any): void {
-        if (prevState.pos !== this.state.pos) {
-            this.activeTableAt(this.state.pos.rid, this.state.pos.cid)
-        } else {
-            super.componentDidUpdate(prevProps, prevState, snapshot)
-        }
-    }
+    // componentDidUpdate(prevProps: Readonly<TableProps>, prevState: Readonly<TableStats>, snapshot?: any): void {
+    //     if (prevState.pos !== this.state.pos) {
+    //         this.activeTableAt(this.state.pos.rid, this.state.pos.cid)
+    //     } else {
+    //         super.componentDidUpdate(prevProps, prevState, snapshot)
+    //     }
+    // }
 
     // handleFocus(e: React.FocusEvent<Element, Element>): void {
     //     const jumpHistory = this.props.jumpHistory
@@ -88,6 +86,8 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
     //     }
     // }
 
+
+
     parseTableDataToFrame(data: TableData): dfd.DataFrame {
         let arr = this.parseTableDataToArray(data)
         let df = new dfd.DataFrame(arr)
@@ -99,9 +99,9 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
             for (let i = 0; i < 3; i++) {
                 df.push(
                     [
-                        [{ 'tagName': '#text', 'textContent': '' }],
-                        [{ 'tagName': '#text', 'textContent': '' }],
-                        [{ 'tagName': '#text', 'textContent': '' }],
+                        { 'children': [{ 'tagName': '#text', 'textContent': '', children: [] }] },
+                        { 'children': [{ 'tagName': '#text', 'textContent': '', children: [] }] },
+                        { 'children': [{ 'tagName': '#text', 'textContent': '', children: [] }] },
                     ]
                 )
             }
@@ -110,7 +110,7 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
 
         df = data.children.map((row, rid) => {
             const rowEl = row.children.map((col, cid) => {
-                return col.children
+                return col
             })
             return rowEl
         })
@@ -171,27 +171,16 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         }
     }
 
-    activeTableAt(rid, cid) {
-        const outer = this.editableRoot()
-        this.activeContainer(outer.childNodes[rid].childNodes[cid], 'left')
-        this.setState({
-            pos: { rid, cid }
-        })
-    }
-
     handleTab(e: React.KeyboardEvent<Element>): void {
         e.preventDefault()
-        // let hasNeighbor = this.processJumpEvent({
-        //     'from': e.shiftKey ? 'below' : 'above',
-        //     'type': 'neighbor',
-        //     'noPropagation': true
-        // })
 
-        let hasNeighbor = this.processJumpEvent2({
+        let hasNeighbor = this.processJumpEvent({
             'index': this.currentContainerIndex() + (e.shiftKey ? -1 : 1),
             // 'native': e,
-            'offset': e.shiftKey ? -1 : 0,
-            'type': 'keyboard'
+            'direction': e.shiftKey ? 'left' : 'right',
+            // 'offset': e.shiftKey ? -1 : 0,
+            'type': 'keyboard',
+            'stopPropagation': true,
         })
 
         if (!hasNeighbor && !e.shiftKey) {
@@ -206,8 +195,9 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
             this.setState({ df: newDf, pos: { rid: df.index.length, cid: 0 } })
             this.forceUpdate()
         }
-
     }
+
+
     handleMouseDown(e: React.MouseEvent<Element, MouseEvent>): void {
     }
 
@@ -215,11 +205,36 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         window['dfd'] = dfd
         e.preventDefault()
     }
-    renderBlock(block: DefaultBlockData): React.ReactNode {
+
+    lazyGetContainers(): HTMLElement | HTMLElement[] {
+        const map = []
+        this.editableRoot().querySelectorAll('td').forEach(c => map.push(c))
+        return map
+    }
+
+    lazyRender(containers: HTMLElement | HTMLElement[] | { [key: string]: HTMLElement | HTMLElement[] }): void {
         const df = this.state.df
-        return this.state.df.index.map((item, rid) => {
-            const rowEl = this.state.df.columns.map((item, cid) => {
-                return <td key={cid}>{this.renderContentItem(df.iat(rid, cid) as any)}</td>
+        if (Array.isArray(containers)) {
+            containers.forEach(container => {
+                const rid = parseFloat(container.getAttribute('data-row'))
+                const cid = parseFloat(container.getAttribute('data-col'))
+                const tdItem = (df.iat(rid, cid) as any as TableRowItem)
+                const [nodes, noticable] = this.lazyCreateElement(tdItem.children)
+                container.innerHTML = ''
+                if (nodes) {
+                    nodes.forEach(c => {
+                        container.appendChild(c)
+                    })
+                    noticable.forEach(c => c.componentDidMount())
+                }
+            })
+        }
+    }
+    renderInnerContainer(): React.ReactNode {
+        const df = this.state.df
+        return df.index.map((item, rid) => {
+            const rowEl = df.columns.map((item, cid) => {
+                return <td key={cid} data-row={rid} data-col={cid}></td>
             })
             return <tr key={rid}>{rowEl}</tr>
         })
@@ -229,5 +244,7 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
             {contentEditable}
         </table>
     }
+
+
 
 }

@@ -405,7 +405,26 @@ export abstract class ABCList<
             this.changeIndent(1)
         }
     }
-    renderBlock(block: DefaultBlockData): React.ReactNode {
-        return this.renderContentItem(block.heading.children)
+
+    lazyGetContainers(): HTMLElement | HTMLElement[] {
+        const map = []
+        this.editableRoot().querySelectorAll('li').forEach(c => map.push(c))
+        return map
     }
+    lazyRender(containers: HTMLElement | HTMLElement[]): void {
+        if (Array.isArray(containers)) {
+            const data = this.blockData()
+            containers.forEach((container, ind) => {
+                container.innerHTML = ''
+                const [nodes, noticable] = this.lazyCreateElement(data[data.type].children[ind].children)
+                if (nodes) {
+                    nodes.forEach(c => {
+                        container.appendChild(c)
+                    })
+                    noticable.forEach(c => c.componentDidMount())
+                }
+            })
+        }
+    }
+
 }

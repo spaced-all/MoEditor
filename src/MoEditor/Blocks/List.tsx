@@ -42,7 +42,10 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
         }
     }
 
-    renderBlock(block: DefaultBlockData): React.ReactNode {
+    
+
+    renderInnerContainer(): React.ReactNode {
+        const block = this.blockData()
         return block.list.children.map((item, ind) => {
             return <li
                 style={{
@@ -51,7 +54,7 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
                 }}
                 data-index={ind}
                 data-level={item.level}
-                key={ind + this.lastEditTime}>{this.renderContentItem(item.children)}</li>
+                key={ind + this.lastEditTime}></li>
         })
     }
 

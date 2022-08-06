@@ -76,6 +76,7 @@ export class ABCInline<P extends ABCInlineProps, S extends ABCInlineStates> exte
     }
 
     renderTrigger() {
+        
         return <data
             ref={this.dataRef}
             tabIndex={-1}

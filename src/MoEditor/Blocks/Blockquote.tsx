@@ -50,9 +50,8 @@ export class Blockquote extends ABCLine<BlockquoteProps, BlockquoteStats, HTMLQu
 
     handleSpace(e: React.KeyboardEvent<Element>): void {
     }
-    renderBlock(block: DefaultBlockData): React.ReactNode {
-        return this.renderContentItem(block.blockquote.children)
-    }
+
+
     makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
         return <blockquote>{contentEditable}</blockquote>
     }

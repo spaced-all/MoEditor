@@ -13,6 +13,7 @@
     "@types/react-dom": "^18.0.5",
     "danfojs": "^1.1.1",
     "katex": "^0.16.0",
+    "lit": "^2.2.8",
     "prism-react-renderer": "^1.3.5",
     "react": "^18.1.0",
     "react-contexify": "^5.0.0",
