@@ -188,6 +188,7 @@ export abstract class ABCList<
             level = Math.max(Math.min(level, 8), 0)
             this.updateLi(el as any as HTMLLIElement, level)
         }
+        this.updateValue()
     }
 
     processMergeEvent(e: MergeEvent): boolean {
@@ -435,15 +436,27 @@ export abstract class ABCList<
         this.updateLi(li, level, ind)
         return li
     }
+    updateValue() {
 
-    updateLi(li: HTMLLIElement, level?, ind?) {
+    }
+
+    public get listStyleTypes(): string[] {
+        return []
+    }
+
+
+    updateLi(li: HTMLLIElement, level?, ind?, value?) {
         if (Number.isInteger(ind)) {
             li.setAttribute('data-index', `${ind}`)
         }
         if (Number.isInteger(level)) {
             li.setAttribute('data-level', `${level}`)
-            li.style.listStyleType = ['disc', 'circle', 'square'][level % 3]
+            const types = this.listStyleTypes
+            li.style.listStyleType = types[level % types.length]
             li.style.marginLeft = `${level * 40}px`
+        }
+        if (Number.isInteger(value)) {
+            li.setAttribute('value', `${value}`)
         }
     }
 
@@ -490,6 +503,7 @@ export abstract class ABCList<
                 noticable.forEach(c => c.componentDidMount())
             }
         })
+        this.updateValue()
         if (this.currentContainer()) {
             this.releasePosition()
         }

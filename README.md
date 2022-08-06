@@ -21,8 +21,6 @@
 - [ ] 灵活的双链支持
 - [ ] 更多...
 
-
-
 ## Development
 
 ```shell
@@ -43,8 +41,14 @@ npm run start
 - [editorjs.io](https://github.com/codex-team/editor.js): 感谢 editorjs.io 提供的灵感，以及适配到 React 上的困难，让我萌生了自己写一款的想法（
 - [语雀](https://www.yuque.com/)：单论编辑器，语雀雀实可以看成编辑器的天花板，开发过程中的一些编辑器行为和操作习惯都参考了语雀
 
+# 其他 Editor
+
+如果你不满，那么下面是我发现的其他高星 editor：
+
+- https://github.com/ianstormtaylor/slate
+- 
+
 # 交流地点
 
 - 欢迎用 issue & pr 提出任意优化建议/需求
 - QQ 群：424957747
-- discord: https://discord.gg/GjGrp44kRh

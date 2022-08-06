@@ -106,16 +106,15 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
         };
 
         return <div
-            onMouseEnter={this.defaultHandleMouseEnter}
-            onMouseLeave={this.defaultHandleMouseLeave}
             style={{
                 fontFamily: '"Fira code", "Fira Mono", monospace',
                 fontSize: 16,
                 ...styles.container
             }}
-
         >
             <textarea
+                onMouseEnter={this.defaultHandleMouseEnter}
+                onMouseLeave={this.defaultHandleMouseLeave}
                 ref={this.textareaRef}
                 style={{
                     ...styles.editor,
@@ -148,7 +147,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                         ))}
                     </pre>
                 )}
-                
+
             </Highlight>
             {
                 this.state.hover &&

@@ -78,7 +78,7 @@ const data1: DefaultBlockData[] = [
     'type': 'heading',
     'order': 'bb',
     'heading': {
-      'level': 0,
+      'level': 1,
       'children': []
     }
   },

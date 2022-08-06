@@ -148,12 +148,14 @@ export class BoundHint extends ABCBoundHint {
     const right = op.lastNeighborTextNode(el);
     // console.log([left.textContent, right.textContent]);
     if (op.previousValidNode(left) && left.previousSibling !== this.left) {
+      this.leftText.textContent = "\u00a0";
       left.parentElement.insertBefore(this.leftText, left);
     } else {
       this._removeElementl(this.leftText);
     }
 
     if (op.nextValidNode(right) && right.nextSibling !== this.right) {
+      this.rightText.textContent = "\u00a0";
       right.parentElement.insertBefore(this.rightText, right.nextSibling);
     } else {
       this._removeElementl(this.rightText);
@@ -322,12 +324,22 @@ export class BoundHint extends ABCBoundHint {
     if (this.disable) {
       return;
     }
+
     const { force, root, click, enter } = kwargs || {};
     const sel = document.getSelection();
     if (!sel || sel.rangeCount === 0) {
       this.remove();
       return;
     }
+    console.log(sel.focusNode);
+    if (
+      op.isTag(document.activeElement, "input") ||
+      op.isTag(document.activeElement, "textarea")
+    ) {
+      this.remove();
+      return;
+    }
+
     var el: Node;
     var multiSelect = false;
     var offset = 0;

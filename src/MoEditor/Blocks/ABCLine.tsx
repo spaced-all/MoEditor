@@ -1,11 +1,10 @@
 import React from "react";
 import produce from "immer"
 import { DefaultBlock, DefaultBlockData, ParagraphData, TargetPosition } from "../types";
-import { InlineMath } from "../Inline/InlineMath";
 import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../utils"
 import { MergeEvent, MergeResult } from "./events";
-import { parseBaseContent, parseContent } from "./Common";
+import { parseContent } from "./Common";
 
 
 export interface ABCLineProps extends ABCBlockProps {

@@ -1,5 +1,5 @@
 import React from "react";
-import { DefaultBlockData, OrderedIndentItem, OrderedListData } from "../types";
+import { DefaultBlock, DefaultBlockData, IndentItem, OrderedIndentItem, OrderedListData } from "../types";
 import * as op from "../utils"
 import { ABCList, ABCListProps, ABCListStats } from "./ABCList";
 import { ContentEditable, parseContent } from "./Common";
@@ -62,7 +62,9 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
     //         {blockData}
     //     </ContentEditable>
     // }
-
+    public get listStyleTypes(): string[] {
+        return ['decimal', 'lower-alpha', 'lower-roman']
+    }
     // renderInnerContainer() {
     //     const lvstack = []
     //     const block = this.blockData()
@@ -89,4 +91,22 @@ export class OList extends ABCList<OListProps, OListStats, HTMLOListElement, HTM
     //     })
     // }
 
+    updateValue() {
+        let containers = this.editableRoot().querySelectorAll('li')
+        const lvstack = []
+
+        containers.forEach((container, ind, arr) => {
+            const level = parseFloat(container.getAttribute('data-level'))
+            while (lvstack[level] === undefined) {
+                lvstack.push(0)
+            }
+            while (level < lvstack.length - 1) {
+                lvstack.pop()
+            }
+            lvstack[level]++
+
+            this.updateLi(container, null, null, lvstack[level])
+        })
+
+    }
 }

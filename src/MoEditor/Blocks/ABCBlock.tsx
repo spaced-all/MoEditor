@@ -318,7 +318,6 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
         if (this.props.active) {
             this.editableRoot().focus();
-        } else {
             this.boundhint.autoUpdate({ root: this.currentContainer() })
         }
     }
@@ -339,7 +338,8 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
         if (this.props.active && !prevProps.active) {
             this.editableRoot().focus();
-        } else {
+            // BoundHint 不能在这种通用的方法内使用
+            // code 等一些 block 不能适配   
             this.boundhint.autoUpdate({ root: this.currentContainer() })
         }
     }
@@ -419,7 +419,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     handleBlur(e) {
         console.log([this.blockData().order, 'blur', e])
-
+        this.inComposition = false
         // console.log(['block blur', e])
         if (op.findParentMatchTagName(e.relatedTarget, 'label', this.currentContainer())) {
             e.preventDefault()
@@ -445,7 +445,6 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             if (sel.rangeCount === 0) {
                 return
             }
-
 
             if (posHistory.isRange) {
                 // 一般情况下不会有跨 block 的 range posHistory
@@ -494,8 +493,17 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         console.log([this.blockData().order, 'focus', e])
 
         let label;
+
         if ((label = op.findParentMatchTagName(e.relatedTarget, 'label', this.currentContainer()))) {
-            let pos = op.previousValidPosition(this.currentContainer(), label, 0)
+            let pos: Position;
+            if (!label.parentElement) {
+                pos = op.currentPosition(this.currentContainer())
+                pos = this.boundhint.safePosition(pos)
+                op.setPosition(pos)
+                this.boundhint.autoUpdate({ root: this.currentContainer() })
+                return
+            }
+            pos = op.nextValidPosition(this.currentContainer(), label, 0)
             if (!pos || !pos.container) {
                 return
             }
@@ -559,16 +567,20 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                     tag.parentElement.insertBefore(newText, tag.nextSibling)
                     op.setPosition(op.lastValidPosition(newText))
                 }
+                this.boundhint.autoUpdate()
             } else if (e.nativeEvent.inputType === 'deleteContentBackward' || e.nativeEvent.inputType === 'deleteContentForward') {
                 // debugger
                 console.log(tag.className)
                 let pos = op.nextValidPosition(this.editableRoot())
                 pos = this.boundhint.safePosition(pos)
                 op.setPosition(pos)
+                this.boundhint.autoUpdate()
+            } else {
+                console.log([e, e.nativeEvent.inputType])
             }
 
         }
-        this.boundhint.autoUpdate()
+
         this.lastEditTime = new Date().getTime()
         console.log(['input', e.nativeEvent.inputType])
     }
@@ -579,6 +591,34 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     handleCompositionEnd(e: React.CompositionEvent) {
         console.log(['handleCompositionEnd', this.props.data.order, e])
         this.inComposition = false
+        const sel = document.getSelection()
+        const tag = sel.focusNode.parentElement
+
+        if (op.isTag(tag, 'span') &&
+            tag.classList.contains('bound-hint')) {
+            // debugger
+            if (tag.classList.contains('bound-hint-right')) {
+                const right = sel.focusNode.textContent.slice(-1)
+                const left = sel.focusNode.textContent.slice(0, -1)
+                tag.textContent = right
+                var newText = op.makeText(left)
+                if (op.isTag(tag.previousSibling, '#text')) {
+                    tag.previousSibling.textContent = tag.previousSibling.textContent + newText.textContent
+                    newText = tag.previousSibling as Text
+                } else {
+                    tag.parentElement.insertBefore(newText, tag)
+                }
+                op.setPosition(op.lastValidPosition(newText))
+            } else {
+                const right = sel.focusNode.textContent.slice(1)
+                const left = sel.focusNode.textContent.slice(-0, -1)
+                const newText = op.makeText(right)
+                tag.textContent = left
+                tag.parentElement.insertBefore(newText, tag.nextSibling)
+                op.setPosition(op.lastValidPosition(newText))
+            }
+            this.boundhint.autoUpdate()
+        }
     }
     handleCompositionUpdate(e: React.CompositionEvent) {
         console.log(['handleCompositionUpdate', this.props.data.order, e])
@@ -678,6 +718,9 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     handleArrowKeyDown(e: React.KeyboardEvent) {
         const root = this.currentContainer();
 
+        // if (!root) {
+        //     this.currentContainer()
+        // }
         if (e.key === "ArrowUp") {
             if (op.isFirstLine(root)) {
                 let posHistory: AimPosition = {
@@ -791,7 +834,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             } else {
                 if (e.altKey) {
                 }
-                console.log(op.validChildNodes(root))
+                // console.log(op.validChildNodes(root))
                 pos = this.boundhint.safePosition(pos)
                 if (e.shiftKey) {
                     while (pos && !op.isTag(pos.container, '#text')) {
@@ -1012,11 +1055,6 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             }
         }
 
-        if (op.isTag(((e as any).target), 'input')) {
-            debugger
-            this.handleInputKeyDown(e)
-            return
-        }
 
         if (e.key === "Enter") {
             const pos = op.currentPosition(this.currentContainer())
@@ -1121,6 +1159,15 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         console.log([this.blockData().order, 'MouseDown', e.target])
 
         this.clearJumpHistory()
+        // 优先级比 label 的激活高
+        // 跨 Block 点击时必须触发，否则 this.currentContainer() 会因为 active 属性没有更新而返回 null
+        if (!this.props.active) {
+            this.props.onActiveShouldChange({
+                relative: {
+                    'type': 'mouse',
+                }
+            })
+        }
 
         this.boundhint.safeMouseClick(this.editableRoot())
         if (op.findParentMatchTagName(e.target as any, 'label', this.editableRoot())) {
@@ -1130,13 +1177,6 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         // 取消这一行的效果，否则会导致按下时的选中位置和实际位置不一致
         // this.boundhint.hintElement(e.target)
 
-        if (!this.props.active) {
-            this.props.onActiveShouldChange({
-                relative: {
-                    'type': 'mouse',
-                }
-            })
-        }
 
         this.handleMouseDown(e)
     }

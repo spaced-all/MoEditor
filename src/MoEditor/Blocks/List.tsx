@@ -43,7 +43,9 @@ export class List extends ABCList<ListProps, ListStats, HTMLUListElement, HTMLLI
     }
 
 
-
+    public get listStyleTypes(): string[] {
+        return ['disc', 'circle', 'square']
+    }
     // renderInnerContainer(): React.ReactNode {
     //     const block = this.blockData()
     //     return block.list.children.map((item, ind) => {
