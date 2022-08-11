@@ -1,13 +1,10 @@
 import React from "react";
-import { ContentItem, DefaultBlock, DefaultBlockData, TableData, TableDataFrame, TableRowItem } from "../types";
+import { ContentItem, DefaultBlock, DefaultBlockData, TableData, TableDataFrame, TableRowItem } from "../../types";
 import produce from "immer";
-import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
-import * as op from "../utils"
+import { ABCBlock, ABCBlockProps, ABCBlockStates } from "../ABCBlock";
+import * as op from "../../utils"
 import * as dfd from "danfojs"
-import { JumpEvent } from "./events";
-
-import PositionEl from "../Components/PositionEl";
-
+import * as html from "../../html"
 
 export interface TableProps extends ABCBlockProps {
 
@@ -80,7 +77,7 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
     //                 this.activeTableAt(df.index.length - 1, df.columns.length - 1)
     //             }
     //         }
-    //         this.boundhint.autoUpdate({ root: this.currentContainer() })
+    //         this.richhint.autoUpdate({ root: this.currentContainer() })
     //         this.clearJumpHistory()
     //         return
     //     }
@@ -206,6 +203,8 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
 
             this.setState({ df: newDf, pos: { rid: df.index.length, cid: 0 } })
             this.forceUpdate()
+        } else {
+            this.richhint.autoUpdate({ root: this.currentContainer() })
         }
     }
 
@@ -214,7 +213,6 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
     }
 
     handleContextMenu(e: React.MouseEvent<Element, MouseEvent>): void {
-        window['dfd'] = dfd
         e.preventDefault()
     }
 
@@ -223,7 +221,6 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
         this.editableRoot().querySelectorAll('td').forEach(c => map.push(c))
         return map
     }
-
 
     lazyRender(containers: HTMLElement[], prevProps: DefaultBlock, nextProps: DefaultBlock): void {
         if (prevProps && prevProps.lastEditTime === nextProps.lastEditTime) {
@@ -235,14 +232,7 @@ export class Table extends ABCBlock<TableProps, TableStats, HTMLTableElement, HT
             const rid = parseFloat(container.getAttribute('data-row'))
             const cid = parseFloat(container.getAttribute('data-col'))
             const tdItem = (df.iat(rid, cid) as any as TableRowItem)
-            const [nodes, noticable] = this.lazyCreateElement(tdItem.children)
-            container.innerHTML = ''
-            if (nodes) {
-                nodes.forEach(c => {
-                    container.appendChild(c)
-                })
-                noticable.forEach(c => c.componentDidMount())
-            }
+            html.putContentItem(container, tdItem.children)
         })
 
     }

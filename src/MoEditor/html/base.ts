@@ -94,3 +94,40 @@ export function createElement(
   });
   return [nodes, noticable];
 }
+
+export function putContentItem(
+  el: HTMLElement,
+  contentItem: ContentItem | ContentItem[],
+  refresh: boolean = true
+) {
+  if (refresh) {
+    el.innerHTML = "";
+  }
+  const [nodes, noticable] = createElement(contentItem);
+  if (nodes) {
+    nodes.forEach((c) => {
+      el.appendChild(c);
+    });
+    noticable.forEach((c) => c.componentDidMount());
+  }
+  return [nodes, noticable];
+}
+
+export function insertContentItem(
+  el: HTMLElement,
+  contentItem: ContentItem | ContentItem[],
+  range?: Range
+) {
+  if (!range) {
+    range = document.getSelection().getRangeAt(0);
+  }
+
+  const [nodes, noticable] = createElement(contentItem);
+  if (nodes) {
+    nodes.reverse().forEach((c) => {
+      range.insertNode(c);
+    });
+    noticable.forEach((c) => c.componentDidMount());
+  }
+  return [nodes, noticable];
+}

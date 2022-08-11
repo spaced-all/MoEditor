@@ -19,18 +19,22 @@ import * as html from "../html"
 
 import {
     CaretChangeEventHandler,
+    CheckpointEventHandler,
+    ContextMenuEvent,
+    ContextMenuEventHandler,
     DataUpdateEventHandler,
     JumpEvent,
     JumpEventHandler,
     MergeEvent,
     MergeEventHandler,
     MergeResult,
+    SlashContextMenuEvent,
     SplitEvent,
     SplitEventHandler
 } from "./events";
 
 import * as op from "../utils"
-import { BoundHint, BoundHintType } from "../boundhint";
+import { RichHint as RichHint, RichHintType } from "../richhint";
 import { } from "react-dom";
 import { InlineMath } from "../html/inlinemath";
 
@@ -69,19 +73,10 @@ export interface ABCBlockProps {
     onSplit?: SplitEventHandler;
     // triggered by arrow key, or mouse click
     onActiveShouldChange?: JumpEventHandler;
-    // triggered by mouse and keyboard event
     onCaretMove?: CaretChangeEventHandler;
-
-    onDataUpdate?: DataUpdateEventHandler
-    // onCaretMoveTo?: (e: React.CaretEvent<HTMLElement>) => void;
-    // onAppendAbove?: (e: React.BlockAppendEvent<HTMLElement>) => void;
-    // onAppendBelow?: (e: React.BlockAppendEvent<HTMLElement>) => void;
-    // onSplitAbove?: (e: React.BlockEvent<HTMLElement>) => void;
-    // onChangeBlockType?: (e: React.BlockChangeEvent<HTMLElement>) => void;
-    // onComponentUpdate?: (e: React.ComponentUpdatedEvent<HTMLElement>) => void;
-    // onSelectBlock?: (e: React.BlockEvent<HTMLElement>) => void;
-    // onMouseSelect?: (e: React.MouseEvent<HTMLElement>) => void;
-    // onMouseEnter?: (e: React.MouseEvent<HTMLElement>) => void;
+    onDataUpdate?: DataUpdateEventHandler;
+    onCheckpoint?: CheckpointEventHandler;
+    onContextMenu?: ContextMenuEventHandler;
 }
 
 
@@ -110,14 +105,14 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     protected get className(): string {
         return null
     }
+    protected get style(): React.CSSProperties | undefined {
+        return null
+    }
 
     protected get multiContainer(): boolean {
         return false
     }
 
-    protected get disableBoundHint(): boolean {
-        return false
-    }
 
     static blockName = ''
 
@@ -217,7 +212,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         throw new Error('not implemented.')
     }
 
-    boundhint: BoundHintType<BoundHint>;
+    richhint: RichHintType<RichHint>;
     posHistory?: AimPosition
     caret: Position;
     lastEditTime?: number;
@@ -228,7 +223,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     inComposition?: boolean
     constructor(props: P) {
         super(props);
-        this.boundhint = new BoundHint()
+        this.richhint = new RichHint()
         // this.jumpHistory = null
         this.posHistory = null
         this.caret = null;
@@ -314,11 +309,12 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     componentDidMount(): void {
 
+        this.lazyRenderInnerContainer(this.editableRoot(), null, this.blockData())
         this.lazyRender(this.lazyGetContainers(), null, this.blockData())
 
         if (this.props.active) {
             this.editableRoot().focus();
-            this.boundhint.autoUpdate({ root: this.currentContainer() })
+            this.richhint.autoUpdate({ root: this.currentContainer() })
         }
     }
 
@@ -334,36 +330,36 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         console.log([this.blockData().order, 'componentDidUpdate'])
         console.log(this.posHistory)
 
+        this.lazyRenderInnerContainer(this.editableRoot(), prevProps.data, this.blockData())
         this.lazyRender(this.lazyGetContainers(), prevProps.data, this.blockData())
 
         if (this.props.active && !prevProps.active) {
             this.editableRoot().focus();
-            // BoundHint 不能在这种通用的方法内使用
+            // RichHint 不能在这种通用的方法内使用
             // code 等一些 block 不能适配   
-            this.boundhint.autoUpdate({ root: this.currentContainer() })
+            this.richhint.autoUpdate({ root: this.currentContainer() })
         }
-    }
-    lazyCreateElement(item: ContentItem | ContentItem[]) {
-        return html.createElement(item)
     }
 
     lazyGetContainers(): HTMLElement | HTMLElement[] {
         return this.editableRoot()
     }
-    lazyPutContentItem(el: HTMLElement, contentItem: ContentItem[]) {
-        el.innerHTML = ''
-        const [nodes, noticable] = this.lazyCreateElement(contentItem)
-        if (nodes) {
-            nodes.forEach(c => {
-                el.appendChild(c)
-            })
-            noticable.forEach(c => c.componentDidMount())
-        }
-    }
+
 
     lazyRender(container: HTMLElement | HTMLElement[],
         prevProps: DefaultBlockData,
         nextProps: DefaultBlockData) {
+    }
+
+    /**
+     * 由各自的类继承
+     * @param root ContentEditable Root
+     * @param prevProps 
+     * @param nextProps 
+     */
+    lazyRenderInnerContainer(root: HTMLElement, prevProps: DefaultBlockData,
+        nextProps: DefaultBlockData) {
+
     }
 
     getContainerByIndex(index: number | number[]): I {
@@ -420,17 +416,14 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     handleBlur(e) {
         console.log([this.blockData().order, 'blur', e])
         this.inComposition = false
-        // console.log(['block blur', e])
+
         if (op.findParentMatchTagName(e.relatedTarget, 'label', this.currentContainer())) {
             e.preventDefault()
             return
         }
 
-        if (op.isTag(e.target, 'input')) {
-            e.preventDefault()
-        }
         if (this.lastEditTime) {
-            this.boundhint.remove()
+            this.richhint.remove()
             this.props.onDataUpdate({
                 // need diff or trigger to ignore unchanged block to call serialize()
                 'block': this.serialize()
@@ -464,7 +457,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 // const range = document.getSelection().getRangeAt(0)
                 // range.setStart(startRange.startContainer, startRange.startOffset)
                 // range.setEnd(endRange.endContainer, endRange.endOffset)
-                this.boundhint.autoUpdate({ root: this.editableRoot() })
+                this.richhint.autoUpdate({ root: this.editableRoot() })
             } else {
                 const el = this.getContainerByIndex(posHistory.index)
                 let res: boolean;
@@ -475,9 +468,9 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 }
 
                 let pos = op.currentPosition(this.currentContainer())
-                pos = this.boundhint.safePosition(pos)
+                pos = this.richhint.safePosition(pos)
                 op.setPosition(pos)
-                this.boundhint.autoUpdate({ root: this.editableRoot() })
+                this.richhint.autoUpdate({ root: this.editableRoot() })
                 if (!res) {
                     this.posHistory = posHistory
                 } else {
@@ -498,18 +491,18 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             let pos: Position;
             if (!label.parentElement) {
                 pos = op.currentPosition(this.currentContainer())
-                pos = this.boundhint.safePosition(pos)
+                pos = this.richhint.safePosition(pos)
                 op.setPosition(pos)
-                this.boundhint.autoUpdate({ root: this.currentContainer() })
+                this.richhint.autoUpdate({ root: this.currentContainer() })
                 return
             }
             pos = op.nextValidPosition(this.currentContainer(), label, 0)
             if (!pos || !pos.container) {
                 return
             }
-            pos = this.boundhint.safePosition(pos)
+            pos = this.richhint.safePosition(pos)
             op.setPosition(pos)
-            this.boundhint.autoUpdate({ root: this.currentContainer() })
+            this.richhint.autoUpdate({ root: this.currentContainer() })
             e.preventDefault()
             e.stopPropagation()
             return
@@ -524,14 +517,16 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         const posHistory = this.props.posHistory
         e.preventDefault()
         this.setTargetPosition(posHistory)
-        const root = this.currentContainer()
+        const root = this.currentContainer() as any
 
         if (root && !e.relatedTarget) {
             // initial situation
-            this.boundhint.autoUpdate({ root: root })
+            this.richhint.autoUpdate({ root: root })
         }
         this.clearJumpHistory()
 
+        // false to aligns the element to the nearest edge in the visible area
+        root.scrollIntoViewIfNeeded(false)
     }
 
     /**
@@ -543,7 +538,6 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
         const sel = document.getSelection()
         const tag = sel.focusNode.parentElement
-
         if (op.isTag(tag, 'span') &&
             tag.classList.contains('bound-hint')) {
             if (e.nativeEvent.inputType === 'insertText') {
@@ -567,20 +561,32 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                     tag.parentElement.insertBefore(newText, tag.nextSibling)
                     op.setPosition(op.lastValidPosition(newText))
                 }
-                this.boundhint.autoUpdate()
+                this.richhint.autoUpdate()
             } else if (e.nativeEvent.inputType === 'deleteContentBackward' || e.nativeEvent.inputType === 'deleteContentForward') {
                 // debugger
                 console.log(tag.className)
                 let pos = op.nextValidPosition(this.editableRoot())
-                pos = this.boundhint.safePosition(pos)
+                pos = this.richhint.safePosition(pos)
                 op.setPosition(pos)
-                this.boundhint.autoUpdate()
+                this.richhint.autoUpdate()
             } else {
                 console.log([e, e.nativeEvent.inputType])
             }
-
         }
-
+        // if (e.nativeEvent.inputType === 'insertText') {
+        //     this.props.onCheckpoint({
+        //         'data': {
+        //             'type': 'input',
+        //             'input': {
+        //                 'type': 'insert',
+        //                 'index': this.currentContainerIndex(),
+        //                 'offset': op.getCaretReletivePosition(this.currentContainer()),
+        //                 'data': e.nativeEvent.data
+        //             },
+        //             time: op.getTime(),
+        //         }
+        //     })
+        // }
         this.lastEditTime = new Date().getTime()
         console.log(['input', e.nativeEvent.inputType])
     }
@@ -617,8 +623,21 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 tag.parentElement.insertBefore(newText, tag.nextSibling)
                 op.setPosition(op.lastValidPosition(newText))
             }
-            this.boundhint.autoUpdate()
+            this.richhint.autoUpdate()
         }
+
+        // this.props.onCheckpoint({
+        //     'data': {
+        //         'type': 'input',
+        //         'input': {
+        //             'type': 'insert',
+        //             'index': this.currentContainerIndex(),
+        //             'offset': op.getCaretReletivePosition(this.currentContainer()),
+        //             'data': e.nativeEvent.data
+        //         },
+        //         time: op.getTime(),
+        //     }
+        // })
     }
     handleCompositionUpdate(e: React.CompositionEvent) {
         console.log(['handleCompositionUpdate', this.props.data.order, e])
@@ -632,21 +651,21 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     }
 
     defaultHandleKeyup(e) {
-        // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
+        // 作用只是在 上下键按出后，重新定位 RichHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
         // console.log(["KeyUp", e.key]);
 
-        // 作用只是在 上下键按出后，重新定位 BoundHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
+        // 作用只是在 上下键按出后，重新定位 RichHint，不涉及对光标本身的操作，所有对光标本身的操作，都在 KeyDown 时完成
         // console.log(["KeyUp", e.key]);
 
         if (e.key.match("Arrow") || e.key === 'Home' || e.key === 'End') {
-            this.boundhint.safeMousePosition()
-            this.boundhint.autoUpdate()
+            this.richhint.safeMousePosition()
+            this.richhint.autoUpdate()
             e.preventDefault();
         } else if (e.key === "Backspace" || e.key === "Delete") {
-            this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
+            this.richhint.autoUpdate({ force: true, root: this.currentContainer() })
             e.preventDefault()
         } else if (e.metaKey) {
-            // this.boundhint.autoUpdate({ force: true })
+            // this.richhint.autoUpdate({ force: true })
             e.preventDefault()
         }
 
@@ -682,7 +701,6 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     handlePaste(e) {
         // console.log(e)
-        // this.props.eventManager.call('boundhint', { name: 'unexpand', data: {} })
         // debugger
     }
 
@@ -739,7 +757,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 e.preventDefault();
                 return
             }
-            this.boundhint.autoUpdate()
+            this.richhint.autoUpdate()
         } else if (e.key === "ArrowDown") {
             if (op.isLastLine(root)) {
                 let posHistory: AimPosition = {
@@ -758,7 +776,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 e.preventDefault()
                 return
             }
-            this.boundhint.autoUpdate()
+            this.richhint.autoUpdate()
         } else if (e.key === "ArrowLeft") {
             if (e.altKey) {
                 return
@@ -786,17 +804,17 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 }
                 console.log([sel.focusNode, sel.focusOffset, pos.container, pos.offset])
                 // console.log(pos)
-                pos = this.boundhint.safePosition(pos)
+                pos = this.richhint.safePosition(pos)
                 if (e.shiftKey) {
                     while (pos && !op.isTag(pos.container, '#text')) {
-                        pos = this.boundhint.safePosition(pos)
+                        pos = this.richhint.safePosition(pos)
                         if (op.isTag(pos.container, 'label')) {
                             pos = op.previousValidPosition(root, pos.container, pos.offset);
                             break
                         }
                         pos = op.previousValidPosition(root, pos.container, pos.offset);
                     }
-                    pos = this.boundhint.safePosition(pos)
+                    pos = this.richhint.safePosition(pos)
                     document.getSelection().setBaseAndExtent(
                         sel.anchorNode,
                         sel.anchorOffset,
@@ -807,7 +825,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 } else {
                     op.setPosition(pos);
                 }
-                this.boundhint.autoUpdate()
+                this.richhint.autoUpdate()
                 e.preventDefault();
             }
         } else if (e.key === "ArrowRight") {
@@ -835,17 +853,17 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 if (e.altKey) {
                 }
                 // console.log(op.validChildNodes(root))
-                pos = this.boundhint.safePosition(pos)
+                pos = this.richhint.safePosition(pos)
                 if (e.shiftKey) {
                     while (pos && !op.isTag(pos.container, '#text')) {
-                        pos = this.boundhint.safePosition(pos)
+                        pos = this.richhint.safePosition(pos)
                         if (op.isTag(pos.container, 'label')) {
                             pos = op.nextValidPosition(root, pos.container, pos.offset);
                             break
                         }
                         pos = op.nextValidPosition(root, pos.container, pos.offset);
                     }
-                    pos = this.boundhint.safePosition(pos)
+                    pos = this.richhint.safePosition(pos)
                     // op.setPosition(pos, false, true);
                     document.getSelection().setBaseAndExtent(
                         sel.anchorNode,
@@ -856,7 +874,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 } else {
                     op.setPosition(pos);
                 }
-                this.boundhint.autoUpdate()
+                this.richhint.autoUpdate()
 
                 e.preventDefault();
             }
@@ -886,9 +904,9 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         } else if ((tag = op.isInLabelBound(this.currentContainer(), "right"))) {
             let pos = op.previousValidPosition(this.editableRoot(), tag, 0)
             tag.parentElement.removeChild(tag)
-            pos = this.boundhint.safePosition(pos)
+            pos = this.richhint.safePosition(pos)
             op.setPosition(pos)
-            this.boundhint.autoUpdate()
+            this.richhint.autoUpdate()
 
             e.preventDefault();
             this.dispatchInputEvent()
@@ -933,9 +951,9 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         } else if ((tag = op.isInLabelBound(this.currentContainer(), "left"))) {
             let pos = op.previousValidPosition(this.editableRoot(), tag, 0)
             tag.parentElement.removeChild(tag)
-            pos = this.boundhint.safePosition(pos)
+            pos = this.richhint.safePosition(pos)
             op.setPosition(pos)
-            this.boundhint.autoUpdate()
+            this.richhint.autoUpdate()
             e.preventDefault();
             this.dispatchInputEvent()
             return
@@ -973,6 +991,10 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     }
 
+    handleContextResponse(e) {
+
+    }
+
     handleSpace(e: React.KeyboardEvent) {
 
     }
@@ -992,9 +1014,9 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             editableRoot.focus()
             let pos = op.createPosition(this.currentContainer(), parent, 0)
             pos = op.nextValidPosition(this.currentContainer(), pos.container, pos.offset)
-            pos = this.boundhint.safePosition(pos)
+            pos = this.richhint.safePosition(pos)
             op.setPosition(pos)
-            this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
+            this.richhint.autoUpdate({ force: true, root: this.currentContainer() })
 
             e.preventDefault()
         }
@@ -1011,9 +1033,36 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         // }
         document.getSelection().getRangeAt(0).deleteContents()
         let pos = op.currentPosition(this.editableRoot())
-        pos = this.boundhint.safePosition(pos)
+        pos = this.richhint.safePosition(pos)
         op.setPosition(pos)
         this.dispatchInputEvent()
+    }
+
+    tryHandleShortType(e: React.KeyboardEvent) {
+        if (this.insertHistory[this.insertHistory.length - 1] === '$') {
+            if (this.insertHistory[this.insertHistory.length - 2] === '$') {
+                const textRange = op.previousTextRange(this.currentContainer())
+                if (textRange.cloneContents().textContent.match(/[￥$]/)) {
+                    textRange.deleteContents()
+                }
+
+                const range = document.getSelection().getRangeAt(0)
+                const [, noticable] = html.insertContentItem(this.currentContainer(), {
+                    'tagName': 'math',
+                    'textContent': '',
+                }, range)
+
+                const math = noticable[0] as any as InlineMath
+                math.root.click()
+                return true
+            }
+        } else if (this.insertHistory[this.insertHistory.length - 1] === '/') {
+            this.props.onContextMenu(new SlashContextMenuEvent({
+                'callback': (data) => { },
+                'key': '/'
+            }))
+        }
+
     }
 
     defaultHandleKeyDown(e: React.KeyboardEvent) {
@@ -1033,28 +1082,10 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             this.insertHistory.splice(0, this.insertHistory.length)
         }
 
-        if (this.insertHistory[this.insertHistory.length - 1] === '$') {
-            if (this.insertHistory[this.insertHistory.length - 2] === '$') {
-                const textRange = op.previousTextRange(this.currentContainer())
-                if (textRange.cloneContents().textContent.match(/[￥$]/)) {
-                    textRange.deleteContents()
-                }
-                const [node, noticable] = this.lazyCreateElement({
-                    'tagName': 'math',
-                    'textContent': '',
-                })
-
-                const range = document.getSelection().getRangeAt(0)
-                range.insertNode(node[0])
-                noticable[0].componentDidMount()
-                const math = noticable[0] as any as InlineMath
-                math.root.click()
-                e.preventDefault()
-                e.stopPropagation()
-                return
-            }
+        if (this.tryHandleShortType(e)) {
+            e.preventDefault()
+            return
         }
-
 
         if (e.key === "Enter") {
             const pos = op.currentPosition(this.currentContainer())
@@ -1062,7 +1093,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 const lb: HTMLLabelElement = pos.container as HTMLLabelElement
                 lb.click()
                 // lb.classList.add("inline-key-hovered");
-                this.boundhint.autoUpdate({ root: this.currentContainer(), enter: true, keyboardEvent: e })
+                this.richhint.autoUpdate({ root: this.currentContainer(), enter: true, keyboardEvent: e })
                 e.preventDefault()
                 return
             }
@@ -1120,7 +1151,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 if (op.supportStyleKey(e.key)) {
                     this.dispatchInputEvent()
                     op.applyStyle(e.key, this.currentContainer());
-                    this.boundhint.autoUpdate({ force: true, root: this.currentContainer() })
+                    this.richhint.autoUpdate({ force: true, root: this.currentContainer() })
 
                     this.lastEditTime = new Date().getTime()
 
@@ -1169,26 +1200,27 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             })
         }
 
-        this.boundhint.safeMouseClick(this.editableRoot())
+        this.richhint.safeMouseClick(this.editableRoot())
         if (op.findParentMatchTagName(e.target as any, 'label', this.editableRoot())) {
-            this.boundhint.remove()
+            this.richhint.remove()
             return
         }
         // 取消这一行的效果，否则会导致按下时的选中位置和实际位置不一致
-        // this.boundhint.hintElement(e.target)
-
+        // this.richhint.hintElement(e.target)
 
         this.handleMouseDown(e)
     }
 
     defaultHandleMouseUp(e: React.MouseEvent) {
         console.log([this.blockData().order, 'MouseUp', e])
-        if (op.findParentMatchTagName(e.target as any, 'label', this.editableRoot())) {
-            this.boundhint.remove()
+        
+        if (op.isTag(e.target as any, 'input') || op.isTag(e.target as any, 'textarea')) {
+            this.richhint.remove()
             return
         }
 
-        const valid = this.boundhint.safeMousePosition()
+
+        const valid = this.richhint.safeMousePosition()
         if (!valid) { // 非合法的位置
             const parent = op.findParentMatchTagName(e.target as Node, 'label', this.currentContainer())
             if (parent) {
@@ -1196,7 +1228,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 op.setPosition(pos)
             }
         }
-        this.boundhint.autoUpdate({ root: this.currentContainer(), click: true, mouseEvent: e })
+        this.richhint.autoUpdate({ root: this.currentContainer(), click: true, mouseEvent: e })
         console.log()
     }
 
@@ -1290,6 +1322,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
                 this.props.className,
                 this.className
             ].join(' ')}
+            style={this.style}
             data-block-id={this.props.uid}
             ref={this.ref}
             onMouseLeave={this.defaultHandleMouseLeave}
@@ -1302,6 +1335,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             onCompositionUpdate={this.handleCompositionUpdate}
             onMouseDown={this.defaultHandleMouseDown}
             onMouseUp={this.defaultHandleMouseUp}
+
             onBlur={this.handleBlur}
             onFocus={this.handleFocus}
         >

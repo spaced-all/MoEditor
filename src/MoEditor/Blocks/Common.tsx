@@ -2,31 +2,7 @@ import React, { CSSProperties } from "react";
 import * as op from "../utils"
 import { ContentItem } from "../types";
 
-export function serialize() {
 
-}
-
-export function parseBaseContent(el: Node): ContentItem {
-    const children = []
-    el.childNodes.forEach(item => {
-        children.push(parseBaseContent(item))
-    })
-
-    return {
-        'tagName': op.getTagName(el),
-        'children': children,
-        'textContent': ''
-    }
-
-}
-
-// export function parseContent(el: HTMLElement): ContentItem[] {
-//     const res = []
-//     el.childNodes.forEach(item => {
-//         res.push(parseBaseContent(item))
-//     })
-//     return res
-// }
 
 
 export function parseContent(el: Node[] | Node | HTMLElement[] | HTMLElement): ContentItem[] {

@@ -106,6 +106,10 @@ export interface ImageData extends InnerBlockData {
   caption?: ContentItem[];
 }
 
+// export interface BlockLayout {
+//   next: "horizontal" | "vertical" | "float";
+// }
+
 export type BlockTypeName =
   | "heading"
   | "paragraph"
@@ -139,6 +143,8 @@ export interface DefaultBlock {
   image?: ImageData;
   code?: CodeData;
   link?: LinkCardData;
+
+  layout?;
 }
 
 export type DefaultBlockData = DefaultBlock;

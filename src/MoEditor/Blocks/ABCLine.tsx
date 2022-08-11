@@ -5,6 +5,7 @@ import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../utils"
 import { MergeEvent, MergeResult } from "./events";
 import { parseContent } from "./Common";
+import * as html from "../html"
 
 
 export interface ABCLineProps extends ABCBlockProps {
@@ -134,6 +135,8 @@ export abstract class ABCLine<
         })
         e.preventDefault()
     }
+
+
     lazyRender(container: HTMLElement, prevProps: DefaultBlock, nextProps: DefaultBlock): void {
         if (prevProps && prevProps.lastEditTime === nextProps.lastEditTime) {
             return
@@ -143,15 +146,8 @@ export abstract class ABCLine<
             this.storePosition()
         }
         const data = this.props.data
+        html.putContentItem(container, data[data.type].children)
 
-        container.innerHTML = ''
-        const [nodes, noticable] = this.lazyCreateElement(data[data.type].children)
-        if (nodes) {
-            nodes.forEach(c => {
-                container.appendChild(c)
-            })
-            noticable.forEach(c => c.componentDidMount())
-        }
         if (this.currentContainer()) {
             this.releasePosition()
         }

@@ -1,5 +1,5 @@
 import React from "react";
-import { DefaultBlockData, TargetPosition } from "../types";
+import { ContentItem, DefaultBlockData, TargetPosition } from "../types";
 
 type UpdateType = "archive" | "create" | "update";
 
@@ -58,7 +58,35 @@ export type SplitEventHandler = (event: SplitEvent) => void;
 export interface DataUpdateEvent {
   block: DefaultBlockData;
 }
+
+export interface Checkpoint {
+  type: "block" | "operation" | "input" | "inputComponent";
+  input?: {
+    type: "insert" | "delete";
+    index: number;
+    offset: number;
+    data: string;
+  };
+  inputComponent?: {
+    type: "insert" | "delete";
+    index: number;
+    offset: number;
+    data: ContentItem[];
+  };
+  operation?: {
+    type: string;
+    name: string;
+  };
+  block?: DefaultBlockData;
+  time: number;
+}
+
+export interface CheckpointEvent {
+  data: Checkpoint;
+}
+
 export type DataUpdateEventHandler = (event: DataUpdateEvent) => void;
+export type CheckpointEventHandler = (event: CheckpointEvent) => void;
 
 export class JumpEvent {
   // focusEvent?: React.FocusEvent;
@@ -74,3 +102,18 @@ export type JumpEventHandler = (event: JumpEvent) => void;
 
 export class CaretChangeEvent {}
 export type CaretChangeEventHandler = (event: CaretChangeEvent) => void;
+
+export interface ContextMenuEvent {
+  key: string;
+  callback: (data: any) => void;
+}
+
+export class SlashContextMenuEvent implements ContextMenuEvent {
+  key: string;
+  callback: (data: any) => void;
+  constructor(props: ContextMenuEvent) {
+    this.callback = props.callback;
+    this.key = props.key;
+  }
+}
+export type ContextMenuEventHandler = (event: ContextMenuEvent) => void;

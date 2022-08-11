@@ -50,7 +50,7 @@ function createSpan(...className: string[]) {
   return span;
 }
 
-export class ABCBoundHint {
+export class ABCRichHint {
   hintStyle(el: HTMLElement) {}
   hintSpace(el: Text) {}
   _safeOffset(
@@ -66,13 +66,13 @@ export class ABCBoundHint {
   remove() {}
 }
 
-export type BoundHintType<T extends ABCBoundHint> = T;
+export type RichHintType<T extends ABCRichHint> = T;
 
-export class CodeBoundHint extends ABCBoundHint {}
+
 /**
  * to display current user caret element bound
  */
-export class BoundHint extends ABCBoundHint {
+export class RichHint extends ABCRichHint {
   ref: Node;
   left: HTMLSpanElement;
   right: HTMLSpanElement;
@@ -107,13 +107,13 @@ export class BoundHint extends ABCBoundHint {
     this.label = null;
     this.text = op.makeText(" ");
     this.ref = null;
-    if (BoundHint._instance) {
-      return BoundHint._instance;
+    if (RichHint._instance) {
+      return RichHint._instance;
     }
-    BoundHint._instance = this;
+    RichHint._instance = this;
   }
 
-  isBoundhint(el: HTMLElement) {
+  isRichHint(el: HTMLElement) {
     return op.isTag(el, "span") && el.classList.contains("bound-hint");
   }
   bind() {
@@ -228,7 +228,7 @@ export class BoundHint extends ABCBoundHint {
       const offset = range.startOffset;
 
       if (op.isTag(container, "#text")) {
-        if (!this.isBoundhint(container.parentElement)) {
+        if (!this.isRichHint(container.parentElement)) {
           return true;
         }
 
@@ -274,7 +274,7 @@ export class BoundHint extends ABCBoundHint {
         console.log(newPos);
         range.setStart(newPos.container, newPos.offset);
         range.setEnd(newPos.container, newPos.offset);
-      } else if (this.isBoundhint(container as HTMLElement)) {
+      } else if (this.isRichHint(container as HTMLElement)) {
         const pos = op.previousValidPosition(
           container.parentElement,
           container,

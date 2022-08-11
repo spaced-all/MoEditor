@@ -1,7 +1,9 @@
 import React from "react";
 import { DefaultBlockData, BlockId, TargetPosition } from "../types"
 import produce from "immer"
-import { BlockUpdateEventHandler, DataUpdateEvent, JumpEvent, MergeEvent, SplitEvent } from "../Blocks/events";
+import { BlockUpdateEventHandler, CheckpointEvent, DataUpdateEvent, JumpEvent, MergeEvent, SplitEvent } from "../Blocks/events";
+// import ReactDOM from "react-dom";
+import { createRoot } from 'react-dom/client';
 
 import { blockRegistor } from "../plugable"
 import { ABCBlock, ABCBlockType } from "../Blocks/ABCBlock";
@@ -19,10 +21,14 @@ interface PageProps {
 }
 
 interface PageStates {
-    orderedBlock?: { [key: string]: DefaultBlockData }
     order?: string[]
+    orderedBlock?: { [key: string]: DefaultBlockData }
+
     focused: string
     posHistory?: TargetPosition
+
+    mode: 'edit' | 'selection' | 'preview'
+    selectedBlock: { [key: string]: string },
 }
 
 export class Page extends React.Component<PageProps, PageStates> {
@@ -37,6 +43,8 @@ export class Page extends React.Component<PageProps, PageStates> {
         })
         let order = blocks.map(item => item.order).sort()
         this.state = {
+            mode: 'edit',
+            selectedBlock: {},
             orderedBlock,
             order,
             focused: order[0]
@@ -74,9 +82,11 @@ export class Page extends React.Component<PageProps, PageStates> {
     componentDidUpdate(prevProps: Readonly<PageProps>, prevState: Readonly<PageStates>, snapshot?: any): void {
 
     }
+
     handleBlur(evt: React.FocusEvent, ind: number) {
 
     }
+
     handleMerge(evt: MergeEvent, ind: number) {
         const { order, orderedBlock } = this.state
         let neighbor: DefaultBlockData
@@ -128,6 +138,10 @@ export class Page extends React.Component<PageProps, PageStates> {
 
         })
     }
+    handleCheckpoint(e: CheckpointEvent, ind: number) {
+
+    }
+
     handleDataUpdate(evt: DataUpdateEvent, ind: number) {
         const { order, orderedBlock } = this.state
         const newOrderedBlock = produce(orderedBlock, draft => {
@@ -194,6 +208,17 @@ export class Page extends React.Component<PageProps, PageStates> {
         })
         this.setState(newState)
     }
+    handleContextMenu(e, ind) {
+        console.log(e)
+        const s = document.createElement('div')
+        const root = createRoot(s, {
+            'onRecoverableError': (err) => {
+                console.log('finished ?')
+            }
+        })
+        
+        root.render(<p>hello world</p>)
+    }
     render(): React.ReactNode {
         const { order, orderedBlock } = this.state
 
@@ -221,16 +246,20 @@ export class Page extends React.Component<PageProps, PageStates> {
                     key: block.order,
                     uid: block.order,
                     data: block,
-                    meta: {},
+                    meta: {
+                        mode: this.state.mode,
+                    },
                     // jumpHistory: active ? this.state.posHistory : undefined,
                     posHistory: active ? this.state.posHistory : undefined,
                     // posHistory: this.state.posHistory,
                     active: active,
                     // onBlur: e => this.handleBlur(e, ind),
+                    onCheckpoint: e => this.handleCheckpoint(e, ind),
                     onDataUpdate: e => this.handleDataUpdate(e, ind),
                     onSplit: e => this.handleSplit(e, ind),
                     onMerge: e => this.handleMerge(e, ind),
                     onActiveShouldChange: e => this.handleActiveShouldChange(e, ind),
+                    onContextMenu: e => this.handleContextMenu(e, ind),
                 })
                 return blockEl
             })}

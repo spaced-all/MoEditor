@@ -5,6 +5,7 @@ import { ABCBlock, ABCBlockProps, ABCBlockStates } from "./ABCBlock";
 import * as op from "../utils"
 import { MergeEvent, MergeResult } from "./events";
 import { parseContent } from "./Common";
+import * as html from "../html"
 
 export interface ABCListProps extends ABCBlockProps {
 }
@@ -268,7 +269,7 @@ export abstract class ABCList<
                 draft.lastEditTime = op.getTime()
             })
 
-            this.lazyPutContentItem(newLi, remains)
+            html.putContentItem(newLi, remains)
 
             this.setTargetPosition({
                 'index': index,
@@ -371,7 +372,8 @@ export abstract class ABCList<
                 }
                 indexs.push(parseFloat(el.getAttribute('data-index')))
             })
-            this.lazyPutContentItem(newLi, remains)
+            html.putContentItem(newLi, remains)
+
             this.setTargetPosition({
                 'index': index,
                 offset: offset,
@@ -460,7 +462,23 @@ export abstract class ABCList<
         }
     }
 
+    lazyRenderInnerContainer(root: HTMLElement, prevProps: DefaultBlock, nextProps: DefaultBlock): void {
+        const children: IndentItem[] = nextProps[nextProps.type].children
+        let containers = root.querySelectorAll('li')
 
+        let sizeDelta = children.length - containers.length
+        while (sizeDelta > 0) {
+            const newLi = this.createLi(0, 0)
+            root.appendChild(newLi)
+            sizeDelta--
+        }
+
+        containers.forEach((container, ind, arr) => {
+            const nextItem: IndentItem = nextProps[nextProps.type].children[ind]
+            this.updateLi(container, nextItem.level, ind, 1)
+        })
+
+    }
     lazyRender(container: HTMLElement, prevProps: DefaultBlock, nextProps: DefaultBlock): void {
         console.log(prevProps)
         if (prevProps && prevProps.lastEditTime === nextProps.lastEditTime) {
@@ -470,17 +488,7 @@ export abstract class ABCList<
             this.storePosition()
         }
 
-        const children: IndentItem[] = nextProps[nextProps.type].children
-        let containers = container.querySelectorAll('li')
-
-        let sizeDelta = children.length - containers.length
-        while (sizeDelta > 0) {
-            const newLi = this.createLi(0, 0)
-            container.appendChild(newLi)
-            sizeDelta--
-        }
-        containers = container.querySelectorAll('li')
-
+        const containers = container.querySelectorAll('li')
 
         containers.forEach((container, ind, arr) => {
             const nextItem: IndentItem = nextProps[nextProps.type].children[ind]
@@ -494,14 +502,9 @@ export abstract class ABCList<
             console.log(prevProps)
 
             this.updateLi(container, nextItem.level, ind)
-            container.innerHTML = ''
-            const [nodes, noticable] = this.lazyCreateElement(nextItem.children)
-            if (nodes) {
-                nodes.forEach(c => {
-                    container.appendChild(c)
-                })
-                noticable.forEach(c => c.componentDidMount())
-            }
+
+            html.putContentItem(container, nextItem.children)
+
         })
         this.updateValue()
         if (this.currentContainer()) {

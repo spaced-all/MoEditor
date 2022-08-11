@@ -1,5 +1,4 @@
 import React from "react";
-import { BoundHint, BoundHintType, CodeBoundHint } from "../boundhint";
 import { DefaultBlock, DefaultBlockData } from "../types";
 // import { highlight, languages } from 'prismjs/components/prism-core';
 import * as op from "../utils"
@@ -20,9 +19,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
     serialize(): DefaultBlockData {
         return this.props.data
     }
-    protected get disableBoundHint(): boolean {
-        return true
-    }
+
     // static defaultProps = ABCBlock.defaultProps;
     static blockName = 'code';
 
@@ -38,7 +35,6 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
             code: this.props.data.code.code.join('\n'),
             hover: false
         }
-        // this.boundhint = new CodeBoundHint() as any
         this.textareaRef = React.createRef();
         this.renderRef = React.createRef();
     }
@@ -82,6 +78,15 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
             // this.forceUpdate()  // not work
         }
     }
+
+    protected get style(): React.CSSProperties {
+        return {
+            fontFamily: '"Fira code", "Fira Mono", monospace',
+            fontSize: 16,
+            ...styles.container
+        }
+    }
+    
     defaultHandleMouseEnter(e: React.MouseEvent): void {
         console.log(e)
         this.setState({
@@ -96,8 +101,8 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
         })
         this.forceUpdate()
     }
-    render(): React.ReactNode {
 
+    renderContentEditable(): JSX.Element {
         const contentStyle = {
             paddingTop: 30,
             paddingRight: 30,
@@ -105,16 +110,10 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
             paddingLeft: 30,
         };
 
-        return <div
-            style={{
-                fontFamily: '"Fira code", "Fira Mono", monospace',
-                fontSize: 16,
-                ...styles.container
-            }}
-        >
+        return <>
             <textarea
-                onMouseEnter={this.defaultHandleMouseEnter}
-                onMouseLeave={this.defaultHandleMouseLeave}
+                // onMouseEnter={this.defaultHandleMouseEnter}
+                // onMouseLeave={this.defaultHandleMouseLeave}
                 ref={this.textareaRef}
                 style={{
                     ...styles.editor,
@@ -123,7 +122,7 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                 }}
                 onFocus={(e) => {
                     console.log(['textarea'])
-                    this.boundhint.remove()
+                    this.richhint.remove()
                 }}
                 value={this.state.code}
                 onKeyDown={this.defaultHandleKeyDown}
@@ -167,9 +166,9 @@ export class Code extends ABCBlock<CodeProps, CodeStats, HTMLElement, HTMLPreEle
                     </div>
                 </React.Fragment>
             }
-
-        </div>
+        </>
     }
+
 }
 
 

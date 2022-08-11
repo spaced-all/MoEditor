@@ -1,12 +1,26 @@
-# MoEditor
+# Mono Editor
 
 一款基于 React 的、块级风格的、Markdown 友好的，富文本编辑器。
 
-## 特性
+# 动机即特性
+
+- 开发者视角
+  - 需要开源
+  - 需要能自定义众多的行内组件和 Block 组件
+    - 比如行内公式、at、link...
+    - 比如 Notion 或者 yuque 的各种 Card
+- 笔记软件视角
+  - 需要一个 Block-Style 的编辑器
+  - 需要能支撑 Block 级别的双链
+- 使用者视角
+  - 需要有文本编辑器编辑 Markdown 一样的丝滑体验，不需要担心富文本的格式边界
+  - 需要丰富的富文本类型支持，加粗、斜体、下划线删除线、高亮、code...
+
+## Features
 
 - 是富文本编辑器：各类 Markdown 编辑器中会出现的编辑时的图片显示
 - 是块级粒度的编辑器：总之就是块级粒度的编辑器。
-- Markdown-style：通过边界提示（BoundHint），即在格式边界添加 Markdown-like 的格式提示，绕过了一般富文本无法解决的边界格式问题（比如在加粗文本旁无法追加普通文本）。
+- Markdown-style：通过边界提示（RichHint），即在格式边界添加 Markdown-like 的格式提示，绕过了一般富文本无法解决的边界格式问题（比如在加粗文本旁无法追加普通文本）。
 - 丰富的 Block 类型：
   - Paragraph、Blockquote、Heading
   - List、Ordered List、TODO List
@@ -46,7 +60,7 @@ npm run start
 如果你不满，那么下面是我发现的其他高星 editor：
 
 - https://github.com/ianstormtaylor/slate
-- 
+-
 
 # 交流地点
 

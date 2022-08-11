@@ -99,7 +99,7 @@ export class Heading extends ABCLine<HeadingProps, HeadingStats, HTMLHeadingElem
     makeContentEditable(contentEditable: React.ReactNode): React.ReactNode {
         return <div
             className="heading">
-            {
+            {/* {
                 this.props.active &&
                 <Position
                     placement="left-start"
@@ -111,7 +111,7 @@ export class Heading extends ABCLine<HeadingProps, HeadingStats, HTMLHeadingElem
                         {this.contentEditableName}
                     </span>
                 </Position>
-            }
+            } */}
             {
                 contentEditable
             }
