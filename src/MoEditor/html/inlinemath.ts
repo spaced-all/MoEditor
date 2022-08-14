@@ -62,12 +62,12 @@ export class InlineMath implements Noticable {
     space.textContent = "-";
     span.classList.add("display-math");
 
-    span.addEventListener("mouseenter", (e) => {
-      span.style.backgroundColor = "lightblue";
-    });
-    span.addEventListener("mouseleave", (e) => {
-      span.style.backgroundColor = "";
-    });
+    // span.addEventListener("mouseenter", (e) => {
+    //   span.style.backgroundColor = "lightblue";
+    // });
+    // span.addEventListener("mouseleave", (e) => {
+    //   span.style.backgroundColor = "";
+    // });
     root.addEventListener("click", (e) => {
       if (ipt.style.display !== "none") {
         return;

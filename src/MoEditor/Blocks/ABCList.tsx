@@ -463,6 +463,9 @@ export abstract class ABCList<
     }
 
     lazyRenderInnerContainer(root: HTMLElement, prevProps: DefaultBlock, nextProps: DefaultBlock): void {
+        if (prevProps && prevProps.lastEditTime === nextProps.lastEditTime) {
+            return
+        }
         const children: IndentItem[] = nextProps[nextProps.type].children
         let containers = root.querySelectorAll('li')
 
@@ -473,10 +476,10 @@ export abstract class ABCList<
             sizeDelta--
         }
 
-        containers.forEach((container, ind, arr) => {
-            const nextItem: IndentItem = nextProps[nextProps.type].children[ind]
-            this.updateLi(container, nextItem.level, ind, 1)
-        })
+        // containers.forEach((container, ind, arr) => {
+        //     const nextItem: IndentItem = nextProps[nextProps.type].children[ind]
+        //     this.updateLi(container, nextItem.level, ind, 1)
+        // })
 
     }
     lazyRender(container: HTMLElement, prevProps: DefaultBlock, nextProps: DefaultBlock): void {
@@ -499,7 +502,7 @@ export abstract class ABCList<
                     return
                 }
             }
-            console.log(prevProps)
+            // console.log(prevProps)
 
             this.updateLi(container, nextItem.level, ind)
 

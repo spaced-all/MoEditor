@@ -22,6 +22,11 @@ const data1: DefaultBlockData[] = [
         { 'tagName': 'i', 'textContent': ' Italic ' },
         { 'tagName': 'code', 'textContent': ' Inline Code ' },
         { 'tagName': 'math', 'textContent': 'f_i(x_t)=a_ix^2_t+b_i' },
+        { 'tagName': 'em', 'textContent': 'red', 'attributes': { 'className': 'em-red' } },
+        { 'tagName': 'em', 'textContent': 'blue', 'attributes': { 'className': 'em-blue' } },
+        { 'tagName': 'em', 'textContent': 'green', 'attributes': { 'className': 'em-green' } },
+        { 'tagName': 'em', 'textContent': 'blank', 'attributes': { 'className': 'em-blank' } },
+        { 'tagName': 'em', 'textContent': 'yellow', 'attributes': { 'className': 'em-yellow' } },
       ]
     }
   },

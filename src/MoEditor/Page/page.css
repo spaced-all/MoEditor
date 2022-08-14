@@ -6,6 +6,8 @@
     white-space: break-spaces;
 }
 
+
+
 .moe-page .bound-hint {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -91,16 +93,6 @@
 }
 
 
-/* .moe-page *:focus {
-    width: fit-content;
-    min-width: 10px;
-} */
-
-.moe-page b:focus::before {
-    content: '**';
-
-}
-
 .moe-page ul,
 .moe-page ol {
     padding-top: 0.5em;
@@ -137,10 +129,7 @@
     margin-left: 2em;
 }
 
-/* 
-.label-hover {
-    background-color: gainsboro;
-} */
+
 
 .moe-page :global(.selection-board) {
     display: flex;
@@ -189,7 +178,7 @@
 
 .moe-page table {
     border-spacing: 0;
-    padding: 20px 0 
+    padding: 20px 0
 }
 
 .moe-page table td {
@@ -214,4 +203,44 @@
     /* to avoid collapsed, see https://stackoverflow.com/a/66443442/11185460 */
     content: "\00a0";
     visibility: hidden;
+}
+
+
+.moe-page label.label-keyboard-hover .display-math,
+.moe-page label .display-math:hover {
+    background-color: lightblue;
+}
+
+
+.moe-page em {
+    font-style: normal;
+}
+
+.moe-page em.em-red {
+    background: lightcoral;
+}
+
+.moe-page em.em-blank {
+    background: black;
+}
+
+.moe-page em.em-blank:hover,
+.moe-page em.em-blank-open {
+    background: lightslategray;
+}
+
+.moe-page em.em-green {
+    background: lightgreen;
+}
+
+.moe-page em.em-blue {
+    background: lightskyblue;
+}
+
+.moe-page em.em-green {
+    background: lightgreen;
+}
+
+.moe-page em.em-yellow {
+    background: lightgoldenrodyellow;
 }

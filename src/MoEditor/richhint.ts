@@ -11,9 +11,10 @@ const leftTag = {
   a: "[",
   b: "**",
   i: "*",
-  s: "~",
+  s: "-",
   u: "\u00a0",
   code: "`",
+  em: "\u00a0",
   // 'span': " ",
   // 'h1': '\u00a0',
   // 'h2': '\u00a0',
@@ -32,6 +33,7 @@ const rightTag = {
   i: "*",
   s: "~",
   u: "\u00a0",
+  em: "\u00a0",
   // 'ul': '',
   // 'ol': '',
   code: "`",
@@ -68,12 +70,11 @@ export class ABCRichHint {
 
 export type RichHintType<T extends ABCRichHint> = T;
 
-
 /**
  * to display current user caret element bound
  */
 export class RichHint extends ABCRichHint {
-  ref: Node;
+  ref: Text | HTMLLabelElement;
   left: HTMLSpanElement;
   right: HTMLSpanElement;
   blockRight: HTMLSpanElement;
@@ -143,6 +144,40 @@ export class RichHint extends ABCRichHint {
       this._removeElementl(this.left, this.right);
     }
   }
+
+  specilize(el: HTMLElement) {
+    // console.log(["specilize", el]);
+    switch (op.getTagName(el)) {
+      case "em":
+        if (el.classList.contains("em-blank")) {
+          el.classList.replace("em-blank", "em-blank-open");
+        }
+        break;
+      case "label":
+        el.classList.add("label-keyboard-hover");
+        break;
+    }
+  }
+  restoreNormal(el: HTMLElement) {
+    if (!el) {
+      return;
+    }
+    if (el instanceof Text) {
+      el = el.parentElement;
+    }
+    // console.log(["restore", el]);
+    switch (op.getTagName(el)) {
+      case "em":
+        if (el.classList.contains("em-blank-open")) {
+          el.classList.replace("em-blank-open", "em-blank");
+        }
+        break;
+      case "label":
+        el.classList.remove("label-keyboard-hover");
+        break;
+    }
+  }
+
   hintSpace(el: Text) {
     const left = op.firstNeighborTextNode(el);
     const right = op.lastNeighborTextNode(el);
@@ -331,7 +366,7 @@ export class RichHint extends ABCRichHint {
       this.remove();
       return;
     }
-    console.log(sel.focusNode);
+    // console.log(sel.focusNode);
     if (
       op.isTag(document.activeElement, "input") ||
       op.isTag(document.activeElement, "textarea")
@@ -377,36 +412,44 @@ export class RichHint extends ABCRichHint {
     }
 
     if (el === this.ref && !force) {
+      this.specilize(this.ref as HTMLElement);
       return;
     }
 
-    let pl = op.findParentMatchTagName(el, "label", root) as HTMLLabelElement;
-    if (pl) {
-      // focusNode is label
+    let tryLabel = op.findParentMatchTagName(
+      el,
+      "label",
+      root
+    ) as HTMLLabelElement;
 
-      const pos = op.createPosition(root as HTMLElement, pl, 0);
+    if (tryLabel) {
+      const pos = op.createPosition(root as HTMLElement, tryLabel, 0);
       op.setPosition(pos);
       console.log(pos);
       this.remove();
-      this.ref = pl;
-      this.label = pl;
+      this.specilize(tryLabel);
+      this.restoreNormal(this.ref as HTMLElement);
+      this.ref = tryLabel;
+
       return;
-    } else if (this.label) {
-      this.label.classList.remove("inline-key-hovered");
-      this.label.classList.remove("inline-hovered");
     }
 
     if (!op.isTag(el, "#text")) {
       el = el.childNodes[offset];
     }
+    // if (op.isTag(el, "em")) {
+    //   debugger;
+    // }
 
+    this.specilize(el.parentElement);
     this.hintStyle(el.parentElement);
     if (!multiSelect) {
       this.hintSpace(el as Text);
     } else {
       this.removeText();
     }
-    this.ref = el;
+    this.restoreNormal(this.ref as HTMLElement);
+    this.ref = el as Text;
   }
 
   _removeElementl(...el: HTMLElement[]) {
@@ -422,6 +465,7 @@ export class RichHint extends ABCRichHint {
   }
 
   remove() {
+    this.restoreNormal(this.ref as HTMLElement);
     this._removeElementl(this.left, this.right, this.leftText, this.rightText);
     this.ref = null;
     if (this.text.textContent.trim() === "" && this.text.parentElement) {

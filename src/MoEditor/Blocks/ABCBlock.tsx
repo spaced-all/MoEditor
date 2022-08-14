@@ -422,14 +422,18 @@ export abstract class ABCBlock<P extends ABCBlockProps,
             return
         }
 
+        this.richhint.remove()
         if (this.lastEditTime) {
-            this.richhint.remove()
             this.props.onDataUpdate({
                 // need diff or trigger to ignore unchanged block to call serialize()
                 'block': this.serialize()
             })
             this.lastEditTime = null
         }
+    }
+
+    handleOuterEvent(event) {
+
     }
 
     setTargetPosition(posHistory: TargetPosition) {
@@ -483,7 +487,8 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     }
 
     handleFocus(e: React.FocusEvent) {
-        console.log([this.blockData().order, 'focus', e])
+        console.log([this.blockData().order, 'focus', e, e.relatedTarget])
+        
 
         let label;
 
@@ -525,7 +530,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         }
         this.clearJumpHistory()
 
-        // false to aligns the element to the nearest edge in the visible area
+
         root.scrollIntoViewIfNeeded(false)
     }
 
@@ -1213,7 +1218,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     defaultHandleMouseUp(e: React.MouseEvent) {
         console.log([this.blockData().order, 'MouseUp', e])
-        
+
         if (op.isTag(e.target as any, 'input') || op.isTag(e.target as any, 'textarea')) {
             this.richhint.remove()
             return

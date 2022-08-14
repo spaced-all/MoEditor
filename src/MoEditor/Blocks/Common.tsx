@@ -66,6 +66,12 @@ export function parseContent(el: Node[] | Node | HTMLElement[] | HTMLElement): C
                     href: (el as HTMLElement).getAttribute('href')
                 }
             }
+            if (elName === 'em') {
+                res['attributes'] = {
+                    className: (el as HTMLElement).getAttribute('class')
+                }
+            }
+
 
             break
     }
