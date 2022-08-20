@@ -1,17 +1,26 @@
 import * as b from "./Blocks";
-import { blockRegistor } from "./plugable";
+import { registerManager } from "./register";
 
-[
-  b.Paragraph,
-  b.Heading,
-  b.List,
-  b.OList,
-  b.Table,
-  b.Blockquote,
-  b.Code,
-].forEach((item) => {
-  blockRegistor.regist<any>(item);
-});
 export * from "./Page";
 export * from "./Blocks";
-export { blockRegistor } from "./plugable";
+
+export { registerManager } from "./register";
+
+// registerManager.create("default_blocks");
+// registerManager.create("blocks");
+// registerManager.create("bars");
+
+// [
+//   b.Paragraph,
+//   b.Blockquote,
+//   b.Heading,
+
+//   b.List,
+//   b.OList,
+
+//   b.Table,
+
+//   b.Code,
+// ].forEach((item) => {
+//   registerManager.get("default_blocks").put(item.blockName, item);
+// });

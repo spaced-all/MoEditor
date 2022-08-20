@@ -6,6 +6,7 @@ import { OList } from "./OrderedList"
 import { Table } from "./Table"
 import { Blockquote } from "./Blockquote"
 import { Code } from "./Code"
+import { BlockComponent, BlockComponentStatic as BlockComponentClass } from "./types"
 
 export { Paragraph } from "./Paragraph"
 export { Heading } from "./Heading"
@@ -16,17 +17,10 @@ export { Blockquote } from "./Blockquote"
 export { Code } from "./Code"
 
 
-export type BlockElement = Paragraph |
-    Heading |
-    List |
-    OList |
-    Table |
-    Blockquote |
-    Code
 
 
 
-export const blockRegister = registerManager.create<BlockElement>("blocks");
+export const blockRegister = registerManager.create<BlockComponentClass<any>>("blocks");
 
 [
     Paragraph,
@@ -40,5 +34,5 @@ export const blockRegister = registerManager.create<BlockElement>("blocks");
 
     Code,
 ].forEach((item) => {
-    registerManager.get("blocks").put(item.blockName, item);
+    blockRegister.put(item.blockName, item);
 });

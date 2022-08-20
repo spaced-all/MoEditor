@@ -37,6 +37,7 @@ import * as op from "../utils"
 import { RichHint as RichHint, RichHintType } from "../richhint";
 import { } from "react-dom";
 import { InlineMath } from "../html/inlinemath";
+import { BlockComponent } from "./types";
 
 
 export interface ABCBlockStates {
@@ -80,23 +81,15 @@ export interface ABCBlockProps {
 }
 
 
-export interface IBlock<P extends ABCBlockProps,
-    S extends ABCBlockStates,
-    O extends HTMLElement,
-    I extends HTMLElement> {
-    props: P;
-    state: S;
-    ref: React.RefObject<HTMLDivElement>;
 
-}
 
 export abstract class ABCBlock<P extends ABCBlockProps,
     S extends ABCBlockStates,
     O extends HTMLElement, // outer block element type
-    I extends HTMLElement // inner block element type
+    I extends HTMLElement // inner container element type
     >
     extends React.Component<P, S>
-    implements IBlock<P, S, O, I> {
+    implements BlockComponent<I>{
 
     protected get contentEditableName(): string {
         return "p"
@@ -220,7 +213,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     ref: React.RefObject<HTMLDivElement>;
     editableRootRef: React.RefObject<O>; // contentEditable element
 
-    isComposition?: boolean
+    inComposition?: boolean
     constructor(props: P) {
         super(props);
         this.richhint = new RichHint()
@@ -228,7 +221,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
         this.posHistory = null
         this.caret = null;
         this.lastEditTime = null
-        this.isComposition = false
+        this.inComposition = false
         this.insertHistory = []
 
         this.ref = React.createRef();
@@ -362,8 +355,9 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     }
 
-    getContainerByIndex(index: number | number[]): I {
-        if (index === 0 || index === -1) {
+    getContainerByIndex(...indexs: number[]): I {
+        const idx = indexs[0]
+        if (idx === 0 || idx === -1) {
             return this.editableRoot() as any as I
         }
         return null
@@ -415,7 +409,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     handleBlur(e) {
         console.log([this.blockData().order, 'blur', e])
-        this.isComposition = false
+        this.inComposition = false
 
         if (op.findParentMatchTagName(e.relatedTarget, 'label', this.currentContainer())) {
             e.preventDefault()
@@ -488,7 +482,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
 
     handleFocus(e: React.FocusEvent) {
         console.log([this.blockData().order, 'focus', e, e.relatedTarget])
-        
+
 
         let label;
 
@@ -597,11 +591,11 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     }
     handleCompositionStart(e: React.CompositionEvent) {
         console.log(['handleCompositionStart', this.props.data.order, e])
-        this.isComposition = true
+        this.inComposition = true
     }
     handleCompositionEnd(e: React.CompositionEvent) {
         console.log(['handleCompositionEnd', this.props.data.order, e])
-        this.isComposition = false
+        this.inComposition = false
         const sel = document.getSelection()
         const tag = sel.focusNode.parentElement
 
@@ -1071,7 +1065,7 @@ export abstract class ABCBlock<P extends ABCBlockProps,
     }
 
     defaultHandleKeyDown(e: React.KeyboardEvent) {
-        if (this.isComposition) {
+        if (this.inComposition) {
             e.preventDefault()
             e.stopPropagation()
             return

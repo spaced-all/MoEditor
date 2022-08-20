@@ -5,12 +5,12 @@ import { BlockUpdateEventHandler, CheckpointEvent, DataUpdateEvent, JumpEvent, M
 // import ReactDOM from "react-dom";
 import { createRoot } from 'react-dom/client';
 
-import { blockRegistor } from "../plugable"
 import { ABCBlock, ABCBlockType } from "../Blocks/ABCBlock";
 import { MonoRequestFn } from "../types/api";
 import "./page.css"
 import { midString } from "../utils/order";
 import ContextMenu from "../Components/ContextMenu";
+import { blockRegister } from "../Blocksv2";
 
 interface PageProps {
     ids?: BlockId[]
@@ -100,7 +100,8 @@ export class Page extends React.Component<PageProps, PageStates> {
         const mergeOrder: DefaultBlockData[] = evt.direction === 'left' ? [neighbor, evt.block] : [evt.block, neighbor]
 
         if (neighbor) {
-            const blockType = blockRegistor.createType(mergeOrder[0].type)
+
+            const blockType = blockRegister.get(mergeOrder[0].type)
             const { self, block, notImplement } = blockType.merge(mergeOrder[0], mergeOrder[1])
             // debugger
             if (!notImplement) {
@@ -216,7 +217,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                 console.log('finished ?')
             }
         })
-        
+
         root.render(<p>hello world</p>)
     }
     render(): React.ReactNode {
@@ -232,7 +233,7 @@ export class Page extends React.Component<PageProps, PageStates> {
                 }
                 var blockType: ABCBlockType<any>;
 
-                blockType = blockRegistor.createType(block.type)
+                blockType = blockRegister.get(block.type)
                 // console.log([block.type, block])
                 if (!blockType) {
                     return <></>
